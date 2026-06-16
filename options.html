@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HK Weather Alerts Options</title>
+    <link rel="stylesheet" href="shared/ui.css">
+  </head>
+  <body>
+    <main class="options-shell">
+      <header class="options-header">
+        <div>
+          <div class="title">HK Weather Alerts / 香港天氣提示</div>
+          <div class="timestamp">Options</div>
+        </div>
+      </header>
+
+      <form id="options-form" class="options-main">
+        <section class="panel">
+          <div class="section-title">Language</div>
+          <div class="choice-row">
+            <label><input type="radio" name="language" value="tc"> Traditional Chinese</label>
+            <label><input type="radio" name="language" value="en"> English</label>
+            <label><input type="radio" name="language" value="sc"> Simplified Chinese</label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">Notifications</div>
+          <div class="form-grid">
+            <label><input type="checkbox" id="notifyIssued"> Warning issued</label>
+            <label><input type="checkbox" id="notifyCancelled"> Warning cancelled</label>
+            <label><input type="checkbox" id="notifyExtended"> Warning extended</label>
+            <label><input type="checkbox" id="notifyUpdated"> Warning updated</label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">Display</div>
+          <div class="form-grid">
+            <div class="field-row">
+              <label for="badgeMode">Badge mode</label>
+              <select id="badgeMode">
+                <option value="auto">Auto</option>
+                <option value="temperature">Temperature</option>
+                <option value="warning">Warning</option>
+                <option value="off">Off</option>
+              </select>
+            </div>
+            <label><input type="checkbox" id="compactMode"> Compact mode</label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">Refresh intervals</div>
+          <div class="form-grid">
+            <div class="field-row">
+              <label for="currentRefreshMinutes">Current weather refresh minutes</label>
+              <input id="currentRefreshMinutes" type="number" min="5" max="180" step="1">
+            </div>
+            <div class="field-row">
+              <label for="warningCheckMinutes">Warning check minutes</label>
+              <input id="warningCheckMinutes" type="number" min="3" max="180" step="1">
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">About</div>
+          <div class="kv-list">
+            <div class="kv-row"><div class="label">Data source</div><div>Hong Kong Observatory Open Data</div></div>
+            <div class="kv-row"><div class="label">Disclaimer</div><div>Independent utility. Not affiliated with or endorsed by the Hong Kong Observatory.</div></div>
+          </div>
+        </section>
+
+        <div class="save-row">
+          <button type="submit" class="primary-button">Save settings</button>
+          <span id="save-status" class="muted"></span>
+        </div>
+      </form>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

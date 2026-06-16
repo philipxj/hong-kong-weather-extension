@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Weather mark">
+  <rect width="128" height="128" rx="24" fill="#2f5f98"/>
+  <circle cx="48" cy="46" r="20" fill="#ffd166"/>
+  <path d="M42 85h49a18 18 0 0 0 0-36 25 25 0 0 0-47-7 22 22 0 0 0-2 43z" fill="#eef5ff"/>
+  <path d="M44 98h44" stroke="#ffb703" stroke-width="8" stroke-linecap="round"/>
+</svg>
