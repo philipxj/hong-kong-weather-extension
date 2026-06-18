@@ -43,7 +43,10 @@ export const browserApi = {
     setTitle: (details: TitleDetails) => chrome.action.setTitle(details)
   },
   notifications: {
-    create: (details: NotificationCreateOptions) => chrome.notifications.create(details)
+    create: (details: NotificationCreateOptions) => chrome.notifications.create(details),
+    createWithId: (id: string, details: NotificationCreateOptions) =>
+      chrome.notifications.create(id, details),
+    getPermissionLevel: () => chrome.notifications.getPermissionLevel()
   },
   runtime: {
     getUrl: (path: string) => chrome.runtime.getURL(path),
