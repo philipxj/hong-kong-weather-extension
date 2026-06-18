@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "vitest";
 import { optionsCopy } from "../src/options/options-copy";
 
@@ -28,5 +29,11 @@ describe("options copy", () => {
     expect(optionsCopy("en").notificationChangesOnlyDescription).toContain("status changes");
     expect(optionsCopy("en").testNotification).toBe("Test notification");
     expect(optionsCopy("en").warningCheckMinutesDescription).toContain("background service");
+  });
+
+  test("marks the test notification button for localization", async () => {
+    const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
+    expect(html).toContain('id="test-notification"');
+    expect(html).toContain('data-i18n="testNotification"');
   });
 });
