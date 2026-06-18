@@ -275,6 +275,7 @@ const IMAGERY_TITLES: Record<Language, Record<ImageryType, string>> = {
 };
 
 const els = {
+  shell: query<HTMLElement>(".popup-shell"),
   loading: query<HTMLElement>("#loading"),
   content: query<HTMLElement>("#content"),
   updating: query<HTMLElement>("#updating"),
@@ -429,7 +430,9 @@ function render(): void {
   els.lastUpdated.textContent = `${formatUpdateTime(data.fetchedAt)} ${localized.lastUpdated}`;
 
   const caption = weatherCaption(data.current.icon, data.language);
-  els.content.dataset.weatherScene = weatherScene(data.current.icon);
+  const scene = weatherScene(data.current.icon);
+  els.shell.dataset.weatherScene = scene;
+  els.content.dataset.weatherScene = scene;
   setWeatherIcon(els.weatherIcon, data.current.icon, caption);
   els.topTemp.textContent = formatDegree(data.current.temperature);
   els.topHumidity.textContent = formatUnit(data.current.humidity, "%");

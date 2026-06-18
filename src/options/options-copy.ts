@@ -5,8 +5,6 @@ interface OptionsCopy {
   auto: string;
   badgeMode: string;
   badgeModeDescription: string;
-  compactMode: string;
-  compactModeDescription: string;
   currentRefreshMinutes: string;
   currentRefreshMinutesDescription: string;
   dataSource: string;
@@ -29,6 +27,7 @@ interface OptionsCopy {
   temperature: string;
   testNotification: string;
   testNotificationDescription: string;
+  testNotificationCreatedNoPopup: string;
   testNotificationFailed: string;
   testNotificationSent: string;
   traditionalChinese: string;
@@ -53,8 +52,6 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     badgeMode: "徽章模式",
     badgeModeDescription:
       "自動會優先顯示警告；沒有警告時顯示溫度。也可改為只顯示溫度、只顯示警告，或關閉徽章。",
-    compactMode: "精簡模式",
-    compactModeDescription: "保持 popup 使用緊湊版天文台風格版面。",
     currentRefreshMinutes: "現時天氣更新分鐘",
     currentRefreshMinutesDescription: "控制現時氣溫、濕度、紫外線及預報資料隔多久重新更新。",
     dataSource: "資料來源",
@@ -77,6 +74,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     simplifiedChineseDescription: "設定頁、popup 文字及天文台連結使用簡體中文。",
     temperature: "溫度",
     testNotification: "測試通知",
+    testNotificationCreatedNoPopup:
+      "Chrome 已建立通知，但系統未彈出；請檢查 macOS/Chrome 通知及專注模式。",
     testNotificationDescription: "立即發出一個測試通知，確認 Chrome 或系統通知設定是否已開啟。",
     testNotificationFailed: "未能發出測試通知，請檢查瀏覽器或系統通知權限。",
     testNotificationSent: "已發出測試通知",
@@ -100,8 +99,6 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     badgeMode: "徽章模式",
     badgeModeDescription:
       "自动会优先显示警告；没有警告时显示温度。也可改为只显示温度、只显示警告，或关闭徽章。",
-    compactMode: "精简模式",
-    compactModeDescription: "保持 popup 使用紧凑版天文台风格版面。",
     currentRefreshMinutes: "现时天气更新分钟",
     currentRefreshMinutesDescription: "控制现时气温、湿度、紫外线及预报资料隔多久重新更新。",
     dataSource: "资料来源",
@@ -124,6 +121,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     simplifiedChineseDescription: "设置页、popup 文字及天文台链接使用简体中文。",
     temperature: "温度",
     testNotification: "测试通知",
+    testNotificationCreatedNoPopup:
+      "Chrome 已建立通知，但系统未弹出；请检查 macOS/Chrome 通知及专注模式。",
     testNotificationDescription: "立即发出一个测试通知，确认 Chrome 或系统通知设置是否已开启。",
     testNotificationFailed: "未能发出测试通知，请检查浏览器或系统通知权限。",
     testNotificationSent: "已发出测试通知",
@@ -147,8 +146,6 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     badgeMode: "Badge mode",
     badgeModeDescription:
       "Auto shows the highest warning first, then temperature when no warning is active. You can also force temperature, warning only, or hide the badge.",
-    compactMode: "Compact mode",
-    compactModeDescription: "Keeps the popup in the compact Observatory-style layout.",
     currentRefreshMinutes: "Current weather refresh minutes",
     currentRefreshMinutesDescription:
       "Controls how often current temperature, humidity, UV index, and forecast data refresh.",
@@ -174,6 +171,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
       "Use Simplified Chinese for settings, popup labels, and Observatory links.",
     temperature: "Temperature",
     testNotification: "Test notification",
+    testNotificationCreatedNoPopup:
+      "Chrome created the notification, but the system did not show it. Check macOS/Chrome notifications and Focus mode.",
     testNotificationDescription:
       "Send a test notification now to confirm Chrome and system notifications are enabled.",
     testNotificationFailed:

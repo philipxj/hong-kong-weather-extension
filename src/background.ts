@@ -2,13 +2,15 @@ import { browserApi } from "./shared/browser-api";
 import { createInFlightTaskRunner } from "./shared/in-flight-task";
 import {
   getSettings,
+  type NotificationTestResult,
   refreshCurrentWeather,
   refreshForecast,
   refreshWeather,
   refreshWeatherWarnings,
+  sendTestNotification,
   updateBadge
 } from "./shared/weather-service";
-import type { WeatherData } from "./shared/types";
+import type { Language, WeatherData } from "./shared/types";
 
 const FORECAST_REFRESH_MINUTES = 120;
 const runRefreshTask = createInFlightTaskRunner<WeatherData>();
@@ -41,12 +43,17 @@ browserApi.alarms.onAlarm(async (alarm) => {
 });
 
 interface RefreshWeatherMessage {
+  language?: Language;
   type?: string;
 }
 
-type RefreshWeatherResponse = { ok: true; data: WeatherData } | { ok: false; error: string };
+type RuntimeMessageResponse =
+  | { ok: true; data: WeatherData }
+  | { ok: true; notification: NotificationTestResult }
+  | { ok: true }
+  | { ok: false; error: string };
 
-browserApi.runtime.onMessage<RefreshWeatherMessage, RefreshWeatherResponse>(async (message) => {
+browserApi.runtime.onMessage<RefreshWeatherMessage, RuntimeMessageResponse>(async (message) => {
   if (message?.type === "refreshWeather") {
     try {
       return { ok: true, data: await refreshAndBadge() };
@@ -57,8 +64,25 @@ browserApi.runtime.onMessage<RefreshWeatherMessage, RefreshWeatherResponse>(asyn
       };
     }
   }
+  if (message?.type === "testNotification") {
+    try {
+      const language = isLanguage(message.language)
+        ? message.language
+        : (await getSettings()).language;
+      return { ok: true, notification: await sendTestNotification(language) };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "Notification test failed"
+      };
+    }
+  }
   return undefined;
 });
+
+function isLanguage(value: unknown): value is Language {
+  return value === "tc" || value === "sc" || value === "en";
+}
 
 async function scheduleRefreshes(): Promise<void> {
   const settings = await getSettings();

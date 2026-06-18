@@ -134,6 +134,11 @@ test.describe("popup layout", () => {
           forecast: rect(".legacy-forecast"),
           forecastBackground: getComputedStyle(document.querySelector(".legacy-forecast")!)
             .backgroundColor,
+          forecastDayBackground: getComputedStyle(document.querySelector(".legacy-forecast-day")!)
+            .backgroundColor,
+          forecastDayBackgroundImage: getComputedStyle(
+            document.querySelector(".legacy-forecast-day")!
+          ).backgroundImage,
           forecastDayBorderRadius: getComputedStyle(document.querySelector(".legacy-forecast-day")!)
             .borderRadius,
           forecastDayCount: document.querySelectorAll(".legacy-forecast-day").length,
@@ -147,6 +152,11 @@ test.describe("popup layout", () => {
           special: rect(".special-weather-card"),
           sceneBackground: getComputedStyle(document.querySelector(".legacy-current")!, "::before")
             .backgroundImage,
+          shellBackground: getComputedStyle(document.querySelector(".popup-shell")!)
+            .backgroundColor,
+          specialTitleBackground: getComputedStyle(
+            document.querySelector(".special-weather-title")!
+          ).backgroundColor,
           specialContent: rect(".special-weather-content"),
           specialContentDisplay: getComputedStyle(
             document.querySelector(".special-weather-content")!
@@ -204,13 +214,16 @@ test.describe("popup layout", () => {
       expect(layout.forecastDayCount).toBe(7);
       expect(new Set(layout.forecastDayHeights).size).toBe(1);
       expect(layout.forecastBackground).not.toBe("rgba(0, 0, 0, 0)");
+      expect(layout.forecastDayBackground).not.toBe("rgb(255, 255, 255)");
+      expect(layout.forecastDayBackgroundImage).not.toBe("none");
       expect(layout.forecastDayBorderRadius).toBe("8px");
+      expect(layout.specialTitleBackground).not.toBe("rgb(255, 228, 109)");
       expect(layout.signalItemsInside).toBe(true);
       expect(layout.signalIconCount).toBe(layout.signalCount);
     });
   }
 
-  test("expands radar widget by about thirty percent", async ({ page }) => {
+  test("expands radar widget into a larger map view", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
       await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
@@ -297,10 +310,12 @@ test.describe("popup layout", () => {
       };
     });
 
-    expect(layout.card.width).toBeGreaterThanOrEqual(466);
-    expect(layout.preview.height).toBeGreaterThanOrEqual(281);
+    expect(layout.card.width).toBeGreaterThanOrEqual(528);
+    expect(layout.preview.height).toBeGreaterThanOrEqual(358);
+    expect(layout.card.top).toBeGreaterThanOrEqual(layout.shell.top);
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
+    expect(layout.card.bottom).toBeLessThanOrEqual(layout.shell.bottom);
     expect(Math.abs(layout.stepper.top - layout.tabs.top)).toBeLessThanOrEqual(1);
     expect(Math.abs(layout.stepper.bottom - layout.tabs.bottom)).toBeLessThanOrEqual(1);
     expect(expandedControls.snapshots).toBe(0);
@@ -400,6 +415,8 @@ test.describe("popup layout", () => {
   test("uses distinct weather scene backgrounds", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
 
+    const sceneStyles = [];
+
     for (const scene of ["sunny", "rain", "storm"] as const) {
       await page.setContent(
         await fixtureHtml({
@@ -414,7 +431,21 @@ test.describe("popup layout", () => {
         return getComputedStyle(node, "::before").backgroundImage;
       });
       expect(background).toContain(`${scene}.webp`);
+
+      sceneStyles.push(
+        await page.locator(".popup-shell").evaluate((node) => ({
+          rangeBackground: getComputedStyle(document.querySelector(".radar-range[aria-selected]")!)
+            .backgroundColor,
+          shellBackground: getComputedStyle(node).backgroundColor,
+          tabBackground: getComputedStyle(document.querySelector(".imagery-tab[aria-selected]")!)
+            .backgroundColor
+        }))
+      );
     }
+
+    expect(new Set(sceneStyles.map((style) => style.shellBackground)).size).toBe(3);
+    expect(new Set(sceneStyles.map((style) => style.tabBackground)).size).toBe(3);
+    expect(sceneStyles.every((style) => style.rangeBackground === style.tabBackground)).toBe(true);
   });
 });
 
@@ -448,7 +479,7 @@ async function fixtureHtml({
     <html lang="${lang}" class="popup-page">
       <head><meta charset="utf-8"><style>${css}</style></head>
       <body class="popup-page">
-        <main class="popup-shell legacy-weather">
+        <main class="popup-shell legacy-weather" data-weather-scene="${scene}">
           <div class="window-notch" aria-hidden="true"></div>
           <div class="legacy-actions"><button class="legacy-icon-button">⚙</button><button class="legacy-icon-button">⟳</button></div>
           <section class="legacy-content" data-weather-scene="${scene}">
