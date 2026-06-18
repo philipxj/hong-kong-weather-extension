@@ -1314,27 +1314,55 @@ html[lang="en"] .special-weather-content {
   right: 26px;
   bottom: 25px;
   z-index: 0;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(205, 218, 232, 0.9);
+  border-radius: 8px;
+  box-shadow:
+    0 8px 22px rgba(31, 53, 76, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(12px);
 }
 
 .legacy-forecast-list {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+  gap: 5px;
   width: 100%;
 }
 
 .legacy-forecast-day {
+  position: relative;
   display: grid;
-  grid-template-rows: 18px 38px 18px;
+  grid-template-rows: 17px 35px 17px;
   justify-items: center;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
-  padding: 3px;
+  padding: 4px 3px 3px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid #dbe3ec;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 248, 252, 0.9)), #ffffff;
+  border: 1px solid rgba(210, 222, 235, 0.96);
   border-radius: 8px;
+  box-shadow:
+    0 3px 10px rgba(31, 53, 76, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
   text-align: center;
+}
+
+.legacy-forecast-day:first-child {
+  background: linear-gradient(180deg, rgba(238, 247, 255, 0.98), rgba(255, 255, 255, 0.9)), #ffffff;
+  border-color: rgba(128, 178, 228, 0.9);
+}
+
+.legacy-forecast-day:first-child::before {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  left: 10px;
+  height: 3px;
+  content: "";
+  background: #0b72d0;
+  border-radius: 0 0 999px 999px;
 }
 
 .legacy-forecast-day:first-child {
@@ -1346,34 +1374,48 @@ html[lang="en"] .special-weather-content {
 }
 
 .legacy-forecast-date {
-  color: #4a5d70;
-  font-size: 14px;
+  align-self: center;
+  max-width: 100%;
+  padding: 0 5px;
+  overflow: hidden;
+  color: #405467;
+  background: rgba(232, 240, 248, 0.78);
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 18px;
+  line-height: 17px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 html[lang="en"] .legacy-forecast-date {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .legacy-forecast-icon {
-  width: 38px;
-  height: 38px;
+  width: 35px;
+  height: 35px;
   display: block;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(210, 222, 235, 0.82);
   object-fit: contain;
 }
 
 .legacy-forecast-temp {
+  max-width: 100%;
+  overflow: hidden;
   color: #172331;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 750;
-  line-height: 18px;
+  line-height: 17px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 html[lang="en"] .legacy-forecast-temp {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .legacy-meta {

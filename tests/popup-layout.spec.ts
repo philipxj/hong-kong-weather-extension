@@ -132,6 +132,14 @@ test.describe("popup layout", () => {
           currentTemp: rect(".legacy-reading:first-child"),
           readings: rect(".legacy-readings"),
           forecast: rect(".legacy-forecast"),
+          forecastBackground: getComputedStyle(document.querySelector(".legacy-forecast")!)
+            .backgroundColor,
+          forecastDayBorderRadius: getComputedStyle(document.querySelector(".legacy-forecast-day")!)
+            .borderRadius,
+          forecastDayCount: document.querySelectorAll(".legacy-forecast-day").length,
+          forecastDayHeights: [...document.querySelectorAll(".legacy-forecast-day")].map((node) =>
+            Math.round(node.getBoundingClientRect().height)
+          ),
           imageryCard: rect(".imagery-card"),
           shell: rect(".popup-shell"),
           side: rect(".legacy-side-panel"),
@@ -189,6 +197,10 @@ test.describe("popup layout", () => {
       expect(layout.meta.right).toBeLessThanOrEqual(layout.shell.right - 12);
       expect(layout.meta.bottom).toBeLessThanOrEqual(layout.shell.bottom - 4);
       expect(layout.forecastItemsInside).toBe(true);
+      expect(layout.forecastDayCount).toBe(7);
+      expect(new Set(layout.forecastDayHeights).size).toBe(1);
+      expect(layout.forecastBackground).not.toBe("rgba(0, 0, 0, 0)");
+      expect(layout.forecastDayBorderRadius).toBe("8px");
       expect(layout.signalItemsInside).toBe(true);
       expect(layout.signalIconCount).toBe(layout.signalCount);
     });
