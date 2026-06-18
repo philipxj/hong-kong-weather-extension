@@ -477,6 +477,47 @@ button:hover {
   align-items: center;
 }
 
+.language-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 430px);
+  padding: 3px;
+  background: var(--color-panel-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.language-tab {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  height: 30px;
+  place-items: center;
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.language-tab input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.language-tab:has(input:checked) {
+  color: #ffffff;
+  background: #2f5f98;
+  box-shadow: 0 3px 10px rgba(31, 53, 76, 0.16);
+}
+
+.language-tab:has(input:focus-visible) {
+  outline: 2px solid #78b7f2;
+  outline-offset: 2px;
+}
+
 .field-row {
   justify-content: space-between;
 }
