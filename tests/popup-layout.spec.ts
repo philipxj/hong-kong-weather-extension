@@ -132,6 +132,7 @@ test.describe("popup layout", () => {
           currentTemp: rect(".legacy-reading:first-child"),
           readings: rect(".legacy-readings"),
           forecast: rect(".legacy-forecast"),
+          imageryCard: rect(".imagery-card"),
           shell: rect(".popup-shell"),
           side: rect(".legacy-side-panel"),
           special: rect(".special-weather-card"),
@@ -170,6 +171,7 @@ test.describe("popup layout", () => {
       expect(layout.warning.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(layout.side.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
+      expect(Math.abs(layout.imageryCard.height - layout.current.height)).toBeLessThanOrEqual(6);
       expect(layout.titleTextScrollWidth).toBeLessThanOrEqual(layout.titleTextClientWidth + 1);
       expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
       expect(overlaps(layout.readings, layout.warning)).toBe(false);
