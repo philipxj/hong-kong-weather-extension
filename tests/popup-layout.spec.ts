@@ -13,18 +13,18 @@ const scenarios = [
   {
     name: "two warnings",
     warnings: `
-      <div class="warning-signal warning-signal-thunderstorm"><span class="lightning-mark">⚡</span><span class="signal-text">雷暴<small>Thunderstorm</small></span></div>
-      <div class="warning-signal warning-signal-rain-amber"><span class="rain-block">黃雨</span></div>
+      <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
+      <button class="warning-signal warning-signal-rain-amber"><img class="warning-signal-icon" src="${ICON}" alt="黃色暴雨警告信號"></button>
     `,
     special: "暴雨警告信號"
   },
   {
     name: "four warnings",
     warnings: `
-      <div class="warning-signal warning-signal-rain-black"><span class="rain-block">黑雨</span></div>
-      <div class="warning-signal warning-signal-landslip"><span class="landslip-mark"><span>山泥</span></span></div>
-      <div class="warning-signal warning-signal-thunderstorm"><span class="lightning-mark">⚡</span><span class="signal-text">雷暴<small>Thunderstorm</small></span></div>
-      <div class="warning-signal warning-signal-flooding"><span class="signal-text signal-text-wide">水浸<small>Flooding</small></span></div>
+      <button class="warning-signal warning-signal-rain-black"><img class="warning-signal-icon" src="${ICON}" alt="黑色暴雨警告信號"></button>
+      <button class="warning-signal warning-signal-landslip"><img class="warning-signal-icon" src="${ICON}" alt="山泥傾瀉警告"></button>
+      <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
+      <button class="warning-signal warning-signal-flooding"><img class="warning-signal-icon" src="${ICON}" alt="新界北部水浸特別報告"></button>
     `,
     special: "黑色暴雨警告信號、山泥傾瀉警告、雷暴警告、新界北部水浸特別報告"
   },
@@ -36,8 +36,8 @@ const scenarios = [
   {
     name: "long warning text",
     warnings: `
-      <div class="warning-signal warning-signal-thunderstorm"><span class="lightning-mark">⚡</span><span class="signal-text">雷暴<small>Thunderstorm</small></span></div>
-      <div class="warning-signal warning-signal-rain-amber"><span class="rain-block">黃雨</span></div>
+      <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
+      <button class="warning-signal warning-signal-rain-amber"><img class="warning-signal-icon" src="${ICON}" alt="黃色暴雨警告信號"></button>
     `,
     special: "雷暴警告信號、黃色暴雨警告信號、山泥傾瀉警告及強烈季候風信號"
   }
@@ -94,6 +94,8 @@ test.describe("popup layout", () => {
           warning: rect(".warning-signal-row"),
           forecastItemsInside: allInside(".legacy-forecast", ".legacy-forecast-day"),
           signalItemsInside: allInside(".warning-signal-row", ".warning-signal"),
+          signalCount: document.querySelectorAll(".warning-signal").length,
+          signalIconCount: document.querySelectorAll(".warning-signal-icon").length,
           scrollHeight: document.documentElement.scrollHeight,
           clientHeight: document.documentElement.clientHeight,
           scrollWidth: document.documentElement.scrollWidth,
@@ -116,6 +118,7 @@ test.describe("popup layout", () => {
       expect(layout.meta.bottom).toBeLessThanOrEqual(layout.shell.bottom - 4);
       expect(layout.forecastItemsInside).toBe(true);
       expect(layout.signalItemsInside).toBe(true);
+      expect(layout.signalIconCount).toBe(layout.signalCount);
     });
   }
 

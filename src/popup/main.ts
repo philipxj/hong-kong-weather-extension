@@ -1,5 +1,6 @@
 import { browserApi } from "../shared/browser-api";
 import { hkoPageUrl } from "../shared/hko-links";
+import { hkoWarningIconUrl } from "../shared/hko-warning-icons";
 import { getImageryUrlsWithCache } from "../shared/imagery-cache";
 import {
   getCachedWeather,
@@ -709,32 +710,10 @@ function signalTypeClass(warning: WeatherWarning): WarningSignalClass {
 }
 
 function warningSignalHtml(warning: WeatherWarning, type: WarningSignalClass): string {
-  if (type === "typhoon") {
-    return `<span class="typhoon-stem"></span><strong>${escapeHtml(formatWarningBadge(warning.badge))}</strong>`;
-  }
-
-  if (type === "thunderstorm") {
-    return `<span class="lightning-mark">⚡</span><span class="signal-text">雷暴<small>Thunderstorm</small></span>`;
-  }
-
-  if (type === "landslip") {
-    return `<span class="landslip-mark"><span>山泥</span></span>`;
-  }
-
-  if (type === "flooding") {
-    return `<span class="signal-text signal-text-wide">水浸<small>Flooding</small></span>`;
-  }
-
-  if (type === "monsoon") {
-    return `<span class="signal-text signal-text-wide">季候風<small>Monsoon</small></span>`;
-  }
-
-  if (type.startsWith("rain-")) {
-    const text = type === "rain-black" ? "黑雨" : type === "rain-red" ? "紅雨" : "黃雨";
-    return `<span class="rain-block">${escapeHtml(text)}</span>`;
-  }
-
-  return `<span class="rain-block">${escapeHtml(warning.badge || warning.name)}</span>`;
+  const iconUrl = hkoWarningIconUrl(warning);
+  if (!iconUrl)
+    return `<span class="warning-signal-fallback">${escapeHtml(warning.badge || warning.name)}</span>`;
+  return `<img class="warning-signal-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(warning.name || type)}" />`;
 }
 
 function renderForecast(forecast: ForecastDay[]): void {
@@ -925,13 +904,6 @@ function weatherCaption(
   language: Language = activeLanguage()
 ): string {
   return WEATHER_CAPTIONS[language]?.[Number(icon)] || "";
-}
-
-function formatWarningBadge(value: string): string {
-  const badge = String(value || "").trim();
-  const typhoonSignal = badge.match(/^T(\d+)$/i);
-  if (typhoonSignal) return `T ${typhoonSignal[1]}`;
-  return badge || "無";
 }
 
 function toImageryType(value: string | undefined): ImageryType {
