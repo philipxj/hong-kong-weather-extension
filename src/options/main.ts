@@ -1,4 +1,4 @@
-import { getSettings, saveSettings, updateBadge } from "../shared/weather-service";
+import { getSettings, refreshWeather, saveSettings, updateBadge } from "../shared/weather-service";
 import type { Settings } from "../shared/types";
 
 const form = query<HTMLFormElement>("#options-form");
@@ -55,7 +55,8 @@ function readForm(): Settings {
 async function save(): Promise<void> {
   const next = readForm();
   await saveSettings(next);
-  await updateBadge(null, next);
+  const weather = await refreshWeather(next);
+  await updateBadge(weather, next);
   status.textContent = "Saved";
   setTimeout(() => {
     status.textContent = "";

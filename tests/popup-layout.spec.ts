@@ -21,12 +21,12 @@ const scenarios = [
   {
     name: "four warnings",
     warnings: `
-      <div class="warning-signal warning-signal-typhoon"><span class="typhoon-stem"></span><strong>T3</strong></div>
+      <div class="warning-signal warning-signal-rain-black"><span class="rain-block">黑雨</span></div>
+      <div class="warning-signal warning-signal-landslip"><span class="landslip-mark"><span>山泥</span></span></div>
       <div class="warning-signal warning-signal-thunderstorm"><span class="lightning-mark">⚡</span><span class="signal-text">雷暴<small>Thunderstorm</small></span></div>
-      <div class="warning-signal warning-signal-rain-amber"><span class="rain-block">黃雨</span></div>
-      <div class="warning-signal warning-signal-heat"><span class="rain-block">酷熱</span></div>
+      <div class="warning-signal warning-signal-flooding"><span class="signal-text signal-text-wide">水浸<small>Flooding</small></span></div>
     `,
-    special: "雷暴警告、黃色暴雨警告信號"
+    special: "黑色暴雨警告信號、山泥傾瀉警告、雷暴警告、新界北部水浸特別報告"
   },
   {
     name: "no warnings with long labels",
@@ -83,9 +83,12 @@ test.describe("popup layout", () => {
 
         return {
           current: rect(".legacy-current"),
+          currentTitle: rect(".current-title-row"),
           forecast: rect(".legacy-forecast"),
           shell: rect(".popup-shell"),
           side: rect(".legacy-side-panel"),
+          special: rect(".special-weather-card"),
+          meta: rect(".legacy-meta"),
           warning: rect(".warning-signal-row"),
           forecastItemsInside: allInside(".legacy-forecast", ".legacy-forecast-day"),
           signalItemsInside: allInside(".warning-signal-row", ".warning-signal"),
@@ -101,6 +104,12 @@ test.describe("popup layout", () => {
       expect(layout.forecast.bottom).toBeLessThanOrEqual(layout.shell.bottom - 12);
       expect(layout.warning.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(layout.side.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
+      expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
+      expect(Math.abs(layout.special.top - layout.currentTitle.top)).toBeLessThanOrEqual(8);
+      expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
+      expect(layout.meta.top).toBeGreaterThanOrEqual(layout.forecast.bottom);
+      expect(layout.meta.right).toBeLessThanOrEqual(layout.shell.right - 12);
+      expect(layout.meta.bottom).toBeLessThanOrEqual(layout.shell.bottom - 4);
       expect(layout.forecastItemsInside).toBe(true);
       expect(layout.signalItemsInside).toBe(true);
     });
@@ -135,10 +144,10 @@ async function fixtureHtml({ warnings, special }: LayoutScenario) {
                 <div class="legacy-reading legacy-reading-uv"><span>紫外線指數</span><strong>0.4 <small>(低)</small></strong></div>
               </div>
               <div class="warning-signal-row">${warnings}</div>
+              <button class="special-weather-card"><div class="special-weather-title">特別天氣提示</div><div class="special-weather-content">${special}</div></button>
             </section>
             <section class="legacy-side-panel">
-              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">衛星</button><button class="imagery-tab">閃電</button></div><button class="imagery-preview"><img src="${RADAR}" alt=""></button><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div></div>
-              <div class="special-weather-card"><div class="special-weather-title">特別天氣提示</div><div class="special-weather-content">${special}</div></div>
+              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-radar" src="${RADAR}" alt=""><div class="imagery-snapshots"><button class="imagery-snapshot">1</button><button class="imagery-snapshot">2</button><button class="imagery-snapshot">3</button><button class="imagery-snapshot">4</button><button class="imagery-snapshot" aria-selected="true">5</button></div></div><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
               <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
             </section>
             <section class="legacy-forecast">
@@ -146,6 +155,7 @@ async function fixtureHtml({ warnings, special }: LayoutScenario) {
                 ${days.map(([date, temp]) => `<div class="legacy-forecast-day"><div class="legacy-forecast-date">${date}</div><img class="legacy-forecast-icon" src="${ICON}" alt=""><div class="legacy-forecast-temp">${temp}</div></div>`).join("")}
               </div>
             </section>
+            <div class="legacy-meta"><span class="timestamp">13:30 更新</span></div>
           </section>
         </main>
       </body>
