@@ -1,4 +1,5 @@
 import { browserApi } from "../shared/browser-api";
+import { hkoPageUrl } from "../shared/hko-links";
 import { getImageryUrlWithCache, getImageryUrlsWithCache } from "../shared/imagery-cache";
 import {
   getCachedWeather,
@@ -54,11 +55,6 @@ const RADAR_LIST_URL = `${HKO_ROOT}/wxinfo/radars/temp_json/nradar_img.json`;
 const LIGHTNING_SCRIPT_URL = `${HKO_ROOT}/wxinfo/llis/llisradar/radar-image.js`;
 const LIGHTNING_IMAGE_ROOT = `${HKO_ROOT}/wxinfo/llis/llisradar/images`;
 const SATELLITE_IMAGE_URL = `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_sate_gallery_tc.gif`;
-const HKO_LANG_PATH: Record<Language, string> = {
-  tc: "tc",
-  sc: "sc",
-  en: "en"
-};
 const RADAR_RANGE_LABELS: Record<RadarRangeId, string> = {
   range0: "256km",
   range1: "128km",
@@ -300,14 +296,14 @@ query<HTMLButtonElement>("#refresh").addEventListener("click", () => {
   void load({ force: true });
 });
 query<HTMLButtonElement>("#hko-page").addEventListener("click", () => {
-  void browserApi.tabs.create({ url: hkoPageUrl("index.html") });
+  void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "index.html") });
 });
 query<HTMLButtonElement>("#settings").addEventListener("click", openOptions);
 els.typhoonMap.addEventListener("click", () => {
-  void browserApi.tabs.create({ url: hkoPageUrl("wxinfo/currwx/tc_pos.htm") });
+  void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "wxinfo/currwx/tc_pos.htm") });
 });
 els.specialWeatherOpen.addEventListener("click", () => {
-  void browserApi.tabs.create({ url: hkoPageUrl("wxinfo/dailywx/swt.htm") });
+  void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "sweather_tips.html") });
 });
 els.imageryOpen.addEventListener("click", () => {
   toggleImageryExpanded();
@@ -760,10 +756,6 @@ function localText(
 
 function imageryTitle(type: ImageryType, language: Language = activeLanguage()): string {
   return IMAGERY_TITLES[language]?.[type] ?? IMAGERY_TITLES.tc[type];
-}
-
-function hkoPageUrl(path: string): string {
-  return `${HKO_ROOT}/${HKO_LANG_PATH[activeLanguage()]}/${path}`;
 }
 
 function empty(message: string): HTMLElement {
