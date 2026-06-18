@@ -1,15 +1,23 @@
+import { optionsCopy } from "./options-copy";
 import { getSettings, refreshWeather, saveSettings, updateBadge } from "../shared/weather-service";
-import type { Settings } from "../shared/types";
+import type { Language, Settings } from "../shared/types";
 
 const form = query<HTMLFormElement>("#options-form");
 const status = query<HTMLElement>("#save-status");
 
 const settings = await getSettings();
 hydrate(settings);
+applyOptionsLanguage(settings.language);
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   void save();
+});
+form.addEventListener("change", (event) => {
+  const target = event.target;
+  if (target instanceof HTMLInputElement && target.name === "language") {
+    applyOptionsLanguage(target.value as Language);
+  }
 });
 
 function hydrate(values: Settings): void {
@@ -57,10 +65,22 @@ async function save(): Promise<void> {
   await saveSettings(next);
   const weather = await refreshWeather(next);
   await updateBadge(weather, next);
-  status.textContent = "Saved";
+  status.textContent = optionsCopy(next.language).saved;
   setTimeout(() => {
     status.textContent = "";
   }, 1800);
+}
+
+function applyOptionsLanguage(language: Language): void {
+  const copy = optionsCopy(language);
+  document.documentElement.lang =
+    language === "en" ? "en" : language === "sc" ? "zh-Hans" : "zh-Hant";
+  document.title = `HK Weather Alerts ${copy.options}`;
+  document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
+    const key = element.dataset.i18n as keyof typeof copy | undefined;
+    if (!key) return;
+    element.textContent = copy[key];
+  });
 }
 
 function clampNumber(value: string, min: number, max: number, fallback: number): number {

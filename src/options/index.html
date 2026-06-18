@@ -11,70 +11,98 @@
       <header class="options-header">
         <div>
           <div class="title">HK Weather Alerts / 香港天氣提示</div>
-          <div class="timestamp">Options</div>
+          <div class="timestamp" data-i18n="options">Options</div>
         </div>
       </header>
 
       <form id="options-form" class="options-main">
         <section class="panel">
-          <div class="section-title">Language</div>
+          <div class="section-title" data-i18n="language">Language</div>
           <div class="choice-row">
-            <label><input type="radio" name="language" value="tc" /> Traditional Chinese</label>
-            <label><input type="radio" name="language" value="en" /> English</label>
-            <label><input type="radio" name="language" value="sc" /> Simplified Chinese</label>
+            <label
+              ><input type="radio" name="language" value="tc" />
+              <span data-i18n="traditionalChinese">繁體中文</span></label
+            >
+            <label
+              ><input type="radio" name="language" value="en" />
+              <span data-i18n="english">English</span></label
+            >
+            <label
+              ><input type="radio" name="language" value="sc" />
+              <span data-i18n="simplifiedChinese">簡體中文</span></label
+            >
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-title">Notifications</div>
+          <div class="section-title" data-i18n="notifications">Notifications</div>
           <div class="form-grid">
-            <label><input type="checkbox" id="notifyIssued" /> Warning issued</label>
-            <label><input type="checkbox" id="notifyCancelled" /> Warning cancelled</label>
-            <label><input type="checkbox" id="notifyExtended" /> Warning extended</label>
-            <label><input type="checkbox" id="notifyUpdated" /> Warning updated</label>
+            <label
+              ><input type="checkbox" id="notifyIssued" />
+              <span data-i18n="warningIssued">Warning issued</span></label
+            >
+            <label
+              ><input type="checkbox" id="notifyCancelled" />
+              <span data-i18n="warningCancelled">Warning cancelled</span></label
+            >
+            <label
+              ><input type="checkbox" id="notifyExtended" />
+              <span data-i18n="warningExtended">Warning extended</span></label
+            >
+            <label
+              ><input type="checkbox" id="notifyUpdated" />
+              <span data-i18n="warningUpdated">Warning updated</span></label
+            >
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-title">Display</div>
+          <div class="section-title" data-i18n="display">Display</div>
           <div class="form-grid">
             <div class="field-row">
-              <label for="badgeMode">Badge mode</label>
+              <label for="badgeMode" data-i18n="badgeMode">Badge mode</label>
               <select id="badgeMode">
-                <option value="auto">Auto</option>
-                <option value="temperature">Temperature</option>
-                <option value="warning">Warning</option>
-                <option value="off">Off</option>
+                <option value="auto" data-i18n="auto">Auto</option>
+                <option value="temperature" data-i18n="temperature">Temperature</option>
+                <option value="warning" data-i18n="warning">Warning</option>
+                <option value="off" data-i18n="off">Off</option>
               </select>
             </div>
-            <label><input type="checkbox" id="compactMode" /> Compact mode</label>
+            <label
+              ><input type="checkbox" id="compactMode" />
+              <span data-i18n="compactMode">Compact mode</span></label
+            >
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-title">Refresh intervals</div>
+          <div class="section-title" data-i18n="refreshIntervals">Refresh intervals</div>
           <div class="form-grid">
             <div class="field-row">
-              <label for="currentRefreshMinutes">Current weather refresh minutes</label>
+              <label for="currentRefreshMinutes" data-i18n="currentRefreshMinutes"
+                >Current weather refresh minutes</label
+              >
               <input id="currentRefreshMinutes" type="number" min="5" max="180" step="1" />
             </div>
             <div class="field-row">
-              <label for="warningCheckMinutes">Warning check minutes</label>
+              <label for="warningCheckMinutes" data-i18n="warningCheckMinutes"
+                >Warning check minutes</label
+              >
               <input id="warningCheckMinutes" type="number" min="3" max="180" step="1" />
             </div>
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-title">About</div>
+          <div class="section-title" data-i18n="about">About</div>
           <div class="kv-list">
             <div class="kv-row">
-              <div class="label">Data source</div>
-              <div>Hong Kong Observatory Open Data</div>
+              <div class="label" data-i18n="dataSource">Data source</div>
+              <div data-i18n="dataSourceValue">Hong Kong Observatory Open Data</div>
             </div>
             <div class="kv-row">
-              <div class="label">Disclaimer</div>
-              <div>
+              <div class="label" data-i18n="disclaimer">Disclaimer</div>
+              <div data-i18n="disclaimerValue">
                 Independent utility. Not affiliated with or endorsed by the Hong Kong Observatory.
               </div>
             </div>
@@ -82,7 +110,9 @@
         </section>
 
         <div class="save-row">
-          <button type="submit" class="primary-button">Save settings</button>
+          <button type="submit" class="primary-button" data-i18n="saveSettings">
+            Save settings
+          </button>
           <span id="save-status" class="muted"></span>
         </div>
       </form>
