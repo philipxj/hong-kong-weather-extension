@@ -6,11 +6,13 @@ import {
   DEFAULT_SETTINGS,
   formatActionBadgeText,
   formatWarningBadgeForLanguage,
+  getActionBadgeWarnings,
   getSignalWarnings,
   normalizeWeather,
   refreshWeather,
   sendTestNotification
 } from "../src/shared/weather-service";
+import type { WeatherWarning, WarningType } from "../src/shared/types";
 
 describe("weather service normalization", () => {
   test("accepts missing overnight UV index from HKO current data", () => {
@@ -162,6 +164,27 @@ describe("weather service normalization", () => {
       "thunderstorm",
       "flooding"
     ]);
+  });
+
+  test("keeps noisy signal types out of the toolbar badge", () => {
+    const warnings = [
+      warning("landslip", "山", 78),
+      warning("flooding", "水", 58),
+      warning("monsoon", "季", 74),
+      warning("rain-amber", "黃", 40),
+      warning("thunderstorm", "雷", 60),
+      warning("typhoon", "T3", 70)
+    ];
+
+    expect(getSignalWarnings(warnings).map((item) => item.badge)).toEqual([
+      "山",
+      "水",
+      "季",
+      "黃",
+      "雷",
+      "T3"
+    ]);
+    expect(getActionBadgeWarnings(warnings).map((item) => item.badge)).toEqual(["黃", "雷", "T3"]);
   });
 
   test("normalizes less common official HKO warning signal types", () => {
@@ -401,3 +424,17 @@ describe("weather service normalization", () => {
     }
   });
 });
+
+function warning(type: WarningType, badge: string, priority: number): WeatherWarning {
+  return {
+    type,
+    badge,
+    priority,
+    code: type,
+    name: type,
+    issueTime: "",
+    updateTime: "",
+    expireTime: "",
+    contents: ""
+  };
+}

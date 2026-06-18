@@ -6,7 +6,10 @@ describe("in-flight task runner", () => {
     const run = createInFlightTaskRunner<string>();
     const task = vi.fn(() => Promise.resolve("weather"));
 
-    const [first, second] = await Promise.all([run("full-refresh", task), run("full-refresh", task)]);
+    const [first, second] = await Promise.all([
+      run("full-refresh", task),
+      run("full-refresh", task)
+    ]);
 
     expect(first).toBe("weather");
     expect(second).toBe("weather");
@@ -17,7 +20,10 @@ describe("in-flight task runner", () => {
     const run = createInFlightTaskRunner<string>();
     const task = vi.fn((value: string) => Promise.resolve(value));
 
-    await Promise.all([run("current", () => task("current")), run("warnings", () => task("warnings"))]);
+    await Promise.all([
+      run("current", () => task("current")),
+      run("warnings", () => task("warnings"))
+    ]);
 
     expect(task).toHaveBeenCalledTimes(2);
   });

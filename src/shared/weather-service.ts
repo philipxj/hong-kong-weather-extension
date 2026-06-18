@@ -220,7 +220,7 @@ export async function updateBadge(
     return;
   }
 
-  const highestWarning = getHighestPriorityWarning(getSignalWarnings(weather.warnings));
+  const highestWarning = getHighestPriorityWarning(getActionBadgeWarnings(weather.warnings));
   const warningBadge = highestWarning
     ? formatWarningBadgeForLanguage(highestWarning, weather.language)
     : "";
@@ -265,6 +265,12 @@ export function getHighestPriorityWarning(warnings: WeatherWarning[] = []): Weat
 
 export function getSignalWarnings(warnings: WeatherWarning[] = []): WeatherWarning[] {
   return warnings.filter((warning) => warning.type !== "other");
+}
+
+export function getActionBadgeWarnings(warnings: WeatherWarning[] = []): WeatherWarning[] {
+  return getSignalWarnings(warnings).filter((warning) =>
+    ["rain-amber", "rain-red", "rain-black", "typhoon", "thunderstorm"].includes(warning.type)
+  );
 }
 
 export function formatActionBadgeText(
@@ -820,7 +826,7 @@ function formatActionTitle(
   warningBadge: string,
   temperatureBadge: string
 ): string {
-  const warning = getHighestPriorityWarning(getSignalWarnings(weather.warnings))?.name ?? "";
+  const warning = getHighestPriorityWarning(getActionBadgeWarnings(weather.warnings))?.name ?? "";
   const temperatureLabel = text("Temperature", "現時氣溫", weather.language);
   const warningLabel = text("Warning", "警告", weather.language);
   const parts = [
