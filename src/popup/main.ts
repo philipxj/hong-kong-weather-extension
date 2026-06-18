@@ -62,6 +62,8 @@ const RADAR_RANGE_LABELS: Record<RadarRangeId, string> = {
   range2: "64km"
 };
 const VISIBLE_RADAR_RANGE_IDS: RadarRangeId[] = ["range0", "range1", "range2"];
+const WEATHER_TITLE_MAX_FONT_SIZE = 40;
+const WEATHER_TITLE_MIN_FONT_SIZE = 24;
 const IMAGERY: Record<ImageryType, ImageryItem> = {
   radar: {
     fallbackUrl: `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_radar_tc.gif`,
@@ -414,6 +416,7 @@ function render(): void {
     caption || data.current.forecast || data.current.summary || localized.fallbackWeather;
 
   renderSpecialWeather(data);
+  fitWeatherTitle();
   renderTyphoonMap(data.warnings);
   renderWarningSignals(data.warnings);
   renderForecast(data.forecast);
@@ -453,6 +456,26 @@ function renderSpecialWeather(data: WeatherData): void {
     data.current.tips[0] ||
     data.current.warningMessages[0] ||
     (highestWarning ? highestWarning.name : copy(data.language).noWeatherTips);
+}
+
+function fitWeatherTitle(): void {
+  els.topSummary.style.removeProperty("font-size");
+  els.topSummary.style.removeProperty("max-width");
+
+  const titleRect = els.topSummary.getBoundingClientRect();
+  const specialRect = els.specialWeatherOpen.getBoundingClientRect();
+  const availableWidth = Math.floor(Math.max(110, specialRect.left - titleRect.left - 8));
+
+  els.topSummary.style.maxWidth = `${availableWidth}px`;
+  els.topSummary.style.fontSize = `${WEATHER_TITLE_MAX_FONT_SIZE}px`;
+
+  for (
+    let size = WEATHER_TITLE_MAX_FONT_SIZE;
+    size > WEATHER_TITLE_MIN_FONT_SIZE && els.topSummary.scrollWidth > els.topSummary.clientWidth;
+    size -= 1
+  ) {
+    els.topSummary.style.fontSize = `${size - 1}px`;
+  }
 }
 
 function renderTyphoonMap(warnings: WeatherWarning[]): void {

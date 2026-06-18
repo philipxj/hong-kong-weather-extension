@@ -130,6 +130,12 @@ test.describe("popup layout", () => {
             document.querySelector(".special-weather-content")!
           ).webkitLineClamp,
           titleText: rect(".legacy-weather-title"),
+          titleTextClientWidth:
+            document.querySelector<HTMLElement>(".legacy-weather-title")!.clientWidth,
+          titleTextOverflow: getComputedStyle(document.querySelector(".legacy-weather-title")!)
+            .textOverflow,
+          titleTextScrollWidth:
+            document.querySelector<HTMLElement>(".legacy-weather-title")!.scrollWidth,
           meta: rect(".legacy-meta"),
           warning: rect(".warning-signal-row"),
           forecastItemsInside: allInside(".legacy-forecast", ".legacy-forecast-day"),
@@ -151,12 +157,14 @@ test.describe("popup layout", () => {
       expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(Math.abs(layout.special.top - layout.currentTitle.top)).toBeLessThanOrEqual(8);
       expect(layout.titleText.right).toBeLessThanOrEqual(layout.special.left - 4);
+      expect(layout.titleTextScrollWidth).toBeLessThanOrEqual(layout.titleTextClientWidth + 1);
       expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
       expect(layout.special.bottom).toBeLessThanOrEqual(layout.readings.top - 1);
       expect(layout.specialContent.height).toBeGreaterThanOrEqual(54);
       if (scenario.lang === "en") {
         expect(layout.specialContentDisplay).toBe("block");
         expect(layout.specialContentLineClamp).not.toBe("4");
+        expect(layout.titleTextOverflow).not.toBe("ellipsis");
       }
       expect(layout.meta.top).toBeGreaterThanOrEqual(layout.forecast.bottom);
       expect(layout.meta.right).toBeLessThanOrEqual(layout.shell.right - 12);
@@ -318,6 +326,19 @@ async function fixtureHtml({
         <script>
           const imageryCard = document.querySelector(".imagery-card");
           const imageryPreview = document.querySelector(".imagery-preview");
+          const title = document.querySelector(".legacy-weather-title");
+          const special = document.querySelector(".special-weather-card");
+          if (title instanceof HTMLElement && special instanceof HTMLElement) {
+            title.style.removeProperty("font-size");
+            title.style.removeProperty("max-width");
+            const titleRect = title.getBoundingClientRect();
+            const specialRect = special.getBoundingClientRect();
+            title.style.maxWidth = Math.floor(Math.max(110, specialRect.left - titleRect.left - 8)) + "px";
+            title.style.fontSize = "40px";
+            for (let size = 40; size > 24 && title.scrollWidth > title.clientWidth; size -= 1) {
+              title.style.fontSize = (size - 1) + "px";
+            }
+          }
           imageryPreview?.addEventListener("click", () => {
             imageryCard?.classList.toggle("is-expanded");
           });

@@ -654,6 +654,8 @@ body.popup-page {
 }
 
 .legacy-weather-title {
+  display: block;
+  min-width: 0;
   font-size: 40px;
   font-weight: 400;
   letter-spacing: 0;
@@ -661,10 +663,8 @@ body.popup-page {
 }
 
 html[lang="en"] .legacy-weather-title {
-  max-width: 160px;
-  overflow: hidden;
-  font-size: 32px;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .legacy-readings {
