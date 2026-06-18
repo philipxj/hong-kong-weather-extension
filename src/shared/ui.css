@@ -863,7 +863,7 @@ body.popup-page {
   top: -18px;
   right: 26px;
   z-index: 4;
-  width: 360px;
+  width: 468px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
 }
 
@@ -913,7 +913,7 @@ body.popup-page {
 }
 
 .imagery-card.is-expanded .imagery-preview {
-  height: 218px;
+  height: 283px;
 }
 
 .imagery-preview:focus-visible {

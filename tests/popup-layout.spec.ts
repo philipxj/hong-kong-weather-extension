@@ -114,6 +114,44 @@ test.describe("popup layout", () => {
       expect(layout.signalItemsInside).toBe(true);
     });
   }
+
+  test("expands radar widget by about thirty percent", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+    await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
+
+    const layout = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          height: box.height,
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          width: box.width
+        };
+      };
+
+      return {
+        card: rect(".imagery-card"),
+        preview: rect(".imagery-preview"),
+        shell: rect(".popup-shell")
+      };
+    });
+
+    expect(layout.card.width).toBeGreaterThanOrEqual(466);
+    expect(layout.preview.height).toBeGreaterThanOrEqual(281);
+    expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
+    expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
+  });
 });
 
 async function fixtureHtml({ warnings, special }: LayoutScenario) {
