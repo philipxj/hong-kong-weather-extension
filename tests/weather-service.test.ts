@@ -235,8 +235,10 @@ describe("weather service normalization", () => {
     expect(badgeBackgroundColor("")).toBe("#2f5f98");
   });
 
-  test("uses white toolbar badge text for amber rainstorm", () => {
-    expect(badgeTextColor()).toBe("#ffffff");
+  test("uses readable toolbar badge text colors", () => {
+    expect(badgeTextColor("黃")).toBe("#111111");
+    expect(badgeTextColor("紅")).toBe("#ffffff");
+    expect(badgeTextColor("黑")).toBe("#ffffff");
   });
 
   test("does not reuse cached weather from a different language after refresh failure", async () => {

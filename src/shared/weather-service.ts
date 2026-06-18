@@ -151,7 +151,7 @@ export async function updateBadge(
     color: badgeBackgroundColor(warningColorBadge)
   });
   await browserApi.action.setBadgeTextColor({
-    color: badgeTextColor()
+    color: badgeTextColor(warningColorBadge)
   });
   await browserApi.action.setTitle({
     title: formatActionTitle(weather, warningBadge, temperatureBadge)
@@ -186,7 +186,8 @@ export function badgeBackgroundColor(warningBadge: string): string {
   return "#2f5f98";
 }
 
-export function badgeTextColor(): string {
+export function badgeTextColor(warningBadge: string): string {
+  if (warningBadge === "黃") return "#111111";
   return "#ffffff";
 }
 
