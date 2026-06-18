@@ -253,6 +253,9 @@ test.describe("popup layout", () => {
       .evaluate((node) => {
         node.textContent = "閃電位置";
       });
+    await page.locator(".imagery-preview img").evaluate((node) => {
+      node.classList.add("imagery-image-lightning");
+    });
     await page.locator(".radar-ranges").evaluate((node) => {
       node.style.setProperty("--range-count", "2");
       node.innerHTML =
@@ -267,6 +270,16 @@ test.describe("popup layout", () => {
       return getComputedStyle(node).gridTemplateColumns.split(" ").length;
     });
     expect(gridColumnCount).toBe(2);
+
+    const lightningCrop = await page.locator(".imagery-preview").evaluate((preview) => {
+      const image = preview.querySelector("img");
+      if (!image) throw new Error("Missing imagery image");
+      return {
+        imageWidth: image.getBoundingClientRect().width,
+        previewWidth: preview.getBoundingClientRect().width
+      };
+    });
+    expect(lightningCrop.imageWidth).toBeGreaterThan(lightningCrop.previewWidth * 1.6);
   });
 });
 

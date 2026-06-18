@@ -891,6 +891,11 @@ html[lang="en"] .legacy-weather-title {
   object-position: left center;
 }
 
+.imagery-preview img.imagery-image-lightning {
+  width: 168%;
+  object-position: left center;
+}
+
 .imagery-snapshots {
   position: absolute;
   top: 13px;
