@@ -59,9 +59,12 @@ export const browserApi = {
       handler: (message: TMessage) => Promise<TResponse | undefined> | TResponse | undefined
     ) => {
       chrome.runtime.onMessage.addListener((message: TMessage, _sender, sendResponse) => {
-        Promise.resolve(handler(message))
+        const response = handler(message);
+        if (response === undefined) return false;
+
+        Promise.resolve(response)
           .then((response) => {
-            if (response !== undefined) sendResponse(response);
+            sendResponse(response ?? null);
           })
           .catch((error: unknown) => {
             sendResponse({
