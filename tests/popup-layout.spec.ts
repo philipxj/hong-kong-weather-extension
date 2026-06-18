@@ -123,6 +123,12 @@ test.describe("popup layout", () => {
           side: rect(".legacy-side-panel"),
           special: rect(".special-weather-card"),
           specialContent: rect(".special-weather-content"),
+          specialContentDisplay: getComputedStyle(
+            document.querySelector(".special-weather-content")!
+          ).display,
+          specialContentLineClamp: getComputedStyle(
+            document.querySelector(".special-weather-content")!
+          ).webkitLineClamp,
           titleText: rect(".legacy-weather-title"),
           meta: rect(".legacy-meta"),
           warning: rect(".warning-signal-row"),
@@ -148,6 +154,10 @@ test.describe("popup layout", () => {
       expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
       expect(layout.special.bottom).toBeLessThanOrEqual(layout.readings.top - 1);
       expect(layout.specialContent.height).toBeGreaterThanOrEqual(54);
+      if (scenario.lang === "en") {
+        expect(layout.specialContentDisplay).toBe("block");
+        expect(layout.specialContentLineClamp).not.toBe("4");
+      }
       expect(layout.meta.top).toBeGreaterThanOrEqual(layout.forecast.bottom);
       expect(layout.meta.right).toBeLessThanOrEqual(layout.shell.right - 12);
       expect(layout.meta.bottom).toBeLessThanOrEqual(layout.shell.bottom - 4);

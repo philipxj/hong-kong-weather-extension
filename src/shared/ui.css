@@ -957,8 +957,10 @@ html[lang="en"] .special-weather-title {
 }
 
 html[lang="en"] .special-weather-content {
-  font-size: 11px;
-  line-height: 12px;
+  display: block;
+  font-size: 10px;
+  line-height: 11px;
+  -webkit-line-clamp: unset;
 }
 
 .special-weather-title {
