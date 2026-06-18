@@ -299,7 +299,7 @@ test.describe("popup layout", () => {
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
     expect(Math.abs(layout.stepper.top - layout.tabs.top)).toBeLessThanOrEqual(1);
     expect(Math.abs(layout.stepper.bottom - layout.tabs.bottom)).toBeLessThanOrEqual(1);
-    expect(expandedControls.snapshots).toBe(5);
+    expect(expandedControls.snapshots).toBe(0);
     expect(expandedControls.ranges).toBe(3);
   });
 
@@ -373,7 +373,7 @@ test.describe("popup layout", () => {
         '<button class="radar-range">256km</button><button class="radar-range" aria-selected="true">64km</button>';
     });
 
-    await expect(page.locator(".imagery-snapshot")).toHaveCount(5);
+    await expect(page.locator(".imagery-snapshot")).toHaveCount(0);
     await expect(page.locator(".radar-range")).toHaveText(["256km", "64km"]);
     await expect(page.locator(".radar-range", { hasText: "128km" })).toHaveCount(0);
 
@@ -457,7 +457,7 @@ async function fixtureHtml({
               <button class="special-weather-card"><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special}</div></button>
             </section>
             <section class="legacy-side-panel">
-              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-snapshots"><button class="imagery-snapshot">1</button><button class="imagery-snapshot">2</button><button class="imagery-snapshot">3</button><button class="imagery-snapshot">4</button><button class="imagery-snapshot" aria-selected="true">5</button></div><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div></div><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
+              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div></div><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
               <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
             </section>
             <section class="legacy-forecast">
@@ -471,23 +471,20 @@ async function fixtureHtml({
         <script>
           const imageryCard = document.querySelector(".imagery-card");
           const imageryPreview = document.querySelector(".imagery-preview");
-          const imagerySnapshots = [...document.querySelectorAll(".imagery-snapshot")];
           const imageryPosition = document.querySelector(".imagery-position");
           const imageryPrev = document.querySelector(".imagery-prev");
           const imageryNext = document.querySelector(".imagery-next");
-          let selectedSnapshotIndex = imagerySnapshots.length - 1;
+          const snapshotCount = 5;
+          let selectedSnapshotIndex = snapshotCount - 1;
           const updateStepper = () => {
-            imagerySnapshots.forEach((button, index) => {
-              button.setAttribute("aria-selected", String(index === selectedSnapshotIndex));
-            });
             if (imageryPosition) {
-              imageryPosition.textContent = (selectedSnapshotIndex + 1) + " / " + imagerySnapshots.length;
+              imageryPosition.textContent = (selectedSnapshotIndex + 1) + " / " + snapshotCount;
             }
             if (imageryPrev instanceof HTMLButtonElement) {
               imageryPrev.disabled = selectedSnapshotIndex <= 0;
             }
             if (imageryNext instanceof HTMLButtonElement) {
-              imageryNext.disabled = selectedSnapshotIndex >= imagerySnapshots.length - 1;
+              imageryNext.disabled = selectedSnapshotIndex >= snapshotCount - 1;
             }
           };
           imageryPrev?.addEventListener("click", (event) => {
@@ -497,7 +494,7 @@ async function fixtureHtml({
           });
           imageryNext?.addEventListener("click", (event) => {
             event.stopPropagation();
-            selectedSnapshotIndex = Math.min(imagerySnapshots.length - 1, selectedSnapshotIndex + 1);
+            selectedSnapshotIndex = Math.min(snapshotCount - 1, selectedSnapshotIndex + 1);
             updateStepper();
           });
           updateStepper();

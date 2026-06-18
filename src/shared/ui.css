@@ -1002,25 +1002,6 @@ html[lang="en"] .legacy-weather-title {
   object-position: left center;
 }
 
-.imagery-snapshots {
-  position: absolute;
-  top: 42px;
-  right: 13px;
-  display: flex;
-  width: auto;
-  justify-content: flex-end;
-  gap: 4px;
-  padding: 3px;
-  background: rgba(11, 27, 43, 0.62);
-  border-radius: 999px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px rgba(12, 25, 40, 0.2);
-}
-
-.imagery-card:not(.is-expanded) .imagery-snapshots {
-  display: none;
-}
-
 .imagery-stepper {
   position: absolute;
   top: 6px;
@@ -1098,39 +1079,6 @@ html[lang="en"] .legacy-weather-title {
   min-width: 42px;
   font-size: 11px;
   line-height: 21px;
-}
-
-.imagery-snapshot {
-  width: 14px;
-  height: 14px;
-  min-width: 14px;
-  padding: 0;
-  color: transparent;
-  background: rgba(255, 255, 255, 0.46);
-  border: 0;
-  border-radius: 999px;
-  font-size: 0;
-  font-weight: 700;
-  line-height: 14px;
-}
-
-.imagery-snapshot[aria-selected="true"] {
-  width: 23px;
-  color: #143250;
-  background: #ffffff;
-  font-size: 9px;
-}
-
-.imagery-card.is-expanded .imagery-snapshot {
-  width: 17px;
-  height: 17px;
-  min-width: 17px;
-  line-height: 17px;
-}
-
-.imagery-card.is-expanded .imagery-snapshot[aria-selected="true"] {
-  width: 28px;
-  font-size: 10px;
 }
 
 .imagery-fallback {

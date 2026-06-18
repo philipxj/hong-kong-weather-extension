@@ -301,7 +301,6 @@ const els = {
   imageryNext: query<HTMLButtonElement>("#imagery-next"),
   imageryPosition: query<HTMLElement>("#imagery-position"),
   imageryPrev: query<HTMLButtonElement>("#imagery-prev"),
-  imagerySnapshots: query<HTMLElement>("#imagery-snapshots"),
   imageryTitle: query<HTMLElement>("#imagery-title"),
   imageryTime: query<HTMLElement>("#imagery-time"),
   specialWeatherTitle: query<HTMLElement>("#special-weather-title")
@@ -564,7 +563,6 @@ function selectImagery(type: ImageryType = "radar"): void {
   els.imageryImage.hidden = false;
   els.imageryImage.src = item.imageUrl || item.fallbackUrl;
   els.imageryImage.alt = title;
-  renderImagerySnapshots(type);
   renderImageryStepper(type);
   renderRadarRanges(type);
 }
@@ -575,28 +573,6 @@ function toggleImageryExpanded(): void {
 
 function collapseImageryExpanded(): void {
   els.imageryCard.classList.remove("is-expanded");
-}
-
-function renderImagerySnapshots(type: ImageryType): void {
-  els.imagerySnapshots.replaceChildren();
-  const urls = currentImageryUrls(type);
-  els.imagerySnapshots.hidden = !usesSnapshotControls(type) || !urls.length;
-  if (!usesSnapshotControls(type)) return;
-
-  latestImagerySnapshotUrls(type).forEach(({ url, originalIndex }, displayIndex) => {
-    const button = document.createElement("button");
-    button.className = "imagery-snapshot";
-    button.type = "button";
-    button.textContent = String(displayIndex + 1);
-    button.title = imageTime(url) || `${copy().radarSnapshot} ${displayIndex + 1}`;
-    button.setAttribute("aria-label", button.title);
-    button.setAttribute("aria-selected", String(originalIndex === IMAGERY[type].selectedIndex));
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      selectImagerySnapshot(type, originalIndex);
-    });
-    els.imagerySnapshots.append(button);
-  });
 }
 
 function renderRadarRanges(type: ImageryType): void {
