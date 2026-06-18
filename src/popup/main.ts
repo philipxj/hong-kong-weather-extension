@@ -501,8 +501,8 @@ function selectImagery(type: ImageryType = "radar"): void {
   });
 
   els.imageryOpen.dataset.imagery = type;
-  const canCropRadar = type === "radar" && Boolean(currentImageryUrls("radar").length);
-  els.imageryImage.classList.toggle("imagery-image-crop-radar", canCropRadar);
+  const canCropMap = usesSnapshotControls(type) && Boolean(currentImageryUrls(type).length);
+  els.imageryImage.classList.toggle("imagery-image-crop-map", canCropMap);
   const title = imageryTitle(type);
   els.imageryTitle.textContent = title;
   els.imageryTime.textContent = imageTime(item.imageUrl) || "";

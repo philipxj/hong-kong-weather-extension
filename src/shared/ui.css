@@ -816,7 +816,7 @@ body.popup-page {
   object-fit: cover;
 }
 
-.imagery-preview img.imagery-image-crop-radar {
+.imagery-preview img.imagery-image-crop-map {
   width: 138%;
   max-width: none;
   object-fit: fill;
