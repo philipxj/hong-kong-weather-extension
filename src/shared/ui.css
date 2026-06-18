@@ -403,10 +403,6 @@ button:hover {
   white-space: pre-wrap;
 }
 
-.compact-heading {
-  margin-bottom: 5px;
-}
-
 .quick-bulletin {
   display: grid;
   margin-bottom: 6px;

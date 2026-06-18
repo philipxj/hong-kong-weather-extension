@@ -18,6 +18,7 @@ import type {
   WeatherData,
   WeatherWarning
 } from "../shared/types";
+import { formatSpecialWeatherTips } from "./special-weather";
 
 type WarningSignalClass = WeatherWarning["type"];
 
@@ -435,7 +436,7 @@ function render(): void {
   els.topSummary.textContent =
     caption || data.current.forecast || data.current.summary || localized.fallbackWeather;
 
-  renderSpecialWeather(data);
+  renderSpecialWeather(data.current.tips);
   fitWeatherTitle();
   renderTyphoonMap(data.warnings);
   renderWarningSignals(data.warnings);
@@ -470,12 +471,10 @@ function renderWarningSignals(warnings: WeatherWarning[]): void {
   });
 }
 
-function renderSpecialWeather(data: WeatherData): void {
-  const highestWarning = data.warnings[0] || null;
-  els.warningCount.textContent =
-    data.current.tips[0] ||
-    data.current.warningMessages[0] ||
-    (highestWarning ? highestWarning.name : copy(data.language).noWeatherTips);
+function renderSpecialWeather(tips: string[]): void {
+  const text = formatSpecialWeatherTips(tips);
+  els.specialWeatherOpen.hidden = !text;
+  els.warningCount.textContent = text ?? "";
 }
 
 function fitWeatherTitle(): void {
@@ -483,8 +482,10 @@ function fitWeatherTitle(): void {
   els.topSummary.style.removeProperty("max-width");
 
   const titleRect = els.topSummary.getBoundingClientRect();
-  const specialRect = els.specialWeatherOpen.getBoundingClientRect();
-  const availableWidth = Math.floor(Math.max(110, specialRect.left - titleRect.left - 8));
+  const rightEdge = els.specialWeatherOpen.hidden
+    ? (els.topSummary.parentElement?.getBoundingClientRect().right ?? titleRect.right)
+    : els.specialWeatherOpen.getBoundingClientRect().left;
+  const availableWidth = Math.floor(Math.max(110, rightEdge - titleRect.left - 8));
 
   els.topSummary.style.maxWidth = `${availableWidth}px`;
   els.topSummary.style.fontSize = `${WEATHER_TITLE_MAX_FONT_SIZE}px`;

@@ -1,6 +1,15 @@
 import { browserApi } from "./shared/browser-api";
-import { getSettings, refreshWeather, updateBadge } from "./shared/weather-service";
+import {
+  getSettings,
+  refreshCurrentWeather,
+  refreshForecast,
+  refreshWeather,
+  refreshWeatherWarnings,
+  updateBadge
+} from "./shared/weather-service";
 import type { WeatherData } from "./shared/types";
+
+const FORECAST_REFRESH_MINUTES = 120;
 
 browserApi.runtime.onInstalled(async () => {
   await scheduleRefreshes();
@@ -20,8 +29,12 @@ browserApi.storage.onChanged(async (changes, areaName) => {
 });
 
 browserApi.alarms.onAlarm(async (alarm) => {
-  if (alarm.name === "current-weather" || alarm.name === "weather-warnings") {
-    await refreshAndBadge();
+  if (alarm.name === "current-weather") {
+    await refreshCurrentAndBadge();
+  } else if (alarm.name === "weather-forecast") {
+    await refreshForecastAndBadge();
+  } else if (alarm.name === "weather-warnings") {
+    await refreshWarningsAndBadge();
   }
 });
 
@@ -48,16 +61,40 @@ browserApi.runtime.onMessage<RefreshWeatherMessage, RefreshWeatherResponse>(asyn
 async function scheduleRefreshes(): Promise<void> {
   const settings = await getSettings();
   await browserApi.alarms.create("current-weather", {
-    periodInMinutes: Math.max(5, Number(settings.currentRefreshMinutes) || 10)
+    periodInMinutes: Math.max(10, Number(settings.currentRefreshMinutes) || 15)
+  });
+  await browserApi.alarms.create("weather-forecast", {
+    periodInMinutes: FORECAST_REFRESH_MINUTES
   });
   await browserApi.alarms.create("weather-warnings", {
-    periodInMinutes: Math.max(3, Number(settings.warningCheckMinutes) || 5)
+    periodInMinutes: Math.max(5, Number(settings.warningCheckMinutes) || 5)
   });
 }
 
 async function refreshAndBadge(): Promise<WeatherData> {
   const settings = await getSettings();
   const data = await refreshWeather(settings);
+  await updateBadge(data, settings);
+  return data;
+}
+
+async function refreshCurrentAndBadge(): Promise<WeatherData> {
+  const settings = await getSettings();
+  const data = await refreshCurrentWeather(settings);
+  await updateBadge(data, settings);
+  return data;
+}
+
+async function refreshForecastAndBadge(): Promise<WeatherData> {
+  const settings = await getSettings();
+  const data = await refreshForecast(settings);
+  await updateBadge(data, settings);
+  return data;
+}
+
+async function refreshWarningsAndBadge(): Promise<WeatherData> {
+  const settings = await getSettings();
+  const data = await refreshWeatherWarnings(settings);
   await updateBadge(data, settings);
   return data;
 }

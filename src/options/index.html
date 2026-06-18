@@ -126,15 +126,6 @@
                 <option value="off" data-i18n="off">Off</option>
               </select>
             </div>
-            <label class="option-choice"
-              ><input type="checkbox" id="compactMode" />
-              <span class="option-copy">
-                <span data-i18n="compactMode">Compact mode</span>
-                <small data-i18n="compactModeDescription"
-                  >Keeps the popup in the compact Observatory-style layout.</small
-                >
-              </span></label
-            >
           </div>
         </section>
 
@@ -147,11 +138,10 @@
                   >Current weather refresh minutes</label
                 >
                 <small data-i18n="currentRefreshMinutesDescription"
-                  >Controls how often current temperature, humidity, UV index, and forecast data
-                  refresh.</small
+                  >Controls how often current temperature, humidity, and UV index refresh.</small
                 >
               </div>
-              <input id="currentRefreshMinutes" type="number" min="5" max="180" step="1" />
+              <input id="currentRefreshMinutes" type="number" min="10" max="180" step="1" />
             </div>
             <div class="field-row">
               <div class="setting-copy">
@@ -163,7 +153,7 @@
                   changes.</small
                 >
               </div>
-              <input id="warningCheckMinutes" type="number" min="3" max="180" step="1" />
+              <input id="warningCheckMinutes" type="number" min="5" max="180" step="1" />
             </div>
           </div>
         </section>

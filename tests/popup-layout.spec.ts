@@ -22,7 +22,7 @@ interface LayoutScenario {
   readings?: [string, string][];
   scene?: string;
   warnings: string;
-  special: string;
+  special: string | null;
   specialTitle?: string;
   title?: string;
 }
@@ -34,7 +34,7 @@ const scenarios: Array<LayoutScenario & { name: string }> = [
       <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
       <button class="warning-signal warning-signal-rain-amber"><img class="warning-signal-icon" src="${ICON}" alt="黃色暴雨警告信號"></button>
     `,
-    special: "暴雨警告信號"
+    special: "局部地區有大雨"
   },
   {
     name: "four warnings",
@@ -44,20 +44,20 @@ const scenarios: Array<LayoutScenario & { name: string }> = [
       <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
       <button class="warning-signal warning-signal-flooding"><img class="warning-signal-icon" src="${ICON}" alt="新界北部水浸特別報告"></button>
     `,
-    special: "黑色暴雨警告信號、山泥傾瀉警告、雷暴警告、新界北部水浸特別報告"
+    special: "離岸及高地間中吹強風"
   },
   {
-    name: "no warnings with long labels",
+    name: "no warnings and no special tips",
     warnings: `<div class="warning-signal-empty">沒有警告信號</div>`,
-    special: "沒有生效提示"
+    special: null
   },
   {
-    name: "long warning text",
+    name: "long special weather tip",
     warnings: `
       <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
       <button class="warning-signal warning-signal-rain-amber"><img class="warning-signal-icon" src="${ICON}" alt="黃色暴雨警告信號"></button>
     `,
-    special: "雷暴警告信號、黃色暴雨警告信號、山泥傾瀉警告及強烈季候風信號"
+    special: "高溫天氣可能影響健康，市民應補充足夠水分，避免長時間在戶外曝曬"
   },
   {
     name: "English heavy rain labels",
@@ -143,6 +143,7 @@ test.describe("popup layout", () => {
           imageryCard: rect(".imagery-card"),
           shell: rect(".popup-shell"),
           side: rect(".legacy-side-panel"),
+          specialHidden: document.querySelector(".special-weather-card")?.hasAttribute("hidden"),
           special: rect(".special-weather-card"),
           sceneBackground: getComputedStyle(document.querySelector(".legacy-current")!, "::before")
             .backgroundImage,
@@ -178,17 +179,20 @@ test.describe("popup layout", () => {
       expect(layout.forecast.bottom).toBeLessThanOrEqual(layout.shell.bottom - 12);
       expect(layout.warning.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(layout.side.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
-      expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(Math.abs(layout.imageryCard.height - layout.current.height)).toBeLessThanOrEqual(6);
       expect(layout.titleTextScrollWidth).toBeLessThanOrEqual(layout.titleTextClientWidth + 1);
-      expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
       expect(overlaps(layout.readings, layout.warning)).toBe(false);
-      expect(overlaps(layout.readings, layout.special)).toBe(false);
-      expect(overlaps(layout.special, layout.warning)).toBe(false);
-      expect(overlaps(layout.currentTemp, layout.special)).toBe(false);
       expect(layout.sceneBackground).toContain(`${scenario.scene ?? "rain"}.webp`);
-      expect(layout.specialContent.height).toBeGreaterThanOrEqual(54);
-      if (scenario.lang === "en") {
+      expect(layout.specialHidden).toBe(scenario.special === null);
+      if (scenario.special !== null) {
+        expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
+        expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
+        expect(overlaps(layout.readings, layout.special)).toBe(false);
+        expect(overlaps(layout.special, layout.warning)).toBe(false);
+        expect(overlaps(layout.currentTemp, layout.special)).toBe(false);
+        expect(layout.specialContent.height).toBeGreaterThanOrEqual(54);
+      }
+      if (scenario.lang === "en" && scenario.special !== null) {
         expect(layout.specialContentDisplay).toBe("block");
         expect(layout.specialContentLineClamp).not.toBe("4");
         expect(layout.titleTextOverflow).not.toBe("ellipsis");
@@ -454,7 +458,7 @@ async function fixtureHtml({
                 ${readings.map(([label, value], index) => `<div class="legacy-reading${index === 2 ? " legacy-reading-uv" : ""}"><span>${label}</span><strong>${value}</strong></div>`).join("")}
               </div>
               <div class="warning-signal-row">${warnings}</div>
-              <button class="special-weather-card"><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special}</div></button>
+              <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             </section>
             <section class="legacy-side-panel">
               <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div></div><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>

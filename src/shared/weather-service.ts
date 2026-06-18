@@ -10,6 +10,7 @@ import {
   type HkoWarningInfo
 } from "./hko-schemas";
 import type {
+  CurrentWeather,
   ForecastDay,
   Language,
   Settings,
@@ -27,8 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyExtended: true,
   notifyUpdated: false,
   badgeMode: "auto",
-  compactMode: true,
-  currentRefreshMinutes: 10,
+  currentRefreshMinutes: 15,
   warningCheckMinutes: 5
 };
 
@@ -104,24 +104,100 @@ export async function refreshWeather(settings: Settings | null = null): Promise<
     await reconcileWarningNotifications(previous, data, activeSettings);
     return data;
   } catch (error) {
-    const cached =
-      previous?.language === activeSettings.language
-        ? {
-            ...previous,
-            stale: true,
-            error: {
-              message: errorMessage(error, "Unable to update weather data."),
-              at: new Date().toISOString()
-            }
-          }
-        : null;
+    return cacheRefreshError(previous, error, activeSettings.language);
+  }
+}
 
-    if (cached) {
-      await browserApi.storage.local.set({ [STORAGE_KEYS.cache]: cached });
-      return cached;
-    }
+export async function refreshCurrentWeather(settings: Settings | null = null): Promise<WeatherData> {
+  const activeSettings = settings ?? (await getSettings());
+  const lang = toHkoLang(activeSettings.language);
+  const previous = await getCachedWeather();
 
-    throw error;
+  if (!previous || previous.language !== activeSettings.language) {
+    return refreshWeather(activeSettings);
+  }
+
+  try {
+    const current = await fetchHkoJson(`${API_ROOT}?dataType=rhrread&lang=${lang}`, hkoCurrentSchema);
+
+    const data: WeatherData = {
+      ...previous,
+      language: activeSettings.language,
+      fetchedAt: new Date().toISOString(),
+      stale: false,
+      error: null,
+      current: normalizeCurrentWeather(current, previous.warnings, activeSettings)
+    };
+
+    await browserApi.storage.local.set({ [STORAGE_KEYS.cache]: data });
+    return data;
+  } catch (error) {
+    return cacheRefreshError(previous, error, activeSettings.language);
+  }
+}
+
+export async function refreshForecast(settings: Settings | null = null): Promise<WeatherData> {
+  const activeSettings = settings ?? (await getSettings());
+  const lang = toHkoLang(activeSettings.language);
+  const previous = await getCachedWeather();
+
+  if (!previous || previous.language !== activeSettings.language) {
+    return refreshWeather(activeSettings);
+  }
+
+  try {
+    const forecast = await fetchHkoJson(`${API_ROOT}?dataType=fnd&lang=${lang}`, hkoForecastSchema);
+
+    const data: WeatherData = {
+      ...previous,
+      language: activeSettings.language,
+      fetchedAt: new Date().toISOString(),
+      stale: false,
+      error: null,
+      forecast: normalizeForecast(forecast)
+    };
+
+    await browserApi.storage.local.set({ [STORAGE_KEYS.cache]: data });
+    return data;
+  } catch (error) {
+    return cacheRefreshError(previous, error, activeSettings.language);
+  }
+}
+
+export async function refreshWeatherWarnings(settings: Settings | null = null): Promise<WeatherData> {
+  const activeSettings = settings ?? (await getSettings());
+  const lang = toHkoLang(activeSettings.language);
+  const previous = await getCachedWeather();
+
+  if (!previous || previous.language !== activeSettings.language) {
+    return refreshWeather(activeSettings);
+  }
+
+  try {
+    const [warnsum, warningInfo] = await Promise.all([
+      fetchHkoJson(`${API_ROOT}?dataType=warnsum&lang=${lang}`, hkoWarnsumSchema),
+      fetchHkoJson(`${API_ROOT}?dataType=warningInfo&lang=${lang}`, hkoWarningInfoSchema)
+    ]);
+    const warnings = normalizeWarnings(warnsum, warningInfo);
+    const data: WeatherData = {
+      ...previous,
+      language: activeSettings.language,
+      fetchedAt: new Date().toISOString(),
+      stale: false,
+      error: null,
+      current: {
+        ...previous.current,
+        warningSummary: warnings.map((warning) => warning.name).join(", ")
+      },
+      warnings,
+      warningInfo: normalizeWarningInfo(warningInfo)
+    };
+
+    await browserApi.storage.local.set({ [STORAGE_KEYS.cache]: data });
+    await reconcileWarningNotifications(previous, data, activeSettings);
+    return data;
+  } catch (error) {
+    return cacheRefreshError(previous, error, activeSettings.language);
   }
 }
 
@@ -256,43 +332,59 @@ export function normalizeWeather({
     fetchedAt,
     stale,
     error,
-    current: {
-      temperature: firstNumber(current.temperature?.data, "value"),
-      humidity: firstNumber(current.humidity?.data, "value"),
-      uvIndex: current.uvindex?.data?.[0]?.value ?? null,
-      uvDesc: current.uvindex?.data?.[0]?.desc ?? "",
-      rainfall: firstNumber(current.rainfall?.data, "max"),
-      icon: current.icon?.[0] ?? null,
-      summary: current.iconUpdateTime
-        ? text("Weather data updated", "天氣資料已更新", settings.language)
-        : "",
-      tips: asStringArray(current.specialWxTips),
-      warningMessages: asStringArray(current.warningMessage),
-      forecast: current.forecastDesc || current.generalSituation || "",
-      warningSummary: warnings.map((warning) => warning.name).join(", ")
-    },
-    forecast: asArray(forecast.weatherForecast)
-      .slice(0, 9)
-      .map<ForecastDay>((item) => ({
-        date: item.forecastDate || "",
-        weekday: item.week || "",
-        icon: item.ForecastIcon ?? null,
-        minTemp: item.forecastMintemp?.value ?? null,
-        maxTemp: item.forecastMaxtemp?.value ?? null,
-        humidity: formatHumidityRange(item),
-        text: item.forecastWeather || "",
-        wind: item.forecastWind || ""
-      })),
+    current: normalizeCurrentWeather(current, warnings, settings),
+    forecast: normalizeForecast(forecast),
     warnings,
-    warningInfo: asArray(warningInfo.details).map<WarningInfo>((item) => ({
-      code: item.warningStatementCode || "",
-      name: item.subtype || item.warningStatementCode || "",
-      contents: asStringArray(item.contents).join("\n"),
-      issueTime: item.issueTime || "",
-      updateTime: item.updateTime || "",
-      expireTime: item.expireTime || ""
-    }))
+    warningInfo: normalizeWarningInfo(warningInfo)
   };
+}
+
+function normalizeCurrentWeather(
+  current: HkoCurrent,
+  warnings: WeatherWarning[],
+  settings: Pick<Settings, "language">
+): CurrentWeather {
+  return {
+    temperature: firstNumber(current.temperature?.data, "value"),
+    humidity: firstNumber(current.humidity?.data, "value"),
+    uvIndex: current.uvindex?.data?.[0]?.value ?? null,
+    uvDesc: current.uvindex?.data?.[0]?.desc ?? "",
+    rainfall: firstNumber(current.rainfall?.data, "max"),
+    icon: current.icon?.[0] ?? null,
+    summary: current.iconUpdateTime
+      ? text("Weather data updated", "天氣資料已更新", settings.language)
+      : "",
+    tips: asStringArray(current.specialWxTips),
+    warningMessages: asStringArray(current.warningMessage),
+    forecast: current.forecastDesc || current.generalSituation || "",
+    warningSummary: warnings.map((warning) => warning.name).join(", ")
+  };
+}
+
+function normalizeForecast(forecast: HkoForecast): ForecastDay[] {
+  return asArray(forecast.weatherForecast)
+    .slice(0, 9)
+    .map<ForecastDay>((item) => ({
+      date: item.forecastDate || "",
+      weekday: item.week || "",
+      icon: item.ForecastIcon ?? null,
+      minTemp: item.forecastMintemp?.value ?? null,
+      maxTemp: item.forecastMaxtemp?.value ?? null,
+      humidity: formatHumidityRange(item),
+      text: item.forecastWeather || "",
+      wind: item.forecastWind || ""
+    }));
+}
+
+function normalizeWarningInfo(warningInfo: HkoWarningInfo): WarningInfo[] {
+  return asArray(warningInfo.details).map<WarningInfo>((item) => ({
+    code: item.warningStatementCode || "",
+    name: item.subtype || item.warningStatementCode || "",
+    contents: asStringArray(item.contents).join("\n"),
+    issueTime: item.issueTime || "",
+    updateTime: item.updateTime || "",
+    expireTime: item.expireTime || ""
+  }));
 }
 
 function normalizeWarnings(
@@ -322,6 +414,28 @@ function normalizeWarnings(
       };
     })
     .sort((a, b) => b.priority - a.priority);
+}
+
+async function cacheRefreshError(
+  previous: WeatherData | null,
+  error: unknown,
+  language?: Language
+): Promise<WeatherData> {
+  if (!previous || (language && previous.language !== language)) {
+    throw error;
+  }
+
+  const cached = {
+    ...previous,
+    stale: true,
+    error: {
+      message: errorMessage(error, "Unable to update weather data."),
+      at: new Date().toISOString()
+    }
+  };
+
+  await browserApi.storage.local.set({ [STORAGE_KEYS.cache]: cached });
+  return cached;
 }
 
 async function reconcileWarningNotifications(

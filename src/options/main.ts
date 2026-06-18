@@ -38,7 +38,6 @@ function hydrate(values: Settings): void {
   query<HTMLInputElement>("#notifyExtended", form).checked = values.notifyExtended;
   query<HTMLInputElement>("#notifyUpdated", form).checked = values.notifyUpdated;
   query<HTMLSelectElement>("#badgeMode", form).value = values.badgeMode;
-  query<HTMLInputElement>("#compactMode", form).checked = values.compactMode;
   query<HTMLInputElement>("#currentRefreshMinutes", form).value = String(
     values.currentRefreshMinutes
   );
@@ -54,16 +53,15 @@ function readForm(): Settings {
     notifyExtended: query<HTMLInputElement>("#notifyExtended", form).checked,
     notifyUpdated: query<HTMLInputElement>("#notifyUpdated", form).checked,
     badgeMode: query<HTMLSelectElement>("#badgeMode", form).value as Settings["badgeMode"],
-    compactMode: query<HTMLInputElement>("#compactMode", form).checked,
     currentRefreshMinutes: clampNumber(
       query<HTMLInputElement>("#currentRefreshMinutes", form).value,
-      5,
+      10,
       180,
-      10
+      15
     ),
     warningCheckMinutes: clampNumber(
       query<HTMLInputElement>("#warningCheckMinutes", form).value,
-      3,
+      5,
       180,
       5
     )
