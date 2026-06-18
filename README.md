@@ -2,6 +2,11 @@
 
 Browser extension for compact Hong Kong weather alerts.
 
+## Documentation
+
+- [API and external resources](docs/api.md): HKO Open Data API usage, imagery URLs, related official documentation, and host permissions.
+- DATA.GOV.HK weather dataset search: https://data.gov.hk/tc-datasets/search/%E5%A4%A9%E6%B0%A3
+
 ## Development
 
 Install dependencies:

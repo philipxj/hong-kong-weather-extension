@@ -27,7 +27,6 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyExtended: true,
   notifyUpdated: false,
   badgeMode: "auto",
-  compactMode: true,
   currentRefreshMinutes: 10,
   warningCheckMinutes: 5
 };

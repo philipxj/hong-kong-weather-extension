@@ -8,7 +8,6 @@ export interface Settings {
   notifyExtended: boolean;
   notifyUpdated: boolean;
   badgeMode: BadgeMode;
-  compactMode: boolean;
   currentRefreshMinutes: number;
   warningCheckMinutes: number;
 }
