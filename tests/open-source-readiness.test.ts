@@ -27,6 +27,7 @@ describe("open source readiness", () => {
     expect(popupHtml).not.toContain("hko-logo.png");
     expect(popupHtml).not.toContain("weather-mark.png");
     expect(popupHtml).toContain("observatory-link-icon");
+    expect(popupHtml).toContain("HKO");
     expect(popupHtml).toContain("Open Hong Kong Observatory");
   });
 });

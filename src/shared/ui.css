@@ -492,13 +492,32 @@ body.popup-page {
 
 .observatory-link-icon {
   display: block;
-  width: 24px;
-  height: 24px;
+  width: 25px;
+  height: 25px;
+  fill: none;
+}
+
+.observatory-link-badge {
+  fill: rgba(255, 255, 255, 0.86);
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.observatory-link-text {
+  fill: currentColor;
+  font:
+    700 7px/1 system-ui,
+    sans-serif;
+  letter-spacing: 0;
+  text-anchor: middle;
+}
+
+.observatory-link-arrow {
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.1;
+  stroke-width: 2;
 }
 
 .legacy-current {
