@@ -137,14 +137,18 @@ export async function updateBadge(
     return;
   }
 
-  const warningBadge = getHighestPriorityWarning(getSignalWarnings(weather.warnings))?.badge ?? "";
+  const highestWarning = getHighestPriorityWarning(getSignalWarnings(weather.warnings));
+  const warningBadge = highestWarning
+    ? formatWarningBadgeForLanguage(highestWarning, weather.language)
+    : "";
+  const warningColorBadge = highestWarning?.badge ?? "";
   const temperatureBadge = formatTemperatureBadge(weather.current.temperature);
 
   const text = formatActionBadgeText(activeSettings.badgeMode, warningBadge, temperatureBadge);
 
   await browserApi.action.setBadgeText({ text: text.slice(0, 4) });
   await browserApi.action.setBadgeBackgroundColor({
-    color: badgeBackgroundColor(warningBadge)
+    color: badgeBackgroundColor(warningColorBadge)
   });
   await browserApi.action.setTitle({
     title: formatActionTitle(weather, warningBadge, temperatureBadge)
@@ -177,6 +181,29 @@ export function badgeBackgroundColor(warningBadge: string): string {
   if (warningBadge === "黃") return "#ffd200";
   if (warningBadge) return "#b42318";
   return "#2f5f98";
+}
+
+export function formatWarningBadgeForLanguage(
+  warning: Pick<WeatherWarning, "badge" | "code" | "type">,
+  language: Language
+): string {
+  if (language !== "en") {
+    if (language === "sc" && warning.badge === "熱") return "热";
+    return warning.badge;
+  }
+
+  if (warning.type === "rain-black") return "Blk";
+  if (warning.type === "rain-red") return "Red";
+  if (warning.type === "rain-amber") return "Amb";
+  if (warning.type === "thunderstorm") return "TS";
+  if (warning.type === "landslip") return "LS";
+  if (warning.type === "flooding") return "Fld";
+  if (warning.type === "monsoon") return "Mon";
+  if (warning.type === "heat") return "Hot";
+  if (warning.type === "cold") return "Cold";
+  if (warning.type === "typhoon" && warning.badge) return warning.badge;
+
+  return warning.code.replace(/^W/, "").slice(0, 4);
 }
 
 interface NormalizeWeatherInput {

@@ -3,6 +3,7 @@ import {
   badgeBackgroundColor,
   DEFAULT_SETTINGS,
   formatActionBadgeText,
+  formatWarningBadgeForLanguage,
   getSignalWarnings,
   normalizeWeather,
   refreshWeather
@@ -141,6 +142,21 @@ describe("weather service normalization", () => {
     expect(formatActionBadgeText("auto", "雷", "27°")).toBe("雷");
     expect(formatActionBadgeText("auto", "T3", "28°")).toBe("T3");
     expect(formatActionBadgeText("auto", "", "28°")).toBe("28°");
+  });
+
+  test("localizes toolbar warning badges for the active language", () => {
+    expect(
+      formatWarningBadgeForLanguage({ badge: "黑", code: "WRAINB", type: "rain-black" }, "tc")
+    ).toBe("黑");
+    expect(
+      formatWarningBadgeForLanguage({ badge: "黑", code: "WRAINB", type: "rain-black" }, "en")
+    ).toBe("Blk");
+    expect(
+      formatWarningBadgeForLanguage({ badge: "雷", code: "WTS", type: "thunderstorm" }, "en")
+    ).toBe("TS");
+    expect(formatWarningBadgeForLanguage({ badge: "熱", code: "WHOT", type: "heat" }, "sc")).toBe(
+      "热"
+    );
   });
 
   test("keeps explicit badge modes focused", () => {
