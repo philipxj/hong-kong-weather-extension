@@ -1,11 +1,6 @@
 import { optionsCopy } from "./options-copy";
-import {
-  getSettings,
-  refreshWeather,
-  saveSettings,
-  sendTestNotification,
-  updateBadge
-} from "../shared/weather-service";
+import { getSettings, refreshWeather, saveSettings, updateBadge } from "../shared/weather-service";
+import { browserApi } from "../shared/browser-api";
 import type { Language, Settings } from "../shared/types";
 
 const form = query<HTMLFormElement>("#options-form");
@@ -15,6 +10,8 @@ const testNotificationButton = query<HTMLButtonElement>("#test-notification");
 const settings = await getSettings();
 hydrate(settings);
 applyOptionsLanguage(settings.language);
+
+type TestNotificationResponse = { ok: true } | { ok: false; error: string };
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -84,7 +81,11 @@ async function testNotification(): Promise<void> {
     .value as Settings["language"];
   const copy = optionsCopy(language);
   try {
-    await sendTestNotification(language);
+    const response = await browserApi.runtime.sendMessage<TestNotificationResponse>({
+      type: "testNotification",
+      language
+    });
+    if (!response?.ok) throw new Error(response?.error ?? "Notification test failed");
     status.textContent = copy.testNotificationSent;
   } catch {
     status.textContent = copy.testNotificationFailed;
