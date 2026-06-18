@@ -16,6 +16,21 @@ describe("HKO warning icons", () => {
     expect(iconUrl({ badge: "水", code: "WFNTSA", type: "flooding" })).toBe(
       "https://www.hko.gov.hk/images_e/ntfl.gif"
     );
+    expect(iconUrl({ badge: "季", code: "WMSGNL", type: "monsoon" })).toBe(
+      "https://www.hko.gov.hk/images_e/sms.gif"
+    );
+    expect(iconUrl({ badge: "霜", code: "WFROST", type: "frost" })).toBe(
+      "https://www.hko.gov.hk/images_e/frost.gif"
+    );
+    expect(iconUrl({ badge: "火", code: "WFIREY", type: "fire-yellow" })).toBe(
+      "https://www.hko.gov.hk/images_e/firey.gif"
+    );
+    expect(iconUrl({ badge: "火", code: "WFIRER", type: "fire-red" })).toBe(
+      "https://www.hko.gov.hk/images_e/firer.gif"
+    );
+    expect(iconUrl({ badge: "海嘯", code: "WTMW", type: "tsunami" })).toBe(
+      "https://www.hko.gov.hk/images_e/tsunami-warn.gif"
+    );
   });
 });
 

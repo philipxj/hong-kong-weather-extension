@@ -137,6 +137,57 @@ describe("weather service normalization", () => {
     ]);
   });
 
+  test("normalizes less common official HKO warning signal types", () => {
+    const weather = normalizeWeather({
+      settings: { language: "en" },
+      fetchedAt: "2026-06-18T06:10:00.000Z",
+      stale: false,
+      error: null,
+      current: {
+        icon: [64],
+        temperature: { data: [{ value: 28 }] },
+        humidity: { data: [{ value: 89 }] }
+      },
+      forecast: { weatherForecast: [] },
+      warnsum: {
+        WFROST: {
+          name: "Frost Warning",
+          code: "WFROST",
+          issueTime: "2026-06-18T06:00:00+08:00"
+        },
+        WFIRE: {
+          name: "Fire Danger Warning",
+          code: "WFIREY",
+          type: "Yellow",
+          issueTime: "2026-06-18T06:00:00+08:00"
+        },
+        WFIRER: {
+          name: "Red Fire Danger Warning",
+          code: "WFIRER",
+          issueTime: "2026-06-18T06:00:00+08:00"
+        },
+        WTMW: {
+          name: "Tsunami Warning",
+          code: "WTMW",
+          issueTime: "2026-06-18T06:00:00+08:00"
+        }
+      },
+      warningInfo: { details: [] }
+    });
+
+    const warningsByCode = new Map(weather.warnings.map((warning) => [warning.code, warning]));
+
+    expect(warningsByCode.get("WFROST")?.type).toBe("frost");
+    expect(warningsByCode.get("WFROST")?.badge).toBe("霜");
+    expect(warningsByCode.get("WFIREY")?.type).toBe("fire-yellow");
+    expect(warningsByCode.get("WFIREY")?.badge).toBe("火");
+    expect(warningsByCode.get("WFIRER")?.type).toBe("fire-red");
+    expect(warningsByCode.get("WFIRER")?.badge).toBe("火");
+    expect(warningsByCode.get("WTMW")?.type).toBe("tsunami");
+    expect(warningsByCode.get("WTMW")?.badge).toBe("海嘯");
+    expect(getSignalWarnings(weather.warnings)).toHaveLength(4);
+  });
+
   test("keeps auto badge readable by prioritizing warning over temperature", () => {
     expect(formatActionBadgeText("auto", "黑", "28°")).toBe("黑");
     expect(formatActionBadgeText("auto", "雷", "27°")).toBe("雷");
@@ -157,6 +208,18 @@ describe("weather service normalization", () => {
     expect(formatWarningBadgeForLanguage({ badge: "熱", code: "WHOT", type: "heat" }, "sc")).toBe(
       "热"
     );
+    expect(
+      formatWarningBadgeForLanguage({ badge: "海嘯", code: "WTMW", type: "tsunami" }, "sc")
+    ).toBe("海啸");
+    expect(
+      formatWarningBadgeForLanguage({ badge: "霜", code: "WFROST", type: "frost" }, "en")
+    ).toBe("Frst");
+    expect(
+      formatWarningBadgeForLanguage({ badge: "火", code: "WFIREY", type: "fire-yellow" }, "en")
+    ).toBe("Fire");
+    expect(
+      formatWarningBadgeForLanguage({ badge: "海嘯", code: "WTMW", type: "tsunami" }, "en")
+    ).toBe("Tsu");
   });
 
   test("keeps explicit badge modes focused", () => {

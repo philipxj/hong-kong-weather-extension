@@ -32,9 +32,13 @@ export function hkoWarningIconPrefix(
   if (code === "WTS" || warning.type === "thunderstorm") return "ts";
   if (code === "WL" || warning.type === "landslip") return "landslip";
   if (code === "WFNTSA" || warning.type === "flooding") return "ntfl";
-  if (code === "WMSGNL" || warning.type === "monsoon") return "msn";
+  if (code === "WMSGNL" || warning.type === "monsoon") return "sms";
+  if (code === "WFROST" || warning.type === "frost") return "frost";
+  if (code === "WFIREY" || warning.type === "fire-yellow") return "firey";
+  if (code === "WFIRER" || warning.type === "fire-red") return "firer";
   if (code === "WHOT" || warning.type === "heat") return "vhot";
   if (code === "WCOLD" || warning.type === "cold") return "cold";
+  if (code === "WTMW" || warning.type === "tsunami") return "tsunami-warn";
 
   if (code in TYPHOON_ICON_PREFIXES) return TYPHOON_ICON_PREFIXES[code] ?? "";
   if (badge in TYPHOON_ICON_PREFIXES) return TYPHOON_ICON_PREFIXES[badge] ?? "";

@@ -52,8 +52,12 @@ export type WarningType =
   | "landslip"
   | "flooding"
   | "monsoon"
+  | "frost"
+  | "fire-yellow"
+  | "fire-red"
   | "heat"
   | "cold"
+  | "tsunami"
   | "other";
 
 export interface WeatherWarning {

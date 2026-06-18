@@ -189,6 +189,7 @@ export function formatWarningBadgeForLanguage(
 ): string {
   if (language !== "en") {
     if (language === "sc" && warning.badge === "熱") return "热";
+    if (language === "sc" && warning.badge === "海嘯") return "海啸";
     return warning.badge;
   }
 
@@ -199,8 +200,11 @@ export function formatWarningBadgeForLanguage(
   if (warning.type === "landslip") return "LS";
   if (warning.type === "flooding") return "Fld";
   if (warning.type === "monsoon") return "Mon";
+  if (warning.type === "frost") return "Frst";
+  if (warning.type === "fire-yellow" || warning.type === "fire-red") return "Fire";
   if (warning.type === "heat") return "Hot";
   if (warning.type === "cold") return "Cold";
+  if (warning.type === "tsunami") return "Tsu";
   if (warning.type === "typhoon" && warning.badge) return warning.badge;
 
   return warning.code.replace(/^W/, "").slice(0, 4);
@@ -387,8 +391,11 @@ function warningPriority(code: string): number {
   if (normalized.includes("TC")) return 70;
   if (normalized.includes("FNTSA") || normalized.includes("FLOOD")) return 58;
   if (normalized.includes("TS")) return 60;
+  if (normalized.includes("FROST")) return 55;
+  if (normalized.includes("FIRE")) return 53;
   if (normalized.includes("HOT")) return 50;
   if (normalized.includes("COLD")) return 45;
+  if (normalized.includes("TMW")) return 88;
   return 20;
 }
 
@@ -405,6 +412,9 @@ function warningBadge(code: string, name: string): string {
   if (isLandslipWarning(code, name)) return "山";
   if (isFloodingWarning(code, name)) return "水";
   if (isMonsoonWarning(code, name)) return "季";
+  if (isFrostWarning(code, name)) return "霜";
+  if (isFireDangerWarning(code, name)) return "火";
+  if (isTsunamiWarning(code, name)) return "海嘯";
   if (value.includes("BLACK") || value.includes("黑")) return "黑";
   if (value.includes("RED") || value.includes("紅")) return "紅";
   if (value.includes("AMBER") || value.includes("黃")) return "黃";
@@ -422,6 +432,10 @@ function warningType(code: string, name: string): WarningType {
   if (isLandslipWarning(code, name)) return "landslip";
   if (isFloodingWarning(code, name)) return "flooding";
   if (isMonsoonWarning(code, name)) return "monsoon";
+  if (isFrostWarning(code, name)) return "frost";
+  if (isYellowFireDangerWarning(code, name)) return "fire-yellow";
+  if (isRedFireDangerWarning(code, name)) return "fire-red";
+  if (isTsunamiWarning(code, name)) return "tsunami";
   if (
     value.includes("TC") ||
     value.includes("TROPICAL") ||
@@ -477,6 +491,61 @@ function isMonsoonWarning(code: string, name: string): boolean {
     normalizedName.includes("MONSOON") ||
     name.includes("季候風") ||
     name.includes("季候风")
+  );
+}
+
+function isFrostWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode === "WFROST" ||
+    normalizedName.includes("FROST") ||
+    name.includes("霜凍") ||
+    name.includes("霜冻")
+  );
+}
+
+function isFireDangerWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode.includes("WFIRE") ||
+    normalizedName.includes("FIRE") ||
+    name.includes("火災") ||
+    name.includes("火灾")
+  );
+}
+
+function isYellowFireDangerWarning(code: string, name: string): boolean {
+  const value = `${code} ${name}`.toUpperCase();
+  return (
+    isFireDangerWarning(code, name) &&
+    (value.includes("YELLOW") ||
+      value.includes("WFIREY") ||
+      name.includes("黃") ||
+      name.includes("黄"))
+  );
+}
+
+function isRedFireDangerWarning(code: string, name: string): boolean {
+  const value = `${code} ${name}`.toUpperCase();
+  return (
+    isFireDangerWarning(code, name) &&
+    (value.includes("RED") ||
+      value.includes("WFIRER") ||
+      name.includes("紅") ||
+      name.includes("红"))
+  );
+}
+
+function isTsunamiWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode === "WTMW" ||
+    normalizedName.includes("TSUNAMI") ||
+    name.includes("海嘯") ||
+    name.includes("海啸")
   );
 }
 
