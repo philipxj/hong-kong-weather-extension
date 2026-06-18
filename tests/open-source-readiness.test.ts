@@ -21,8 +21,9 @@ describe("open source readiness", () => {
   test("does not bundle or render the Hong Kong Observatory logo", async () => {
     const popupHtml = await readFile(new URL("../src/popup/index.html", import.meta.url), "utf8");
 
-    await expect(access(new URL("../assets/hko-logo.png", import.meta.url), constants.F_OK))
-      .rejects.toThrow();
+    await expect(
+      access(new URL("../assets/hko-logo.png", import.meta.url), constants.F_OK)
+    ).rejects.toThrow();
     expect(popupHtml).not.toContain("hko-logo.png");
     expect(popupHtml).toContain("weather-mark.png");
   });

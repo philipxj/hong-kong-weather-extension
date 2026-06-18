@@ -30,19 +30,19 @@ Return type: `JSON`
 
 Shared query parameters:
 
-| Parameter | Values | Notes |
-| --- | --- | --- |
-| `dataType` | See table below | Selects the weather dataset. |
-| `lang` | `en`, `tc`, `sc` | Defaults to `en` if omitted. The extension defaults to `tc`. |
+| Parameter  | Values           | Notes                                                        |
+| ---------- | ---------------- | ------------------------------------------------------------ |
+| `dataType` | See table below  | Selects the weather dataset.                                 |
+| `lang`     | `en`, `tc`, `sc` | Defaults to `en` if omitted. The extension defaults to `tc`. |
 
 Current extension usage:
 
-| `dataType` | Purpose in this extension | Normalized in |
-| --- | --- | --- |
-| `rhrread` | Current weather readings, weather icon, UV index, rainfall, tips, and local forecast text. | `src/shared/weather-service.ts` |
-| `fnd` | 9-day weather forecast row. | `src/shared/weather-service.ts` |
-| `warnsum` | Active warning summary, badge text, warning priority, and notification diffing. | `src/shared/weather-service.ts` |
-| `warningInfo` | Detailed warning content, issue/update/expire times, and subtype fallback. | `src/shared/weather-service.ts` |
+| `dataType`    | Purpose in this extension                                                                  | Normalized in                   |
+| ------------- | ------------------------------------------------------------------------------------------ | ------------------------------- |
+| `rhrread`     | Current weather readings, weather icon, UV index, rainfall, tips, and local forecast text. | `src/shared/weather-service.ts` |
+| `fnd`         | 9-day weather forecast row.                                                                | `src/shared/weather-service.ts` |
+| `warnsum`     | Active warning summary, badge text, warning priority, and notification diffing.            | `src/shared/weather-service.ts` |
+| `warningInfo` | Detailed warning content, issue/update/expire times, and subtype fallback.                 | `src/shared/weather-service.ts` |
 
 Example requests:
 
@@ -55,12 +55,12 @@ https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warningInfo
 
 Refresh paths:
 
-| Trigger | API datasets called | Count |
-| --- | --- | --- |
-| Popup/manual refresh, install, startup, or missing cache fallback | `rhrread`, `fnd`, `warnsum`, `warningInfo` | 4 |
-| Current weather alarm, default every 15 minutes | `rhrread` | 1 |
-| Forecast alarm, fixed every 120 minutes | `fnd` | 1 |
-| Warning check alarm | `warnsum`, `warningInfo` | 2 |
+| Trigger                                                           | API datasets called                        | Count |
+| ----------------------------------------------------------------- | ------------------------------------------ | ----- |
+| Popup/manual refresh, install, startup, or missing cache fallback | `rhrread`, `fnd`, `warnsum`, `warningInfo` | 4     |
+| Current weather alarm, default every 15 minutes                   | `rhrread`                                  | 1     |
+| Forecast alarm, fixed every 120 minutes                           | `fnd`                                      | 1     |
+| Warning check alarm                                               | `warnsum`, `warningInfo`                   | 2     |
 
 Implementation notes:
 
@@ -75,27 +75,24 @@ These resources are used by the popup imagery panel and external-link buttons.
 They are not part of the Weather Information API above, but they are covered by
 the current `https://www.hko.gov.hk/*` host permission.
 
-| Resource | URL | Purpose |
-| --- | --- | --- |
-| Weather icons | `https://www.hko.gov.hk/images/wxicon/{icon}.png` | Current and forecast weather icons. |
-| Radar image list | `https://www.hko.gov.hk/wxinfo/radars/temp_json/nradar_img.json` | Finds the latest radar image path. |
-| Radar page | `https://www.hko.gov.hk/tc/wxinfo/radars/radar_range1.htm` | Opens the official radar page. |
-| Lightning image script | `https://www.hko.gov.hk/wxinfo/llis/llisradar/radar-image.js` | Finds the latest lightning image filename. |
-| Lightning image root | `https://www.hko.gov.hk/wxinfo/llis/llisradar/images` | Builds the latest lightning image URL. |
-| Lightning page | `https://www.hko.gov.hk/tc/wxinfo/llis/llisradar.shtml` | Opens the official lightning page. |
-| Satellite thumbnail | `https://www.hko.gov.hk/wxinfo/intersat/misc_images/icon_sate_gallery_tc.gif` | Popup satellite preview image. |
-| Satellite page | `https://www.hko.gov.hk/tc/wxinfo/intersat/satellite/sate.htm` | Opens the official satellite page. |
-| Typhoon track page | `https://www.hko.gov.hk/tc/wxinfo/currwx/tc_pos.htm` | Opens the official tropical cyclone track page. |
+| Resource               | URL                                                                           | Purpose                                         |
+| ---------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------- |
+| Weather icons          | `https://www.hko.gov.hk/images/wxicon/{icon}.png`                             | Current and forecast weather icons.             |
+| Radar image list       | `https://www.hko.gov.hk/wxinfo/radars/temp_json/nradar_img.json`              | Finds the latest radar image path.              |
+| Radar page             | `https://www.hko.gov.hk/tc/wxinfo/radars/radar_range1.htm`                    | Opens the official radar page.                  |
+| Lightning image script | `https://www.hko.gov.hk/wxinfo/llis/llisradar/radar-image.js`                 | Finds the latest lightning image filename.      |
+| Lightning image root   | `https://www.hko.gov.hk/wxinfo/llis/llisradar/images`                         | Builds the latest lightning image URL.          |
+| Lightning page         | `https://www.hko.gov.hk/tc/wxinfo/llis/llisradar.shtml`                       | Opens the official lightning page.              |
+| Satellite thumbnail    | `https://www.hko.gov.hk/wxinfo/intersat/misc_images/icon_sate_gallery_tc.gif` | Popup satellite preview image.                  |
+| Satellite page         | `https://www.hko.gov.hk/tc/wxinfo/intersat/satellite/sate.htm`                | Opens the official satellite page.              |
+| Typhoon track page     | `https://www.hko.gov.hk/tc/wxinfo/currwx/tc_pos.htm`                          | Opens the official tropical cyclone track page. |
 
 ## Extension Permissions
 
 Current Chromium MV3 host permissions are declared in `manifests/chromium.json`:
 
 ```json
-[
-  "https://data.weather.gov.hk/*",
-  "https://www.hko.gov.hk/*"
-]
+["https://data.weather.gov.hk/*", "https://www.hko.gov.hk/*"]
 ```
 
 When porting to another browser, keep API access behind `src/shared/browser-api.ts`

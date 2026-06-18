@@ -257,12 +257,12 @@ describe("weather service normalization", () => {
   test("uses rainstorm-specific badge background colors", () => {
     expect(badgeBackgroundColor("黑")).toBe("#111111");
     expect(badgeBackgroundColor("紅")).toBe("#df1d1d");
-    expect(badgeBackgroundColor("黃")).toBe("#ffd200");
+    expect(badgeBackgroundColor("黃")).toBe("#ffd84d");
     expect(badgeBackgroundColor("")).toBe("#2f5f98");
   });
 
   test("uses readable toolbar badge text colors", () => {
-    expect(badgeTextColor("黃")).toBe("#111111");
+    expect(badgeTextColor("黃")).toBe("#5c4300");
     expect(badgeTextColor("紅")).toBe("#ffffff");
     expect(badgeTextColor("黑")).toBe("#ffffff");
   });

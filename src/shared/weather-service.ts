@@ -108,7 +108,9 @@ export async function refreshWeather(settings: Settings | null = null): Promise<
   }
 }
 
-export async function refreshCurrentWeather(settings: Settings | null = null): Promise<WeatherData> {
+export async function refreshCurrentWeather(
+  settings: Settings | null = null
+): Promise<WeatherData> {
   const activeSettings = settings ?? (await getSettings());
   const lang = toHkoLang(activeSettings.language);
   const previous = await getCachedWeather();
@@ -118,7 +120,10 @@ export async function refreshCurrentWeather(settings: Settings | null = null): P
   }
 
   try {
-    const current = await fetchHkoJson(`${API_ROOT}?dataType=rhrread&lang=${lang}`, hkoCurrentSchema);
+    const current = await fetchHkoJson(
+      `${API_ROOT}?dataType=rhrread&lang=${lang}`,
+      hkoCurrentSchema
+    );
 
     const data: WeatherData = {
       ...previous,
@@ -164,7 +169,9 @@ export async function refreshForecast(settings: Settings | null = null): Promise
   }
 }
 
-export async function refreshWeatherWarnings(settings: Settings | null = null): Promise<WeatherData> {
+export async function refreshWeatherWarnings(
+  settings: Settings | null = null
+): Promise<WeatherData> {
   const activeSettings = settings ?? (await getSettings());
   const lang = toHkoLang(activeSettings.language);
   const previous = await getCachedWeather();
@@ -273,13 +280,13 @@ export function formatActionBadgeText(
 export function badgeBackgroundColor(warningBadge: string): string {
   if (warningBadge === "黑") return "#111111";
   if (warningBadge === "紅") return "#df1d1d";
-  if (warningBadge === "黃") return "#ffd200";
+  if (warningBadge === "黃") return "#ffd84d";
   if (warningBadge) return "#b42318";
   return "#2f5f98";
 }
 
 export function badgeTextColor(warningBadge: string): string {
-  if (warningBadge === "黃") return "#111111";
+  if (warningBadge === "黃") return "#5c4300";
   return "#ffffff";
 }
 
