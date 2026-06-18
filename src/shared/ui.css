@@ -690,10 +690,23 @@ body.popup-page {
   min-width: 48px;
   flex: 0 0 auto;
   overflow: hidden;
+  padding: 0;
   color: #111;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   font-size: 22px;
   font-weight: 900;
   line-height: 1;
+}
+
+.warning-signal:hover {
+  filter: brightness(0.96);
+}
+
+.warning-signal:focus-visible {
+  outline: 2px solid #006fd6;
+  outline-offset: 2px;
 }
 
 .warning-signal-empty {

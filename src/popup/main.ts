@@ -423,11 +423,16 @@ function renderWarningSignals(warnings: WeatherWarning[]): void {
   }
 
   signalWarnings.slice(0, 4).forEach((warning) => {
-    const signal = document.createElement("div");
+    const signal = document.createElement("button");
     const signalType = signalTypeClass(warning);
     signal.className = `warning-signal warning-signal-${signalType}`;
+    signal.type = "button";
     signal.title = warning.name;
+    signal.setAttribute("aria-label", warning.name || copy().warning);
     signal.innerHTML = warningSignalHtml(warning, signalType);
+    signal.addEventListener("click", () => {
+      void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "detail.htm") });
+    });
     els.warningSignalRow.append(signal);
   });
 }

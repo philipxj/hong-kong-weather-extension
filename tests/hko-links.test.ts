@@ -13,4 +13,10 @@ describe("HKO links", () => {
       "https://www.hko.gov.hk/en/sweather_tips.html"
     );
   });
+
+  test("builds warning detail links for the selected language", () => {
+    expect(hkoPageUrl("tc", "detail.htm")).toBe("https://www.hko.gov.hk/tc/detail.htm");
+    expect(hkoPageUrl("sc", "detail.htm")).toBe("https://www.hko.gov.hk/sc/detail.htm");
+    expect(hkoPageUrl("en", "detail.htm")).toBe("https://www.hko.gov.hk/en/detail.htm");
+  });
 });
