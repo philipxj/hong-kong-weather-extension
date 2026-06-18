@@ -9,6 +9,8 @@ Browser extension for compact Hong Kong weather alerts.
 
 ## Development
 
+Use Node.js 20.19.0 or newer. The current Vite and Vitest toolchain requires Node 20+.
+
 Install dependencies:
 
 ```bash

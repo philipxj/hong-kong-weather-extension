@@ -6,6 +6,7 @@ const rootDir = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: "src",
+  cacheDir: "../.cache/vite",
   publicDir: false,
   build: {
     emptyOutDir: true,

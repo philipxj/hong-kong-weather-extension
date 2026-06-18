@@ -1,6 +1,7 @@
 import { browserApi } from "../shared/browser-api";
 import { hkoPageUrl } from "../shared/hko-links";
 import { hkoWarningIconUrl } from "../shared/hko-warning-icons";
+import { createInFlightTaskRunner } from "../shared/in-flight-task";
 import { getImageryUrlsWithCache } from "../shared/imagery-cache";
 import { weatherScene } from "./weather-scene";
 import {
@@ -51,6 +52,7 @@ const state: PopupState = {
   settings: null,
   updating: false
 };
+const runImageryLoad = createInFlightTaskRunner<void>();
 
 const HKO_ICON_BASE = "https://www.hko.gov.hk/images/wxicon";
 const HKO_ROOT = "https://www.hko.gov.hk";
@@ -441,7 +443,7 @@ function render(): void {
   renderTyphoonMap(data.warnings);
   renderWarningSignals(data.warnings);
   renderForecast(data.forecast);
-  void loadImagery();
+  void runImageryLoad("popup-imagery", loadImagery);
 }
 
 function renderWarningSignals(warnings: WeatherWarning[]): void {
