@@ -490,12 +490,15 @@ body.popup-page {
   place-items: center;
 }
 
-.app-mark-icon {
+.observatory-link-icon {
   display: block;
-  width: 25px;
-  height: 25px;
-  object-fit: contain;
-  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.1;
 }
 
 .legacy-current {
