@@ -980,10 +980,10 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-card.is-expanded {
   position: absolute;
-  top: -18px;
+  top: -20px;
   right: 26px;
   z-index: 4;
-  width: 468px;
+  width: 530px;
   padding: 9px;
   box-shadow: 0 16px 34px rgba(16, 35, 55, 0.3);
 }
@@ -1041,7 +1041,7 @@ html[lang="en"] .legacy-weather-title {
 }
 
 .imagery-card.is-expanded .imagery-preview {
-  height: 326px;
+  height: 360px;
 }
 
 .imagery-preview:focus-visible {

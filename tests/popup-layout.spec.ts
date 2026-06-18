@@ -210,7 +210,7 @@ test.describe("popup layout", () => {
     });
   }
 
-  test("expands radar widget by about thirty percent", async ({ page }) => {
+  test("expands radar widget into a larger map view", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
       await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
@@ -297,8 +297,8 @@ test.describe("popup layout", () => {
       };
     });
 
-    expect(layout.card.width).toBeGreaterThanOrEqual(466);
-    expect(layout.preview.height).toBeGreaterThanOrEqual(281);
+    expect(layout.card.width).toBeGreaterThanOrEqual(528);
+    expect(layout.preview.height).toBeGreaterThanOrEqual(358);
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
     expect(Math.abs(layout.stepper.top - layout.tabs.top)).toBeLessThanOrEqual(1);
