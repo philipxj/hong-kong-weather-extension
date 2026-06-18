@@ -492,6 +492,26 @@ button:hover {
   align-items: center;
 }
 
+.option-choice {
+  align-items: flex-start;
+  max-width: 100%;
+}
+
+.option-copy,
+.setting-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.option-copy small,
+.setting-copy small {
+  max-width: 430px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
 input[type="number"],
 select {
   width: 150px;

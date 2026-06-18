@@ -17,4 +17,12 @@ describe("options copy", () => {
     expect(optionsCopy("en").options).toBe("Options");
     expect(optionsCopy("en").saveSettings).toBe("Save settings");
   });
+
+  test("explains what configurable options do", () => {
+    expect(optionsCopy("tc").badgeModeDescription).toContain("警告");
+    expect(optionsCopy("tc").warningIssuedDescription).toContain("新天氣警告");
+    expect(optionsCopy("tc").currentRefreshMinutesDescription).toContain("隔多久");
+    expect(optionsCopy("en").badgeModeDescription).toContain("highest warning");
+    expect(optionsCopy("en").warningCheckMinutesDescription).toContain("background service");
+  });
 });
