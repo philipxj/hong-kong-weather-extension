@@ -29,6 +29,7 @@ interface OptionsCopy {
   temperature: string;
   testNotification: string;
   testNotificationDescription: string;
+  testNotificationCreatedNoPopup: string;
   testNotificationFailed: string;
   testNotificationSent: string;
   traditionalChinese: string;
@@ -77,6 +78,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     simplifiedChineseDescription: "設定頁、popup 文字及天文台連結使用簡體中文。",
     temperature: "溫度",
     testNotification: "測試通知",
+    testNotificationCreatedNoPopup:
+      "Chrome 已建立通知，但系統未彈出；請檢查 macOS/Chrome 通知及專注模式。",
     testNotificationDescription: "立即發出一個測試通知，確認 Chrome 或系統通知設定是否已開啟。",
     testNotificationFailed: "未能發出測試通知，請檢查瀏覽器或系統通知權限。",
     testNotificationSent: "已發出測試通知",
@@ -124,6 +127,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     simplifiedChineseDescription: "设置页、popup 文字及天文台链接使用简体中文。",
     temperature: "温度",
     testNotification: "测试通知",
+    testNotificationCreatedNoPopup:
+      "Chrome 已建立通知，但系统未弹出；请检查 macOS/Chrome 通知及专注模式。",
     testNotificationDescription: "立即发出一个测试通知，确认 Chrome 或系统通知设置是否已开启。",
     testNotificationFailed: "未能发出测试通知，请检查浏览器或系统通知权限。",
     testNotificationSent: "已发出测试通知",
@@ -174,6 +179,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
       "Use Simplified Chinese for settings, popup labels, and Observatory links.",
     temperature: "Temperature",
     testNotification: "Test notification",
+    testNotificationCreatedNoPopup:
+      "Chrome created the notification, but the system did not show it. Check macOS/Chrome notifications and Focus mode.",
     testNotificationDescription:
       "Send a test notification now to confirm Chrome and system notifications are enabled.",
     testNotificationFailed:

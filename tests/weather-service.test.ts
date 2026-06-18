@@ -272,14 +272,20 @@ describe("weather service normalization", () => {
     vi.stubGlobal("chrome", {
       notifications: {
         create,
+        getAll: vi.fn().mockResolvedValue({ "hk-weather-alerts-test": true }),
         getPermissionLevel: vi.fn().mockResolvedValue("granted")
       },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
     });
 
     try {
-      await sendTestNotification("tc");
+      const result = await sendTestNotification("tc");
       expect(create).toHaveBeenCalledOnce();
+      expect(result).toEqual({
+        id: "hk-weather-alerts-test",
+        permission: "granted",
+        visibleInChrome: true
+      });
       expect(create.mock.calls[0]?.[0]).toBe("hk-weather-alerts-test");
       const details = create.mock.calls[0]?.[1] as
         | {
@@ -309,13 +315,15 @@ describe("weather service normalization", () => {
     vi.stubGlobal("chrome", {
       notifications: {
         create,
+        getAll: vi.fn().mockResolvedValue({ "hk-weather-alerts-test": true }),
         getPermissionLevel: vi.fn().mockResolvedValue("granted")
       },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
     });
 
     try {
-      await sendTestNotification("sc");
+      const result = await sendTestNotification("sc");
+      expect(result.visibleInChrome).toBe(true);
       const details = create.mock.calls[0]?.[1] as { message?: string; title?: string } | undefined;
       expect(details?.title).toBe("天气通知测试");
       expect(details?.message).toContain("天气警告状态");
@@ -330,6 +338,7 @@ describe("weather service normalization", () => {
     vi.stubGlobal("chrome", {
       notifications: {
         create,
+        getAll: vi.fn(),
         getPermissionLevel: vi.fn().mockResolvedValue("denied")
       },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }

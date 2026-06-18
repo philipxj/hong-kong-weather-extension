@@ -1,6 +1,7 @@
 import { browserApi } from "./shared/browser-api";
 import {
   getSettings,
+  type NotificationTestResult,
   refreshCurrentWeather,
   refreshForecast,
   refreshWeather,
@@ -46,6 +47,7 @@ interface RefreshWeatherMessage {
 
 type RuntimeMessageResponse =
   | { ok: true; data: WeatherData }
+  | { ok: true; notification: NotificationTestResult }
   | { ok: true }
   | { ok: false; error: string };
 
@@ -65,8 +67,7 @@ browserApi.runtime.onMessage<RefreshWeatherMessage, RuntimeMessageResponse>(asyn
       const language = isLanguage(message.language)
         ? message.language
         : (await getSettings()).language;
-      await sendTestNotification(language);
-      return { ok: true };
+      return { ok: true, notification: await sendTestNotification(language) };
     } catch (error) {
       return {
         ok: false,

@@ -11,7 +11,12 @@ const settings = await getSettings();
 hydrate(settings);
 applyOptionsLanguage(settings.language);
 
-type TestNotificationResponse = { ok: true } | { ok: false; error: string };
+type TestNotificationResponse =
+  | {
+      ok: true;
+      notification: { id: string; permission: string; visibleInChrome: boolean };
+    }
+  | { ok: false; error: string };
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -86,7 +91,9 @@ async function testNotification(): Promise<void> {
       language
     });
     if (!response?.ok) throw new Error(response?.error ?? "Notification test failed");
-    status.textContent = copy.testNotificationSent;
+    status.textContent = response.notification.visibleInChrome
+      ? copy.testNotificationSent
+      : copy.testNotificationCreatedNoPopup;
   } catch {
     status.textContent = copy.testNotificationFailed;
   }

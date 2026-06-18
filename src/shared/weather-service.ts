@@ -235,14 +235,20 @@ export async function updateBadge(
   await updateActionIcon(weather.current.icon);
 }
 
-export async function sendTestNotification(language: Language): Promise<void> {
+export async function sendTestNotification(language: Language): Promise<NotificationTestResult> {
   const copy = notificationCopy(language);
   const permission = await browserApi.notifications.getPermissionLevel();
   if (permission !== "granted") {
     throw new Error(`Notifications are ${permission}.`);
   }
 
-  await createTestNotification(copy.testTitle, copy.testMessage);
+  const id = await createTestNotification(copy.testTitle, copy.testMessage);
+  const activeNotifications = await browserApi.notifications.getAll();
+  return {
+    id,
+    permission,
+    visibleInChrome: Boolean(activeNotifications[id])
+  };
 }
 
 export function getHighestPriorityWarning(warnings: WeatherWarning[] = []): WeatherWarning | null {
@@ -313,6 +319,12 @@ interface NormalizeWeatherInput {
   fetchedAt: string;
   stale: boolean;
   error: WeatherError | null;
+}
+
+export interface NotificationTestResult {
+  id: string;
+  permission: string;
+  visibleInChrome: boolean;
 }
 
 export function normalizeWeather({
@@ -501,8 +513,8 @@ async function createNotification(title: string, message: string): Promise<void>
   });
 }
 
-async function createTestNotification(title: string, message: string): Promise<void> {
-  await browserApi.notifications.createWithId("hk-weather-alerts-test", {
+async function createTestNotification(title: string, message: string): Promise<string> {
+  return browserApi.notifications.createWithId("hk-weather-alerts-test", {
     type: "basic",
     title,
     message,
