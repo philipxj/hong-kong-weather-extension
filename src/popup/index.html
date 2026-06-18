@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" class="popup-page">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HK Weather Alerts</title>
+    <link rel="stylesheet" href="../shared/ui.css" />
+  </head>
+  <body class="popup-page">
+    <main class="popup-shell legacy-weather">
+      <div class="window-notch" aria-hidden="true"></div>
+
+      <div class="legacy-actions">
+        <button id="settings" class="legacy-icon-button" title="Settings" aria-label="Settings">
+          ⚙
+        </button>
+        <button id="refresh" class="legacy-icon-button" title="Refresh" aria-label="Refresh">
+          ⟳
+        </button>
+      </div>
+
+      <div id="error" class="error-panel" hidden></div>
+      <div id="loading" class="loading-state">Loading weather data...</div>
+
+      <section id="content" class="legacy-content" hidden>
+        <section class="legacy-current" aria-label="Current weather">
+          <div class="current-title-row">
+            <span class="weather-icon-frame">
+              <img id="weather-icon" class="main-weather-icon" alt="" />
+            </span>
+            <span id="top-summary" class="legacy-weather-title">--</span>
+          </div>
+
+          <div class="legacy-readings">
+            <div class="legacy-reading">
+              <span>現時氣溫</span>
+              <strong id="top-temp">--</strong>
+            </div>
+            <div class="legacy-reading">
+              <span>相對濕度</span>
+              <strong id="top-humidity">--</strong>
+            </div>
+            <div class="legacy-reading legacy-reading-uv">
+              <span>紫外線指數</span>
+              <strong><span id="top-uv-value">--</span> <small id="top-uv-desc"></small></strong>
+            </div>
+          </div>
+
+          <div
+            id="warning-signal-row"
+            class="warning-signal-row"
+            aria-label="Current warning signals"
+          ></div>
+        </section>
+
+        <section class="legacy-side-panel" aria-label="Weather imagery">
+          <div class="imagery-card">
+            <div class="imagery-tabs" role="tablist" aria-label="Weather imagery">
+              <button
+                class="imagery-tab"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                data-imagery="radar"
+              >
+                雷達
+              </button>
+              <button
+                class="imagery-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-imagery="satellite"
+              >
+                衛星
+              </button>
+              <button
+                class="imagery-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-imagery="lightning"
+              >
+                閃電
+              </button>
+            </div>
+            <button
+              id="imagery-open"
+              class="imagery-preview"
+              type="button"
+              aria-label="Open imagery"
+            >
+              <img id="imagery-image" alt="" />
+              <span id="imagery-fallback" class="imagery-fallback" hidden>Loading</span>
+            </button>
+            <div class="imagery-caption">
+              <span id="imagery-title">等雨量線圖</span>
+              <span id="imagery-time">--</span>
+            </div>
+          </div>
+
+          <div class="special-weather-card">
+            <div class="special-weather-title">特別天氣提示</div>
+            <div id="warning-count" class="special-weather-content">--</div>
+          </div>
+
+          <button id="typhoon-map" class="typhoon-map-button" type="button">
+            颱風 尤特 路徑圖
+          </button>
+        </section>
+
+        <section class="legacy-forecast" aria-label="Weather forecast">
+          <div id="forecast-list" class="legacy-forecast-list"></div>
+        </section>
+
+        <div class="legacy-meta" aria-live="polite">
+          <span id="updating" class="updating" hidden>Updating...</span>
+          <span id="cache-note"></span>
+          <span id="last-updated" class="timestamp">Last updated: --</span>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

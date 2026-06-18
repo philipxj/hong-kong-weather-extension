@@ -1,0 +1,30 @@
+{
+  "name": "hk-weather-alerts-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build && node scripts/build-manifest.mjs",
+    "format": "prettier --check .",
+    "lint": "eslint .",
+    "test": "npm run typecheck && npm run lint && npm run test:unit && npm run test:layout && npm run build",
+    "test:unit": "vitest run",
+    "test:layout": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.57.0",
+    "@types/chrome": "^0.1.43",
+    "@types/node": "^25.9.3",
+    "eslint": "^10.5.0",
+    "prettier": "^3.8.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}
