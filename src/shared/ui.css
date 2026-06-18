@@ -1004,7 +1004,7 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-snapshots {
   position: absolute;
-  top: 13px;
+  top: 42px;
   right: 13px;
   display: flex;
   width: auto;
@@ -1019,6 +1019,74 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-card:not(.is-expanded) .imagery-snapshots {
   display: none;
+}
+
+.imagery-stepper {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  z-index: 3;
+  display: inline-grid;
+  grid-template-columns: 18px minmax(34px, auto) 18px;
+  height: 25px;
+  align-items: center;
+  padding: 3px;
+  color: #fff;
+  background: rgba(9, 23, 37, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(12, 25, 40, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+.imagery-stepper-button {
+  width: 18px;
+  height: 17px;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 16px;
+}
+
+.imagery-stepper-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.imagery-stepper-button:disabled {
+  color: rgba(255, 255, 255, 0.34);
+  cursor: default;
+}
+
+.imagery-position {
+  min-width: 34px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.imagery-card.is-expanded .imagery-stepper {
+  grid-template-columns: 22px minmax(42px, auto) 22px;
+  height: 29px;
+}
+
+.imagery-card.is-expanded .imagery-stepper-button {
+  width: 22px;
+  height: 21px;
+  font-size: 17px;
+  line-height: 20px;
+}
+
+.imagery-card.is-expanded .imagery-position {
+  min-width: 42px;
+  font-size: 11px;
+  line-height: 21px;
 }
 
 .imagery-snapshot {

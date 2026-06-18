@@ -288,6 +288,27 @@ test.describe("popup layout", () => {
     await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
   });
 
+  test("steps through imagery snapshots with previous and next buttons", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+    await expect(page.locator(".imagery-next")).toBeDisabled();
+
+    await page.locator(".imagery-prev").click();
+    await expect(page.locator(".imagery-position")).toHaveText("4 / 5");
+    await expect(page.locator(".imagery-next")).toBeEnabled();
+    await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+
+    await page.locator(".imagery-next").click();
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+  });
+
   test("supports lightning snapshots with available ranges only", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
@@ -402,7 +423,7 @@ async function fixtureHtml({
               <button class="special-weather-card"><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special}</div></button>
             </section>
             <section class="legacy-side-panel">
-              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-snapshots"><button class="imagery-snapshot">1</button><button class="imagery-snapshot">2</button><button class="imagery-snapshot">3</button><button class="imagery-snapshot">4</button><button class="imagery-snapshot" aria-selected="true">5</button></div></div><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
+              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-snapshots"><button class="imagery-snapshot">1</button><button class="imagery-snapshot">2</button><button class="imagery-snapshot">3</button><button class="imagery-snapshot">4</button><button class="imagery-snapshot" aria-selected="true">5</button></div><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div></div><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
               <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
             </section>
             <section class="legacy-forecast">
@@ -416,6 +437,36 @@ async function fixtureHtml({
         <script>
           const imageryCard = document.querySelector(".imagery-card");
           const imageryPreview = document.querySelector(".imagery-preview");
+          const imagerySnapshots = [...document.querySelectorAll(".imagery-snapshot")];
+          const imageryPosition = document.querySelector(".imagery-position");
+          const imageryPrev = document.querySelector(".imagery-prev");
+          const imageryNext = document.querySelector(".imagery-next");
+          let selectedSnapshotIndex = imagerySnapshots.length - 1;
+          const updateStepper = () => {
+            imagerySnapshots.forEach((button, index) => {
+              button.setAttribute("aria-selected", String(index === selectedSnapshotIndex));
+            });
+            if (imageryPosition) {
+              imageryPosition.textContent = (selectedSnapshotIndex + 1) + " / " + imagerySnapshots.length;
+            }
+            if (imageryPrev instanceof HTMLButtonElement) {
+              imageryPrev.disabled = selectedSnapshotIndex <= 0;
+            }
+            if (imageryNext instanceof HTMLButtonElement) {
+              imageryNext.disabled = selectedSnapshotIndex >= imagerySnapshots.length - 1;
+            }
+          };
+          imageryPrev?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            selectedSnapshotIndex = Math.max(0, selectedSnapshotIndex - 1);
+            updateStepper();
+          });
+          imageryNext?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            selectedSnapshotIndex = Math.min(imagerySnapshots.length - 1, selectedSnapshotIndex + 1);
+            updateStepper();
+          });
+          updateStepper();
           const title = document.querySelector(".legacy-weather-title");
           const special = document.querySelector(".special-weather-card");
           if (title instanceof HTMLElement && special instanceof HTMLElement) {

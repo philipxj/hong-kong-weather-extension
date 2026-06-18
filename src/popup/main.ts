@@ -170,6 +170,8 @@ const COPY: Record<
     noWeatherTips: string;
     radarRangeSuffix: string;
     radarSnapshot: string;
+    snapshotNext: string;
+    snapshotPrevious: string;
     settings: string;
     specialWeather: string;
     temperatureUnit: string;
@@ -192,6 +194,8 @@ const COPY: Record<
     noWeatherTips: "沒有生效提示",
     radarRangeSuffix: "公里",
     radarSnapshot: "雷達圖",
+    snapshotNext: "下一張",
+    snapshotPrevious: "上一張",
     settings: "設定",
     specialWeather: "特別天氣提示",
     temperatureUnit: "度",
@@ -213,6 +217,8 @@ const COPY: Record<
     noWeatherTips: "没有生效提示",
     radarRangeSuffix: "公里",
     radarSnapshot: "雷达图",
+    snapshotNext: "下一张",
+    snapshotPrevious: "上一张",
     settings: "设定",
     specialWeather: "特别天气提示",
     temperatureUnit: "度",
@@ -234,6 +240,8 @@ const COPY: Record<
     noWeatherTips: "No active notice",
     radarRangeSuffix: "km",
     radarSnapshot: "Radar snapshot",
+    snapshotNext: "Next image",
+    snapshotPrevious: "Previous image",
     settings: "Settings",
     specialWeather: "Special Weather Tips",
     temperatureUnit: "°C",
@@ -290,6 +298,9 @@ const els = {
   imageryOpen: query<HTMLElement>("#imagery-open"),
   imageryImage: query<HTMLImageElement>("#imagery-image"),
   imageryFallback: query<HTMLElement>("#imagery-fallback"),
+  imageryNext: query<HTMLButtonElement>("#imagery-next"),
+  imageryPosition: query<HTMLElement>("#imagery-position"),
+  imageryPrev: query<HTMLButtonElement>("#imagery-prev"),
   imagerySnapshots: query<HTMLElement>("#imagery-snapshots"),
   imageryTitle: query<HTMLElement>("#imagery-title"),
   imageryTime: query<HTMLElement>("#imagery-time"),
@@ -316,6 +327,14 @@ els.imageryOpen.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
   toggleImageryExpanded();
+});
+els.imageryPrev.addEventListener("click", (event) => {
+  event.stopPropagation();
+  stepImagerySnapshot(-1);
+});
+els.imageryNext.addEventListener("click", (event) => {
+  event.stopPropagation();
+  stepImagerySnapshot(1);
 });
 document.addEventListener(
   "click",
@@ -546,6 +565,7 @@ function selectImagery(type: ImageryType = "radar"): void {
   els.imageryImage.src = item.imageUrl || item.fallbackUrl;
   els.imageryImage.alt = title;
   renderImagerySnapshots(type);
+  renderImageryStepper(type);
   renderRadarRanges(type);
 }
 
@@ -616,6 +636,44 @@ function selectImagerySnapshot(type: ImageryType, index: number): void {
   IMAGERY[type].selectedIndex = index;
   IMAGERY[type].imageUrl = url;
   selectImagery(type);
+}
+
+function stepImagerySnapshot(direction: -1 | 1): void {
+  const type = toImageryType(els.imageryOpen.dataset.imagery);
+  const snapshots = latestImagerySnapshotUrls(type);
+  if (!snapshots.length) return;
+
+  const selectedIndex = IMAGERY[type].selectedIndex ?? snapshots.at(-1)?.originalIndex ?? 0;
+  const currentDisplayIndex = Math.max(
+    0,
+    snapshots.findIndex((item) => item.originalIndex === selectedIndex)
+  );
+  const nextDisplayIndex = currentDisplayIndex + direction;
+  const next = snapshots[nextDisplayIndex];
+  if (!next) return;
+
+  selectImagerySnapshot(type, next.originalIndex);
+}
+
+function renderImageryStepper(type: ImageryType): void {
+  const snapshots = latestImagerySnapshotUrls(type);
+  const selectedIndex = IMAGERY[type].selectedIndex ?? snapshots.at(-1)?.originalIndex ?? 0;
+  const currentDisplayIndex = snapshots.findIndex((item) => item.originalIndex === selectedIndex);
+  const safeDisplayIndex = currentDisplayIndex >= 0 ? currentDisplayIndex : snapshots.length - 1;
+  const hasSnapshots = usesSnapshotControls(type) && snapshots.length > 0;
+
+  els.imageryPrev.hidden = !hasSnapshots;
+  els.imageryNext.hidden = !hasSnapshots;
+  els.imageryPosition.hidden = !hasSnapshots;
+  els.imageryPosition.textContent = hasSnapshots
+    ? `${safeDisplayIndex + 1} / ${snapshots.length}`
+    : "-- / --";
+  els.imageryPrev.disabled = !hasSnapshots || safeDisplayIndex <= 0;
+  els.imageryNext.disabled = !hasSnapshots || safeDisplayIndex >= snapshots.length - 1;
+  els.imageryPrev.title = copy().snapshotPrevious;
+  els.imageryNext.title = copy().snapshotNext;
+  els.imageryPrev.setAttribute("aria-label", copy().snapshotPrevious);
+  els.imageryNext.setAttribute("aria-label", copy().snapshotNext);
 }
 
 function selectedImageryRange(type: ImageryType): ImageryRangeImages | undefined {
