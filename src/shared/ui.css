@@ -570,7 +570,7 @@ body.popup-page {
   max-width: 790px;
   height: 438px;
   max-height: 438px;
-  padding: 34px 38px 14px 40px;
+  padding: 28px 30px 14px 28px;
   overflow: hidden;
   background: #fff;
   border: 0;
@@ -585,9 +585,9 @@ body.popup-page {
 .legacy-content {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(330px, 1fr) 280px;
+  grid-template-columns: minmax(350px, 1fr) 280px;
   grid-template-rows: 260px;
-  column-gap: 52px;
+  column-gap: 42px;
   width: 100%;
   height: 100%;
 }
@@ -595,7 +595,7 @@ body.popup-page {
 .legacy-actions {
   position: absolute;
   top: 56px;
-  right: 14px;
+  right: 10px;
   z-index: 2;
   display: grid;
   gap: 18px;
@@ -658,6 +658,13 @@ body.popup-page {
   font-weight: 400;
   letter-spacing: 0;
   white-space: nowrap;
+}
+
+html[lang="en"] .legacy-weather-title {
+  max-width: 160px;
+  overflow: hidden;
+  font-size: 32px;
+  text-overflow: ellipsis;
 }
 
 .legacy-readings {
@@ -940,6 +947,20 @@ body.popup-page {
   border-radius: 0;
 }
 
+html[lang="en"] .special-weather-card {
+  left: 272px;
+  width: 176px;
+}
+
+html[lang="en"] .special-weather-title {
+  font-size: 14px;
+}
+
+html[lang="en"] .special-weather-content {
+  font-size: 11px;
+  line-height: 12px;
+}
+
 .special-weather-title {
   height: 18px;
   color: #111;
@@ -991,8 +1012,8 @@ body.popup-page {
 
 .legacy-forecast {
   position: absolute;
-  left: 40px;
-  right: 38px;
+  left: 28px;
+  right: 30px;
   bottom: 24px;
   z-index: 0;
 }
@@ -1009,7 +1030,7 @@ body.popup-page {
   justify-items: center;
   gap: 2px;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 8px;
   border-left: 1px solid #dfdfdf;
   text-align: center;
 }
@@ -1030,6 +1051,10 @@ body.popup-page {
   white-space: nowrap;
 }
 
+html[lang="en"] .legacy-forecast-date {
+  font-size: 19px;
+}
+
 .legacy-forecast-icon {
   width: 54px;
   height: 54px;
@@ -1044,9 +1069,13 @@ body.popup-page {
   white-space: nowrap;
 }
 
+html[lang="en"] .legacy-forecast-temp {
+  font-size: 18px;
+}
+
 .legacy-meta {
   position: absolute;
-  left: 40px;
+  left: 28px;
   right: 18px;
   bottom: 5px;
   display: flex;
@@ -1061,8 +1090,8 @@ body.popup-page {
 
 .popup-page .error-panel {
   position: absolute;
-  left: 40px;
-  right: 40px;
+  left: 28px;
+  right: 28px;
   top: 14px;
   z-index: 3;
   margin: 0;
