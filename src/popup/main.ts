@@ -2,6 +2,7 @@ import { browserApi } from "../shared/browser-api";
 import { hkoPageUrl } from "../shared/hko-links";
 import { hkoWarningIconUrl } from "../shared/hko-warning-icons";
 import { getImageryUrlsWithCache } from "../shared/imagery-cache";
+import { weatherScene } from "./weather-scene";
 import {
   getCachedWeather,
   getSettings,
@@ -407,6 +408,7 @@ function render(): void {
   els.lastUpdated.textContent = `${formatUpdateTime(data.fetchedAt)} ${localized.lastUpdated}`;
 
   const caption = weatherCaption(data.current.icon, data.language);
+  els.content.dataset.weatherScene = weatherScene(data.current.icon);
   setWeatherIcon(els.weatherIcon, data.current.icon, caption);
   els.topTemp.textContent = formatDegree(data.current.temperature);
   els.topHumidity.textContent = formatUnit(data.current.humidity, "%");

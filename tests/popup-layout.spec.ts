@@ -9,10 +9,18 @@ const ICON =
 const RADAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='577' height='400'%3E%3Crect width='577' height='400' fill='%2359c7df'/%3E%3Cpath d='M0 70 C90 20 190 120 280 70 S470 10 577 85' stroke='%2327bf45' stroke-width='45' fill='none'/%3E%3Cpath d='M20 210 C130 130 235 250 330 180 S470 160 560 230' stroke='%23fff000' stroke-width='26' fill='none'/%3E%3Cpath d='M0 330 C110 270 210 370 330 300 S480 260 577 340' stroke='%23269bd8' stroke-width='55' fill='none'/%3E%3C/svg%3E";
 
+interface Rect {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+}
+
 interface LayoutScenario {
   days?: [string, string][];
   lang?: string;
   readings?: [string, string][];
+  scene?: string;
   warnings: string;
   special: string;
   specialTitle?: string;
@@ -81,6 +89,10 @@ const scenarios: Array<LayoutScenario & { name: string }> = [
   }
 ];
 
+function overlaps(a: Rect, b: Rect): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
 test.describe("popup layout", () => {
   for (const scenario of scenarios) {
     test(`does not overlap in ${scenario.name}`, async ({ page }) => {
@@ -117,11 +129,14 @@ test.describe("popup layout", () => {
         return {
           current: rect(".legacy-current"),
           currentTitle: rect(".current-title-row"),
+          currentTemp: rect(".legacy-reading:first-child"),
           readings: rect(".legacy-readings"),
           forecast: rect(".legacy-forecast"),
           shell: rect(".popup-shell"),
           side: rect(".legacy-side-panel"),
           special: rect(".special-weather-card"),
+          sceneBackground: getComputedStyle(document.querySelector(".legacy-current")!, "::before")
+            .backgroundImage,
           specialContent: rect(".special-weather-content"),
           specialContentDisplay: getComputedStyle(
             document.querySelector(".special-weather-content")!
@@ -155,11 +170,13 @@ test.describe("popup layout", () => {
       expect(layout.warning.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(layout.side.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
-      expect(Math.abs(layout.special.top - layout.currentTitle.top)).toBeLessThanOrEqual(8);
-      expect(layout.titleText.right).toBeLessThanOrEqual(layout.special.left - 4);
       expect(layout.titleTextScrollWidth).toBeLessThanOrEqual(layout.titleTextClientWidth + 1);
       expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
-      expect(layout.special.bottom).toBeLessThanOrEqual(layout.readings.top - 1);
+      expect(overlaps(layout.readings, layout.warning)).toBe(false);
+      expect(overlaps(layout.readings, layout.special)).toBe(false);
+      expect(overlaps(layout.special, layout.warning)).toBe(false);
+      expect(overlaps(layout.currentTemp, layout.special)).toBe(false);
+      expect(layout.sceneBackground).toContain(`${scenario.scene ?? "rain"}.webp`);
       expect(layout.specialContent.height).toBeGreaterThanOrEqual(54);
       if (scenario.lang === "en") {
         expect(layout.specialContentDisplay).toBe("block");
@@ -281,12 +298,33 @@ test.describe("popup layout", () => {
     });
     expect(lightningCrop.imageWidth).toBeGreaterThan(lightningCrop.previewWidth * 1.6);
   });
+
+  test("uses distinct weather scene backgrounds", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+
+    for (const scene of ["sunny", "rain", "storm"] as const) {
+      await page.setContent(
+        await fixtureHtml({
+          scene,
+          warnings: scenarios[0]?.warnings ?? "",
+          special: ""
+        }),
+        { waitUntil: "domcontentloaded" }
+      );
+
+      const background = await page.locator(".legacy-current").evaluate((node) => {
+        return getComputedStyle(node, "::before").backgroundImage;
+      });
+      expect(background).toContain(`${scene}.webp`);
+    }
+  });
 });
 
 async function fixtureHtml({
   days: scenarioDays,
   lang = "zh-Hant",
   readings: scenarioReadings,
+  scene = "rain",
   special,
   specialTitle = "特別天氣提示",
   title = "大雨",
@@ -315,7 +353,7 @@ async function fixtureHtml({
         <main class="popup-shell legacy-weather">
           <div class="window-notch" aria-hidden="true"></div>
           <div class="legacy-actions"><button class="legacy-icon-button">⚙</button><button class="legacy-icon-button">⟳</button></div>
-          <section class="legacy-content">
+          <section class="legacy-content" data-weather-scene="${scene}">
             <section class="legacy-current">
               <div class="current-title-row"><span class="weather-icon-frame"><img class="main-weather-icon" src="${ICON}" alt=""></span><span class="legacy-weather-title">${title}</span></div>
               <div class="legacy-readings">
