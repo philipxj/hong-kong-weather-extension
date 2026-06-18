@@ -156,6 +156,37 @@ test.describe("popup layout", () => {
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
   });
+
+  test("supports lightning snapshots with available ranges only", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+    await page
+      .locator(".imagery-tab")
+      .nth(1)
+      .evaluate((node) => {
+        node.setAttribute("aria-selected", "true");
+        node.previousElementSibling?.setAttribute("aria-selected", "false");
+      });
+    await page
+      .locator(".imagery-caption span")
+      .first()
+      .evaluate((node) => {
+        node.textContent = "閃電位置";
+      });
+    await page.locator(".radar-ranges").evaluate((node) => {
+      node.innerHTML =
+        '<button class="radar-range">256km</button><button class="radar-range" aria-selected="true">64km</button>';
+    });
+
+    await expect(page.locator(".imagery-snapshot")).toHaveCount(5);
+    await expect(page.locator(".radar-range")).toHaveText(["256km", "64km"]);
+    await expect(page.locator(".radar-range", { hasText: "128km" })).toHaveCount(0);
+  });
 });
 
 async function fixtureHtml({ warnings, special }: LayoutScenario) {

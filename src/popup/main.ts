@@ -1,6 +1,6 @@
 import { browserApi } from "../shared/browser-api";
 import { hkoPageUrl } from "../shared/hko-links";
-import { getImageryUrlWithCache, getImageryUrlsWithCache } from "../shared/imagery-cache";
+import { getImageryUrlsWithCache } from "../shared/imagery-cache";
 import {
   getCachedWeather,
   getSettings,
@@ -30,14 +30,14 @@ interface PopupState {
 interface ImageryItem {
   fallbackUrl: string;
   imageUrl?: string;
-  ranges?: RadarRangeImages[];
+  ranges?: ImageryRangeImages[];
   selectedIndex?: number;
   selectedRangeId?: RadarRangeId;
 }
 
 type RadarRangeId = "range0" | "range1" | "range2";
 
-interface RadarRangeImages {
+interface ImageryRangeImages {
   id: RadarRangeId;
   label: string;
   urls: string[];
@@ -468,18 +468,28 @@ function renderTyphoonMap(warnings: WeatherWarning[]): void {
 
 async function loadImagery(): Promise<void> {
   const currentType = toImageryType(els.imageryOpen.dataset.imagery);
-  const [radarRanges, lightningUrl] = await Promise.all([
+  const [radarRanges, lightningRanges] = await Promise.all([
     getRadarRanges().catch(() => []),
-    getImageryUrlWithCache("lightning", getLatestLightningImage).catch(() => "")
+    getLightningRanges().catch(() => [])
   ]);
 
   IMAGERY.radar.ranges = radarRanges;
   IMAGERY.radar.selectedRangeId = IMAGERY.radar.selectedRangeId ?? "range2";
-  if (!selectedRadarRange()) IMAGERY.radar.selectedRangeId = radarRanges[0]?.id ?? "range2";
-  const radarUrls = currentRadarUrls();
+  if (!selectedImageryRange("radar"))
+    IMAGERY.radar.selectedRangeId = radarRanges[0]?.id ?? "range2";
+  const radarUrls = currentImageryUrls("radar");
   IMAGERY.radar.selectedIndex = Math.max(0, radarUrls.length - 1);
   IMAGERY.radar.imageUrl = radarUrls.at(-1) || IMAGERY.radar.fallbackUrl;
-  IMAGERY.lightning.imageUrl = lightningUrl || IMAGERY.lightning.fallbackUrl;
+
+  IMAGERY.lightning.ranges = lightningRanges;
+  IMAGERY.lightning.selectedRangeId = IMAGERY.lightning.selectedRangeId ?? "range2";
+  if (!selectedImageryRange("lightning")) {
+    IMAGERY.lightning.selectedRangeId = lightningRanges[0]?.id ?? "range2";
+  }
+  const lightningUrls = currentImageryUrls("lightning");
+  IMAGERY.lightning.selectedIndex = Math.max(0, lightningUrls.length - 1);
+  IMAGERY.lightning.imageUrl = lightningUrls.at(-1) || IMAGERY.lightning.fallbackUrl;
+
   selectImagery(currentType);
 }
 
@@ -490,7 +500,7 @@ function selectImagery(type: ImageryType = "radar"): void {
   });
 
   els.imageryOpen.dataset.imagery = type;
-  const canCropRadar = type === "radar" && Boolean(currentRadarUrls().length);
+  const canCropRadar = type === "radar" && Boolean(currentImageryUrls("radar").length);
   els.imageryImage.classList.toggle("imagery-image-crop-radar", canCropRadar);
   const title = imageryTitle(type);
   els.imageryTitle.textContent = title;
@@ -509,21 +519,21 @@ function toggleImageryExpanded(): void {
 
 function renderImagerySnapshots(type: ImageryType): void {
   els.imagerySnapshots.replaceChildren();
-  els.imagerySnapshots.hidden = type !== "radar" || !currentRadarUrls().length;
-  if (type !== "radar") return;
+  const urls = currentImageryUrls(type);
+  els.imagerySnapshots.hidden = !usesSnapshotControls(type) || !urls.length;
+  if (!usesSnapshotControls(type)) return;
 
-  const urls = latestRadarSnapshotUrls();
-  urls.forEach(({ url, originalIndex }, displayIndex) => {
+  latestImagerySnapshotUrls(type).forEach(({ url, originalIndex }, displayIndex) => {
     const button = document.createElement("button");
     button.className = "imagery-snapshot";
     button.type = "button";
     button.textContent = String(displayIndex + 1);
     button.title = imageTime(url) || `${copy().radarSnapshot} ${displayIndex + 1}`;
     button.setAttribute("aria-label", button.title);
-    button.setAttribute("aria-selected", String(originalIndex === IMAGERY.radar.selectedIndex));
+    button.setAttribute("aria-selected", String(originalIndex === IMAGERY[type].selectedIndex));
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      selectRadarSnapshot(originalIndex);
+      selectImagerySnapshot(type, originalIndex);
     });
     els.imagerySnapshots.append(button);
   });
@@ -531,56 +541,62 @@ function renderImagerySnapshots(type: ImageryType): void {
 
 function renderRadarRanges(type: ImageryType): void {
   els.radarRanges.replaceChildren();
-  els.radarRanges.hidden = type !== "radar" || !(IMAGERY.radar.ranges ?? []).length;
-  if (type !== "radar") return;
+  els.radarRanges.hidden = !usesSnapshotControls(type) || !(IMAGERY[type].ranges ?? []).length;
+  if (!usesSnapshotControls(type)) return;
 
-  for (const range of IMAGERY.radar.ranges ?? []) {
+  for (const range of IMAGERY[type].ranges ?? []) {
     const button = document.createElement("button");
     button.className = "radar-range";
     button.type = "button";
     button.textContent = range.label;
     button.title = range.label.replace("km", copy().radarRangeSuffix);
-    button.setAttribute("aria-selected", String(range.id === IMAGERY.radar.selectedRangeId));
+    button.setAttribute("aria-selected", String(range.id === IMAGERY[type].selectedRangeId));
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      selectRadarRange(range.id);
+      selectImageryRange(type, range.id);
     });
     els.radarRanges.append(button);
   }
 }
 
-function selectRadarRange(id: RadarRangeId): void {
-  IMAGERY.radar.selectedRangeId = id;
-  const urls = currentRadarUrls();
-  IMAGERY.radar.selectedIndex = Math.max(0, urls.length - 1);
-  IMAGERY.radar.imageUrl = urls.at(-1) || IMAGERY.radar.fallbackUrl;
-  selectImagery("radar");
+function selectImageryRange(type: ImageryType, id: RadarRangeId): void {
+  IMAGERY[type].selectedRangeId = id;
+  const urls = currentImageryUrls(type);
+  IMAGERY[type].selectedIndex = Math.max(0, urls.length - 1);
+  IMAGERY[type].imageUrl = urls.at(-1) || IMAGERY[type].fallbackUrl;
+  selectImagery(type);
 }
 
-function selectRadarSnapshot(index: number): void {
-  const urls = currentRadarUrls();
+function selectImagerySnapshot(type: ImageryType, index: number): void {
+  const urls = currentImageryUrls(type);
   const url = urls[index];
   if (!url) return;
-  IMAGERY.radar.selectedIndex = index;
-  IMAGERY.radar.imageUrl = url;
-  selectImagery("radar");
+  IMAGERY[type].selectedIndex = index;
+  IMAGERY[type].imageUrl = url;
+  selectImagery(type);
 }
 
-function selectedRadarRange(): RadarRangeImages | undefined {
-  return (IMAGERY.radar.ranges ?? []).find((range) => range.id === IMAGERY.radar.selectedRangeId);
+function selectedImageryRange(type: ImageryType): ImageryRangeImages | undefined {
+  return (IMAGERY[type].ranges ?? []).find((range) => range.id === IMAGERY[type].selectedRangeId);
 }
 
-function currentRadarUrls(): string[] {
-  return selectedRadarRange()?.urls ?? [];
+function currentImageryUrls(type: ImageryType): string[] {
+  return selectedImageryRange(type)?.urls ?? [];
 }
 
-function latestRadarSnapshotUrls(): Array<{ originalIndex: number; url: string }> {
-  return currentRadarUrls()
+function latestImagerySnapshotUrls(
+  type: ImageryType
+): Array<{ originalIndex: number; url: string }> {
+  return currentImageryUrls(type)
     .map((url, originalIndex) => ({ originalIndex, url }))
     .slice(-5);
 }
 
-async function getRadarRanges(): Promise<RadarRangeImages[]> {
+function usesSnapshotControls(type: ImageryType): boolean {
+  return type === "radar" || type === "lightning";
+}
+
+async function getRadarRanges(): Promise<ImageryRangeImages[]> {
   const ranges = await getImageryUrlsWithCache("radar", getRadarRangePaths);
   const rangeEntries = ranges.filter(isCachedRadarRangePath);
   if (!rangeEntries.length && ranges.length) {
@@ -590,7 +606,7 @@ async function getRadarRanges(): Promise<RadarRangeImages[]> {
   return parseRadarRangePaths(rangeEntries);
 }
 
-function parseRadarRangePaths(ranges: string[]): RadarRangeImages[] {
+function parseRadarRangePaths(ranges: string[]): ImageryRangeImages[] {
   const grouped = new Map<RadarRangeId, string[]>();
   for (const entry of ranges) {
     const [id, path] = entry.split("|");
@@ -619,13 +635,51 @@ async function getRadarRangePaths(): Promise<string[]> {
   );
 }
 
-async function getLatestLightningImage(): Promise<string> {
+async function getLightningRanges(): Promise<ImageryRangeImages[]> {
+  const ranges = await getImageryUrlsWithCache("lightning", getLightningRangePaths);
+  const rangeEntries = ranges.filter(isCachedRadarRangePath);
+  if (!rangeEntries.length && ranges.length) {
+    return parseLightningRangePaths(await getLightningRangePaths());
+  }
+
+  return parseLightningRangePaths(rangeEntries);
+}
+
+function parseLightningRangePaths(ranges: string[]): ImageryRangeImages[] {
+  const grouped = new Map<RadarRangeId, string[]>();
+  for (const entry of ranges) {
+    const [id, filename] = entry.split("|");
+    if (!isRadarRangeId(id) || !filename) continue;
+    grouped.set(id, [...(grouped.get(id) ?? []), `${LIGHTNING_IMAGE_ROOT}/${filename}`]);
+  }
+
+  return VISIBLE_RADAR_RANGE_IDS.map((id) => ({
+    id,
+    label: RADAR_RANGE_LABELS[id],
+    urls: grouped.get(id) ?? []
+  })).filter((range) => range.urls.length);
+}
+
+async function getLightningRangePaths(): Promise<string[]> {
   const response = await fetch(`${LIGHTNING_SCRIPT_URL}?${Date.now()}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Unable to load lightning image list.");
   const script = await response.text();
-  const matches = [...script.matchAll(/cgPngArray64\[\d+\]="([^"]+)"/g)];
-  const latest = matches.at(-1)?.[1] || "";
-  return latest ? `${LIGHTNING_IMAGE_ROOT}/${latest}` : "";
+  return [
+    ...extractLightningArrayPaths(script, "cgPngArray", "range0"),
+    ...extractLightningArrayPaths(script, "cgPngArray64", "range2")
+  ];
+}
+
+function extractLightningArrayPaths(
+  script: string,
+  arrayName: string,
+  rangeId: RadarRangeId
+): string[] {
+  const escapedArrayName = arrayName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matches = [...script.matchAll(new RegExp(`${escapedArrayName}\\[\\d+\\]="([^"]+)"`, "g"))];
+  return matches
+    .map((match) => `${rangeId}|${match[1] ?? ""}`)
+    .filter((entry) => !entry.endsWith("|"));
 }
 
 function extractImagePaths(entries: unknown[]): string[] {
