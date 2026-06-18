@@ -1023,8 +1023,8 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-stepper {
   position: absolute;
-  top: 13px;
-  right: 13px;
+  top: 6px;
+  right: 6px;
   z-index: 3;
   display: inline-grid;
   grid-template-columns: 18px minmax(34px, auto) 18px;
@@ -1073,7 +1073,18 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-card.is-expanded .imagery-stepper {
   grid-template-columns: 22px minmax(42px, auto) 22px;
+  top: 4px;
+  right: 4px;
   height: 29px;
+}
+
+.imagery-card.is-expanded .imagery-tabs {
+  height: 29px;
+}
+
+.imagery-card.is-expanded .imagery-tab {
+  height: 21px;
+  line-height: 21px;
 }
 
 .imagery-card.is-expanded .imagery-stepper-button {

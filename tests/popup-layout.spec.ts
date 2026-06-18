@@ -215,6 +215,16 @@ test.describe("popup layout", () => {
       }
     );
     const compactControls = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          height: box.height,
+          top: box.top
+        };
+      };
       const visible = (selector: string) =>
         [...document.querySelectorAll(selector)].filter((node) => {
           const style = getComputedStyle(node);
@@ -227,12 +237,18 @@ test.describe("popup layout", () => {
           );
         }).length;
       return {
+        stepper: rect(".imagery-stepper"),
+        tabs: rect(".imagery-tabs"),
         ranges: visible(".radar-range"),
         snapshots: visible(".imagery-snapshot")
       };
     });
     expect(compactControls.snapshots).toBe(0);
     expect(compactControls.ranges).toBe(1);
+    expect(Math.abs(compactControls.stepper.top - compactControls.tabs.top)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(compactControls.stepper.bottom - compactControls.tabs.bottom)
+    ).toBeLessThanOrEqual(1);
 
     await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
 
@@ -254,6 +270,8 @@ test.describe("popup layout", () => {
       return {
         card: rect(".imagery-card"),
         preview: rect(".imagery-preview"),
+        stepper: rect(".imagery-stepper"),
+        tabs: rect(".imagery-tabs"),
         shell: rect(".popup-shell")
       };
     });
@@ -279,6 +297,8 @@ test.describe("popup layout", () => {
     expect(layout.preview.height).toBeGreaterThanOrEqual(281);
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
+    expect(Math.abs(layout.stepper.top - layout.tabs.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.stepper.bottom - layout.tabs.bottom)).toBeLessThanOrEqual(1);
     expect(expandedControls.snapshots).toBe(5);
     expect(expandedControls.ranges).toBe(3);
   });
