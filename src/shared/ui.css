@@ -595,9 +595,9 @@ body.popup-page {
 .legacy-content {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) 284px;
+  grid-template-columns: minmax(342px, 1fr) 310px;
   grid-template-rows: 260px;
-  column-gap: 34px;
+  column-gap: 30px;
   width: 100%;
   height: 100%;
 }
@@ -799,7 +799,7 @@ html[lang="en"] .legacy-weather-title {
 }
 
 .imagery-card {
-  width: 220px;
+  width: 246px;
   flex: 0 0 auto;
   position: relative;
   overflow: hidden;
@@ -826,10 +826,10 @@ html[lang="en"] .legacy-weather-title {
   left: 13px;
   z-index: 2;
   display: inline-flex;
-  gap: 4px;
-  height: 28px;
-  padding: 4px;
-  background: rgba(11, 27, 43, 0.7);
+  gap: 3px;
+  height: 25px;
+  padding: 3px;
+  background: rgba(11, 27, 43, 0.64);
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 999px;
   backdrop-filter: blur(8px);
@@ -837,16 +837,16 @@ html[lang="en"] .legacy-weather-title {
 }
 
 .imagery-tab {
-  min-width: 54px;
-  height: 20px;
-  padding: 0 9px;
+  min-width: 46px;
+  height: 17px;
+  padding: 0 7px;
   color: rgba(255, 255, 255, 0.82);
   background: transparent;
   border: 0;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 20px;
+  line-height: 17px;
   white-space: nowrap;
 }
 
@@ -860,7 +860,7 @@ html[lang="en"] .legacy-weather-title {
   position: relative;
   display: block;
   width: 100%;
-  height: 172px;
+  height: 188px;
   padding: 0;
   overflow: hidden;
   background: #d8eef5;
@@ -898,18 +898,22 @@ html[lang="en"] .legacy-weather-title {
   display: flex;
   width: auto;
   justify-content: flex-end;
-  gap: 5px;
-  padding: 4px;
+  gap: 4px;
+  padding: 3px;
   background: rgba(11, 27, 43, 0.62);
   border-radius: 999px;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 12px rgba(12, 25, 40, 0.2);
 }
 
+.imagery-card:not(.is-expanded) .imagery-snapshot:not([aria-selected="true"]) {
+  display: none;
+}
+
 .imagery-snapshot {
-  width: 17px;
-  height: 17px;
-  min-width: 17px;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
   padding: 0;
   color: transparent;
   background: rgba(255, 255, 255, 0.46);
@@ -917,13 +921,25 @@ html[lang="en"] .legacy-weather-title {
   border-radius: 999px;
   font-size: 0;
   font-weight: 700;
-  line-height: 17px;
+  line-height: 14px;
 }
 
 .imagery-snapshot[aria-selected="true"] {
-  width: 28px;
+  width: 23px;
   color: #143250;
   background: #ffffff;
+  font-size: 9px;
+}
+
+.imagery-card.is-expanded .imagery-snapshot {
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
+  line-height: 17px;
+}
+
+.imagery-card.is-expanded .imagery-snapshot[aria-selected="true"] {
+  width: 28px;
   font-size: 10px;
 }
 
@@ -938,48 +954,48 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-caption {
   position: absolute;
-  right: 14px;
-  bottom: 39px;
-  left: 14px;
+  right: 13px;
+  bottom: 35px;
+  left: 13px;
   z-index: 2;
   display: flex;
-  height: 28px;
+  height: 24px;
   align-items: center;
   justify-content: space-between;
-  padding: 0 9px;
+  padding: 0 8px;
   border: 1px solid rgba(255, 255, 255, 0.44);
   border-radius: 999px;
   background: rgba(9, 23, 37, 0.68);
   color: #ffffff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   backdrop-filter: blur(8px);
 }
 
 .radar-ranges {
   position: absolute;
-  right: 14px;
-  bottom: 12px;
-  left: 14px;
+  right: 13px;
+  bottom: 11px;
+  left: 13px;
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(var(--range-count, 3), 1fr);
-  gap: 5px;
-  height: 23px;
+  gap: 4px;
+  height: 20px;
   border-top: 0;
 }
 
 .radar-range {
   min-width: 0;
-  height: 23px;
+  height: 20px;
   padding: 0;
   color: #e8f2fc;
   background: rgba(13, 30, 48, 0.64);
   border: 1px solid rgba(255, 255, 255, 0.38);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  line-height: 23px;
+  line-height: 20px;
   backdrop-filter: blur(8px);
 }
 
@@ -996,10 +1012,10 @@ html[lang="en"] .legacy-weather-title {
 .special-weather-card {
   position: absolute;
   top: 4px;
-  left: 230px;
+  left: 224px;
   z-index: 1;
   display: block;
-  width: 198px;
+  width: 188px;
   padding: 0;
   overflow: hidden;
   background: #fffaf0;
@@ -1010,8 +1026,8 @@ html[lang="en"] .legacy-weather-title {
 }
 
 html[lang="en"] .special-weather-card {
-  left: 278px;
-  width: 170px;
+  left: 268px;
+  width: 154px;
 }
 
 html[lang="en"] .special-weather-title {
@@ -1056,7 +1072,7 @@ html[lang="en"] .special-weather-content {
 }
 
 .typhoon-map-button {
-  width: 220px;
+  width: 246px;
   flex: 0 0 auto;
   height: 30px;
   margin-top: 0;
