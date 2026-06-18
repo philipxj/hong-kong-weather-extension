@@ -237,7 +237,12 @@ export async function updateBadge(
 
 export async function sendTestNotification(language: Language): Promise<void> {
   const copy = notificationCopy(language);
-  await createNotification(copy.testTitle, copy.testMessage);
+  const permission = await browserApi.notifications.getPermissionLevel();
+  if (permission !== "granted") {
+    throw new Error(`Notifications are ${permission}.`);
+  }
+
+  await createTestNotification(copy.testTitle, copy.testMessage);
 }
 
 export function getHighestPriorityWarning(warnings: WeatherWarning[] = []): WeatherWarning | null {
@@ -493,6 +498,17 @@ async function createNotification(title: string, message: string): Promise<void>
     title,
     message,
     iconUrl: browserApi.runtime.getUrl("assets/generated/weather-mark-128.png")
+  });
+}
+
+async function createTestNotification(title: string, message: string): Promise<void> {
+  await browserApi.notifications.createWithId("hk-weather-alerts-test", {
+    type: "basic",
+    title,
+    message,
+    iconUrl: browserApi.runtime.getUrl("assets/generated/weather-mark-128.png"),
+    priority: 2,
+    requireInteraction: true
   });
 }
 

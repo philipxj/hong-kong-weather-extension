@@ -245,17 +245,28 @@ describe("weather service normalization", () => {
   });
 
   test("sends a test notification through the browser adapter", async () => {
-    const create = vi.fn().mockResolvedValue(undefined);
+    const create = vi.fn().mockResolvedValue("hk-weather-alerts-test");
     vi.stubGlobal("chrome", {
-      notifications: { create },
+      notifications: {
+        create,
+        getPermissionLevel: vi.fn().mockResolvedValue("granted")
+      },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
     });
 
     try {
       await sendTestNotification("tc");
       expect(create).toHaveBeenCalledOnce();
-      const details = create.mock.calls[0]?.[0] as
-        | { iconUrl?: string; message?: string; title?: string; type?: string }
+      expect(create.mock.calls[0]?.[0]).toBe("hk-weather-alerts-test");
+      const details = create.mock.calls[0]?.[1] as
+        | {
+            iconUrl?: string;
+            message?: string;
+            priority?: number;
+            requireInteraction?: boolean;
+            title?: string;
+            type?: string;
+          }
         | undefined;
       expect(details?.type).toBe("basic");
       expect(details?.title).toBe("天氣通知測試");
@@ -263,24 +274,47 @@ describe("weather service normalization", () => {
       expect(details?.iconUrl).toBe(
         "chrome-extension://test/assets/generated/weather-mark-128.png"
       );
+      expect(details?.priority).toBe(2);
+      expect(details?.requireInteraction).toBe(true);
     } finally {
       vi.unstubAllGlobals();
     }
   });
 
   test("localizes test notifications for simplified Chinese", async () => {
-    const create = vi.fn().mockResolvedValue(undefined);
+    const create = vi.fn().mockResolvedValue("hk-weather-alerts-test");
     vi.stubGlobal("chrome", {
-      notifications: { create },
+      notifications: {
+        create,
+        getPermissionLevel: vi.fn().mockResolvedValue("granted")
+      },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
     });
 
     try {
       await sendTestNotification("sc");
-      const details = create.mock.calls[0]?.[0] as { message?: string; title?: string } | undefined;
+      const details = create.mock.calls[0]?.[1] as { message?: string; title?: string } | undefined;
       expect(details?.title).toBe("天气通知测试");
       expect(details?.message).toContain("天气警告状态");
       expect(details?.message).not.toContain("天氣警告狀態");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("reports denied notification permission before creating a test notification", async () => {
+    const create = vi.fn();
+    vi.stubGlobal("chrome", {
+      notifications: {
+        create,
+        getPermissionLevel: vi.fn().mockResolvedValue("denied")
+      },
+      runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
+    });
+
+    try {
+      await expect(sendTestNotification("en")).rejects.toThrow("Notifications are denied.");
+      expect(create).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }
