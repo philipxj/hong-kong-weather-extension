@@ -5,8 +5,6 @@ interface OptionsCopy {
   auto: string;
   badgeMode: string;
   badgeModeDescription: string;
-  compactMode: string;
-  compactModeDescription: string;
   currentRefreshMinutes: string;
   currentRefreshMinutesDescription: string;
   dataSource: string;
@@ -54,8 +52,6 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     badgeMode: "徽章模式",
     badgeModeDescription:
       "自動會優先顯示警告；沒有警告時顯示溫度。也可改為只顯示溫度、只顯示警告，或關閉徽章。",
-    compactMode: "精簡模式",
-    compactModeDescription: "保持 popup 使用緊湊版天文台風格版面。",
     currentRefreshMinutes: "現時天氣更新分鐘",
     currentRefreshMinutesDescription: "控制現時氣溫、濕度、紫外線及預報資料隔多久重新更新。",
     dataSource: "資料來源",
@@ -103,8 +99,6 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     badgeMode: "徽章模式",
     badgeModeDescription:
       "自动会优先显示警告；没有警告时显示温度。也可改为只显示温度、只显示警告，或关闭徽章。",
-    compactMode: "精简模式",
-    compactModeDescription: "保持 popup 使用紧凑版天文台风格版面。",
     currentRefreshMinutes: "现时天气更新分钟",
     currentRefreshMinutesDescription: "控制现时气温、湿度、紫外线及预报资料隔多久重新更新。",
     dataSource: "资料来源",
@@ -152,8 +146,6 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     badgeMode: "Badge mode",
     badgeModeDescription:
       "Auto shows the highest warning first, then temperature when no warning is active. You can also force temperature, warning only, or hide the badge.",
-    compactMode: "Compact mode",
-    compactModeDescription: "Keeps the popup in the compact Observatory-style layout.",
     currentRefreshMinutes: "Current weather refresh minutes",
     currentRefreshMinutesDescription:
       "Controls how often current temperature, humidity, UV index, and forecast data refresh.",

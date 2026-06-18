@@ -48,4 +48,11 @@ describe("options copy", () => {
     expect(html).not.toContain('data-i18n="traditionalChineseDescription"');
     expect(html).not.toContain('data-i18n="simplifiedChineseDescription"');
   });
+
+  test("does not show the unused compact mode setting", async () => {
+    const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
+    expect(html).not.toContain('id="compactMode"');
+    expect(html).not.toContain('data-i18n="compactMode"');
+    expect(html).not.toContain('data-i18n="compactModeDescription"');
+  });
 });
