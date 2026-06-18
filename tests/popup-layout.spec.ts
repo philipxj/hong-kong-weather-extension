@@ -84,10 +84,12 @@ test.describe("popup layout", () => {
         return {
           current: rect(".legacy-current"),
           currentTitle: rect(".current-title-row"),
+          readings: rect(".legacy-readings"),
           forecast: rect(".legacy-forecast"),
           shell: rect(".popup-shell"),
           side: rect(".legacy-side-panel"),
           special: rect(".special-weather-card"),
+          specialContent: rect(".special-weather-content"),
           meta: rect(".legacy-meta"),
           warning: rect(".warning-signal-row"),
           forecastItemsInside: allInside(".legacy-forecast", ".legacy-forecast-day"),
@@ -107,6 +109,8 @@ test.describe("popup layout", () => {
       expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(Math.abs(layout.special.top - layout.currentTitle.top)).toBeLessThanOrEqual(8);
       expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
+      expect(layout.special.bottom).toBeLessThanOrEqual(layout.readings.top - 1);
+      expect(layout.specialContent.height).toBeGreaterThanOrEqual(54);
       expect(layout.meta.top).toBeGreaterThanOrEqual(layout.forecast.bottom);
       expect(layout.meta.right).toBeLessThanOrEqual(layout.shell.right - 12);
       expect(layout.meta.bottom).toBeLessThanOrEqual(layout.shell.bottom - 4);

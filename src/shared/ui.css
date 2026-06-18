@@ -1019,7 +1019,7 @@ body.popup-page {
 
 .special-weather-card {
   position: absolute;
-  top: 6px;
+  top: 2px;
   left: 218px;
   z-index: 1;
   display: block;
@@ -1033,27 +1033,27 @@ body.popup-page {
 }
 
 .special-weather-title {
-  height: 20px;
+  height: 18px;
   color: #111;
   background: #fff200;
   border-bottom: 1px solid #c8c8c8;
   font-size: 16px;
   font-weight: 800;
-  line-height: 20px;
+  line-height: 18px;
 }
 
 .special-weather-content {
   display: -webkit-box;
-  height: 30px;
+  height: 56px;
   padding: 2px 6px;
   overflow: hidden;
   color: #222;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 4;
   background: #f7f7f7;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 14px;
+  line-height: 13px;
 }
 
 .special-weather-card:hover {
