@@ -36,4 +36,12 @@ describe("options copy", () => {
     expect(html).toContain('id="test-notification"');
     expect(html).toContain('data-i18n="testNotification"');
   });
+
+  test("uses compact tabs for language choices", async () => {
+    const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
+    expect(html).toContain('class="language-tabs"');
+    expect(html).toContain('class="language-tab"');
+    expect(html).not.toContain('data-i18n="traditionalChineseDescription"');
+    expect(html).not.toContain('data-i18n="simplifiedChineseDescription"');
+  });
 });
