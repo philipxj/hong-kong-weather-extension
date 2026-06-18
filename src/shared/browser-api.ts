@@ -1,6 +1,9 @@
 type StorageRecord<T> = Record<string, T | undefined>;
 type BadgeBackgroundColorDetails = Parameters<typeof chrome.action.setBadgeBackgroundColor>[0];
+type BadgeTextColorDetails = Parameters<typeof chrome.action.setBadgeTextColor>[0];
+type IconDetails = Parameters<typeof chrome.action.setIcon>[0];
 type NotificationCreateOptions = Parameters<typeof chrome.notifications.create>[0];
+type TitleDetails = Parameters<typeof chrome.action.setTitle>[0];
 
 export const browserApi = {
   storage: {
@@ -34,7 +37,10 @@ export const browserApi = {
   action: {
     setBadgeText: (details: chrome.action.BadgeTextDetails) => chrome.action.setBadgeText(details),
     setBadgeBackgroundColor: (details: BadgeBackgroundColorDetails) =>
-      chrome.action.setBadgeBackgroundColor(details)
+      chrome.action.setBadgeBackgroundColor(details),
+    setBadgeTextColor: (details: BadgeTextColorDetails) => chrome.action.setBadgeTextColor(details),
+    setIcon: (details: IconDetails) => chrome.action.setIcon(details),
+    setTitle: (details: TitleDetails) => chrome.action.setTitle(details)
   },
   notifications: {
     create: (details: NotificationCreateOptions) => chrome.notifications.create(details)
@@ -55,9 +61,12 @@ export const browserApi = {
       handler: (message: TMessage) => Promise<TResponse | undefined> | TResponse | undefined
     ) => {
       chrome.runtime.onMessage.addListener((message: TMessage, _sender, sendResponse) => {
-        Promise.resolve(handler(message))
+        const response = handler(message);
+        if (response === undefined) return false;
+
+        Promise.resolve(response)
           .then((response) => {
-            if (response !== undefined) sendResponse(response);
+            sendResponse(response ?? null);
           })
           .catch((error: unknown) => {
             sendResponse({

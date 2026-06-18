@@ -26,7 +26,8 @@ export const hkoCurrentSchema = z
           )
           .optional()
       })
-      .optional()
+      .optional(),
+    warningMessage: z.union([z.array(z.string()), z.string()]).optional()
   })
   .passthrough();
 

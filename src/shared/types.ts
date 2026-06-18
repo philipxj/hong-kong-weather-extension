@@ -26,6 +26,7 @@ export interface CurrentWeather {
   icon: number | string | null;
   summary: string;
   tips: string[];
+  warningMessages: string[];
   forecast: string;
   warningSummary: string;
 }
@@ -47,8 +48,15 @@ export type WarningType =
   | "rain-black"
   | "typhoon"
   | "thunderstorm"
+  | "landslip"
+  | "flooding"
+  | "monsoon"
+  | "frost"
+  | "fire-yellow"
+  | "fire-red"
   | "heat"
   | "cold"
+  | "tsunami"
   | "other";
 
 export interface WeatherWarning {

@@ -11,6 +11,14 @@
       <div class="window-notch" aria-hidden="true"></div>
 
       <div class="legacy-actions">
+        <button
+          id="hko-page"
+          class="legacy-icon-button hko-page-button"
+          title="香港天文台"
+          aria-label="香港天文台"
+        >
+          <img class="hko-logo-icon" src="../assets/hko-logo.png" alt="" />
+        </button>
         <button id="settings" class="legacy-icon-button" title="Settings" aria-label="Settings">
           ⚙
         </button>
@@ -33,15 +41,15 @@
 
           <div class="legacy-readings">
             <div class="legacy-reading">
-              <span>現時氣溫</span>
+              <span id="label-current-temp">現時氣溫</span>
               <strong id="top-temp">--</strong>
             </div>
             <div class="legacy-reading">
-              <span>相對濕度</span>
+              <span id="label-humidity">相對濕度</span>
               <strong id="top-humidity">--</strong>
             </div>
             <div class="legacy-reading legacy-reading-uv">
-              <span>紫外線指數</span>
+              <span id="label-uv">紫外線指數</span>
               <strong><span id="top-uv-value">--</span> <small id="top-uv-desc"></small></strong>
             </div>
           </div>
@@ -51,10 +59,15 @@
             class="warning-signal-row"
             aria-label="Current warning signals"
           ></div>
+
+          <button id="special-weather-open" class="special-weather-card" type="button">
+            <div id="special-weather-title" class="special-weather-title">特別天氣提示</div>
+            <div id="warning-count" class="special-weather-content">--</div>
+          </button>
         </section>
 
         <section class="legacy-side-panel" aria-label="Weather imagery">
-          <div class="imagery-card">
+          <div id="imagery-card" class="imagery-card">
             <div class="imagery-tabs" role="tablist" aria-label="Weather imagery">
               <button
                 class="imagery-tab"
@@ -70,38 +83,45 @@
                 type="button"
                 role="tab"
                 aria-selected="false"
-                data-imagery="satellite"
-              >
-                衛星
-              </button>
-              <button
-                class="imagery-tab"
-                type="button"
-                role="tab"
-                aria-selected="false"
                 data-imagery="lightning"
               >
                 閃電
               </button>
             </div>
-            <button
+            <div
               id="imagery-open"
               class="imagery-preview"
-              type="button"
+              role="button"
+              tabindex="0"
               aria-label="Open imagery"
             >
               <img id="imagery-image" alt="" />
+              <div id="imagery-stepper" class="imagery-stepper" aria-label="Image snapshots">
+                <button
+                  id="imagery-prev"
+                  class="imagery-stepper-button"
+                  type="button"
+                  aria-label="Previous image"
+                >
+                  ‹
+                </button>
+                <span id="imagery-position" class="imagery-position">-- / --</span>
+                <button
+                  id="imagery-next"
+                  class="imagery-stepper-button"
+                  type="button"
+                  aria-label="Next image"
+                >
+                  ›
+                </button>
+              </div>
               <span id="imagery-fallback" class="imagery-fallback" hidden>Loading</span>
-            </button>
+            </div>
             <div class="imagery-caption">
               <span id="imagery-title">等雨量線圖</span>
               <span id="imagery-time">--</span>
             </div>
-          </div>
-
-          <div id="special-weather-card" class="special-weather-card" hidden>
-            <div class="special-weather-title">特別天氣提示</div>
-            <div id="special-weather-content" class="special-weather-content"></div>
+            <div id="radar-ranges" class="radar-ranges" aria-label="Radar range"></div>
           </div>
 
           <button id="typhoon-map" class="typhoon-map-button" type="button">

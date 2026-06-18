@@ -11,69 +11,163 @@
       <header class="options-header">
         <div>
           <div class="title">HK Weather Alerts / 香港天氣提示</div>
-          <div class="timestamp">Options</div>
+          <div class="timestamp" data-i18n="options">Options</div>
         </div>
       </header>
 
       <form id="options-form" class="options-main">
         <section class="panel">
-          <div class="section-title">Language</div>
+          <div class="section-title" data-i18n="language">Language</div>
           <div class="choice-row">
-            <label><input type="radio" name="language" value="tc" /> Traditional Chinese</label>
-            <label><input type="radio" name="language" value="en" /> English</label>
-            <label><input type="radio" name="language" value="sc" /> Simplified Chinese</label>
+            <label class="option-choice"
+              ><input type="radio" name="language" value="tc" />
+              <span class="option-copy">
+                <span data-i18n="traditionalChinese">繁體中文</span>
+                <small data-i18n="traditionalChineseDescription"
+                  >設定頁、popup 文字及天文台連結使用繁體中文。</small
+                >
+              </span></label
+            >
+            <label class="option-choice"
+              ><input type="radio" name="language" value="en" />
+              <span class="option-copy">
+                <span data-i18n="english">English</span>
+                <small data-i18n="englishDescription"
+                  >Use English for settings, popup labels, and Observatory links.</small
+                >
+              </span></label
+            >
+            <label class="option-choice"
+              ><input type="radio" name="language" value="sc" />
+              <span class="option-copy">
+                <span data-i18n="simplifiedChinese">簡體中文</span>
+                <small data-i18n="simplifiedChineseDescription"
+                  >設定頁、popup 文字及天文台連結使用簡體中文。</small
+                >
+              </span></label
+            >
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-title">Notifications</div>
+          <div class="section-title" data-i18n="notifications">Notifications</div>
+          <p class="section-note" data-i18n="notificationChangesOnlyDescription">
+            Notifications are sent only when warning status changes. Existing active warnings do not
+            notify on every refresh.
+          </p>
           <div class="form-grid">
-            <label><input type="checkbox" id="notifyIssued" /> Warning issued</label>
-            <label><input type="checkbox" id="notifyCancelled" /> Warning cancelled</label>
-            <label><input type="checkbox" id="notifyExtended" /> Warning extended</label>
-            <label><input type="checkbox" id="notifyUpdated" /> Warning updated</label>
+            <label class="option-choice"
+              ><input type="checkbox" id="notifyIssued" />
+              <span class="option-copy">
+                <span data-i18n="warningIssued">Warning issued</span>
+                <small data-i18n="warningIssuedDescription"
+                  >Send a notification when a new weather warning becomes active.</small
+                >
+              </span></label
+            >
+            <label class="option-choice"
+              ><input type="checkbox" id="notifyCancelled" />
+              <span class="option-copy">
+                <span data-i18n="warningCancelled">Warning cancelled</span>
+                <small data-i18n="warningCancelledDescription"
+                  >Send a notification when an active warning is cancelled.</small
+                >
+              </span></label
+            >
+            <label class="option-choice"
+              ><input type="checkbox" id="notifyExtended" />
+              <span class="option-copy">
+                <span data-i18n="warningExtended">Warning extended</span>
+                <small data-i18n="warningExtendedDescription"
+                  >Send a notification when warnings such as thunderstorms are extended.</small
+                >
+              </span></label
+            >
+            <label class="option-choice"
+              ><input type="checkbox" id="notifyUpdated" />
+              <span class="option-copy">
+                <span data-i18n="warningUpdated">Warning updated</span>
+                <small data-i18n="warningUpdatedDescription"
+                  >Send a notification when warning content changes; this may be more
+                  frequent.</small
+                >
+              </span></label
+            >
+          </div>
+          <div class="notification-test-row">
+            <div class="setting-copy">
+              <span data-i18n="testNotification">Test notification</span>
+              <small data-i18n="testNotificationDescription"
+                >Send a test notification now to confirm Chrome and system notifications are
+                enabled.</small
+              >
+            </div>
+            <button id="test-notification" class="secondary-button" type="button">
+              Test notification
+            </button>
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-title">Display</div>
+          <div class="section-title" data-i18n="display">Display</div>
           <div class="form-grid">
             <div class="field-row">
-              <label for="badgeMode">Badge mode</label>
+              <div class="setting-copy">
+                <label for="badgeMode" data-i18n="badgeMode">Badge mode</label>
+                <small data-i18n="badgeModeDescription"
+                  >Auto shows the highest warning first, then temperature when no warning is
+                  active.</small
+                >
+              </div>
               <select id="badgeMode">
-                <option value="auto">Auto</option>
-                <option value="temperature">Temperature</option>
-                <option value="warning">Warning</option>
-                <option value="off">Off</option>
+                <option value="auto" data-i18n="auto">Auto</option>
+                <option value="temperature" data-i18n="temperature">Temperature</option>
+                <option value="warning" data-i18n="warning">Warning</option>
+                <option value="off" data-i18n="off">Off</option>
               </select>
             </div>
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-title">Refresh intervals</div>
+          <div class="section-title" data-i18n="refreshIntervals">Refresh intervals</div>
           <div class="form-grid">
             <div class="field-row">
-              <label for="currentRefreshMinutes">Current weather refresh minutes</label>
+              <div class="setting-copy">
+                <label for="currentRefreshMinutes" data-i18n="currentRefreshMinutes"
+                  >Current weather refresh minutes</label
+                >
+                <small data-i18n="currentRefreshMinutesDescription"
+                  >Controls how often current temperature, humidity, and UV index refresh.</small
+                >
+              </div>
               <input id="currentRefreshMinutes" type="number" min="10" max="180" step="1" />
             </div>
             <div class="field-row">
-              <label for="warningCheckMinutes">Warning check minutes</label>
+              <div class="setting-copy">
+                <label for="warningCheckMinutes" data-i18n="warningCheckMinutes"
+                  >Warning check minutes</label
+                >
+                <small data-i18n="warningCheckMinutesDescription"
+                  >Controls how often the background service checks for weather warning
+                  changes.</small
+                >
+              </div>
               <input id="warningCheckMinutes" type="number" min="5" max="180" step="1" />
             </div>
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-title">About</div>
+          <div class="section-title" data-i18n="about">About</div>
           <div class="kv-list">
             <div class="kv-row">
-              <div class="label">Data source</div>
-              <div>Hong Kong Observatory Open Data</div>
+              <div class="label" data-i18n="dataSource">Data source</div>
+              <div data-i18n="dataSourceValue">Hong Kong Observatory Open Data</div>
             </div>
             <div class="kv-row">
-              <div class="label">Disclaimer</div>
-              <div>
+              <div class="label" data-i18n="disclaimer">Disclaimer</div>
+              <div data-i18n="disclaimerValue">
                 Independent utility. Not affiliated with or endorsed by the Hong Kong Observatory.
               </div>
             </div>
@@ -81,7 +175,9 @@
         </section>
 
         <div class="save-row">
-          <button type="submit" class="primary-button">Save settings</button>
+          <button type="submit" class="primary-button" data-i18n="saveSettings">
+            Save settings
+          </button>
           <span id="save-status" class="muted"></span>
         </div>
       </form>

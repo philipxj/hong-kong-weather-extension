@@ -193,6 +193,7 @@ function cachedWeather(): WeatherData {
       tips: [],
       uvDesc: "低",
       uvIndex: 0.4,
+      warningMessages: [],
       warningSummary: "暴雨警告信號"
     },
     error: null,

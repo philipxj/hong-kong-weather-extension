@@ -1,13 +1,19 @@
 import { browserApi } from "../shared/browser-api";
+import { hkoPageUrl } from "../shared/hko-links";
+import { hkoWarningIconUrl } from "../shared/hko-warning-icons";
+import { getImageryUrlsWithCache } from "../shared/imagery-cache";
+import { weatherScene } from "./weather-scene";
 import {
   getCachedWeather,
   getSettings,
+  getSignalWarnings,
   refreshWeather,
   updateBadge
 } from "../shared/weather-service";
 import type {
   ForecastDay,
   ImageryType,
+  Language,
   Settings,
   WeatherData,
   WeatherWarning
@@ -25,10 +31,19 @@ interface PopupState {
 }
 
 interface ImageryItem {
-  title: string;
-  pageUrl: string;
   fallbackUrl: string;
   imageUrl?: string;
+  ranges?: ImageryRangeImages[];
+  selectedIndex?: number;
+  selectedRangeId?: RadarRangeId;
+}
+
+type RadarRangeId = "range0" | "range1" | "range2";
+
+interface ImageryRangeImages {
+  id: RadarRangeId;
+  label: string;
+  urls: string[];
 }
 
 const state: PopupState = {
@@ -38,57 +53,223 @@ const state: PopupState = {
 };
 
 const HKO_ICON_BASE = "https://www.hko.gov.hk/images/wxicon";
-const TYPHOON_TRACK_URL = "https://www.hko.gov.hk/tc/wxinfo/currwx/tc_pos.htm";
 const HKO_ROOT = "https://www.hko.gov.hk";
 const RADAR_LIST_URL = `${HKO_ROOT}/wxinfo/radars/temp_json/nradar_img.json`;
-const RADAR_PAGE_URL = `${HKO_ROOT}/tc/wxinfo/radars/radar_range1.htm`;
 const LIGHTNING_SCRIPT_URL = `${HKO_ROOT}/wxinfo/llis/llisradar/radar-image.js`;
 const LIGHTNING_IMAGE_ROOT = `${HKO_ROOT}/wxinfo/llis/llisradar/images`;
-const LIGHTNING_PAGE_URL = `${HKO_ROOT}/tc/wxinfo/llis/llisradar.shtml`;
 const SATELLITE_IMAGE_URL = `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_sate_gallery_tc.gif`;
-const SATELLITE_PAGE_URL = `${HKO_ROOT}/tc/wxinfo/intersat/satellite/sate.htm`;
+const RADAR_RANGE_LABELS: Record<RadarRangeId, string> = {
+  range0: "256km",
+  range1: "128km",
+  range2: "64km"
+};
+const VISIBLE_RADAR_RANGE_IDS: RadarRangeId[] = ["range0", "range1", "range2"];
+const WEATHER_TITLE_MAX_FONT_SIZE = 40;
+const WEATHER_TITLE_MIN_FONT_SIZE = 24;
 const IMAGERY: Record<ImageryType, ImageryItem> = {
   radar: {
-    title: "等雨量線圖",
-    pageUrl: RADAR_PAGE_URL,
-    fallbackUrl: `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_radar_tc.gif`
+    fallbackUrl: `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_radar_tc.gif`,
+    imageUrl: `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_radar_tc.gif`
   },
   satellite: {
-    title: "衛星圖像",
-    pageUrl: SATELLITE_PAGE_URL,
     fallbackUrl: SATELLITE_IMAGE_URL,
     imageUrl: SATELLITE_IMAGE_URL
   },
   lightning: {
-    title: "閃電位置",
-    pageUrl: LIGHTNING_PAGE_URL,
     fallbackUrl: `${HKO_ROOT}/en/wxinfo/intersat/misc_images/images/icon_radar_lightn_tc.gif`
   }
 };
-const WEATHER_CAPTIONS_TC: Record<number, string> = {
-  50: "天晴",
-  51: "間有陽光",
-  52: "短暫時間有陽光",
-  53: "短暫陽光及驟雨",
-  54: "短暫陽光有驟雨",
-  60: "多雲",
-  61: "密雲",
-  62: "微雨",
-  63: "有雨",
-  64: "大雨",
-  65: "雷暴",
-  76: "晚間多雲",
-  77: "晚間大致天晴",
-  80: "有風",
-  81: "乾燥",
-  82: "潮濕",
-  83: "有霧",
-  84: "薄霧",
-  85: "煙霞",
-  90: "酷熱",
-  91: "和暖",
-  92: "清涼",
-  93: "寒冷"
+const WEATHER_CAPTIONS: Record<Language, Record<number, string>> = {
+  tc: {
+    50: "天晴",
+    51: "間有陽光",
+    52: "短暫時間有陽光",
+    53: "短暫陽光及驟雨",
+    54: "短暫陽光有驟雨",
+    60: "多雲",
+    61: "密雲",
+    62: "微雨",
+    63: "有雨",
+    64: "大雨",
+    65: "雷暴",
+    76: "晚間多雲",
+    77: "晚間大致天晴",
+    80: "有風",
+    81: "乾燥",
+    82: "潮濕",
+    83: "有霧",
+    84: "薄霧",
+    85: "煙霞",
+    90: "酷熱",
+    91: "和暖",
+    92: "清涼",
+    93: "寒冷"
+  },
+  sc: {
+    50: "天晴",
+    51: "间有阳光",
+    52: "短暂时间有阳光",
+    53: "短暂阳光及骤雨",
+    54: "短暂阳光有骤雨",
+    60: "多云",
+    61: "密云",
+    62: "微雨",
+    63: "有雨",
+    64: "大雨",
+    65: "雷暴",
+    76: "晚间多云",
+    77: "晚间大致天晴",
+    80: "有风",
+    81: "干燥",
+    82: "潮湿",
+    83: "有雾",
+    84: "薄雾",
+    85: "烟霞",
+    90: "酷热",
+    91: "和暖",
+    92: "清凉",
+    93: "寒冷"
+  },
+  en: {
+    50: "Sunny",
+    51: "Sunny Periods",
+    52: "Sunny Intervals",
+    53: "Sunny Intervals with Showers",
+    54: "Sunny Periods with Showers",
+    60: "Cloudy",
+    61: "Overcast",
+    62: "Light Rain",
+    63: "Rain",
+    64: "Heavy Rain",
+    65: "Thunderstorms",
+    76: "Cloudy Night",
+    77: "Mainly Fine Night",
+    80: "Windy",
+    81: "Dry",
+    82: "Humid",
+    83: "Fog",
+    84: "Mist",
+    85: "Haze",
+    90: "Hot",
+    91: "Warm",
+    92: "Cool",
+    93: "Cold"
+  }
+};
+
+const COPY: Record<
+  Language,
+  {
+    cacheNote: string;
+    currentTemp: string;
+    fallbackWeather: string;
+    forecastEmpty: string;
+    humidity: string;
+    lastUpdated: string;
+    loadingFailed: string;
+    noWarningSignals: string;
+    noWeatherTips: string;
+    radarRangeSuffix: string;
+    radarSnapshot: string;
+    snapshotNext: string;
+    snapshotPrevious: string;
+    settings: string;
+    specialWeather: string;
+    temperatureUnit: string;
+    unableToLoad: string;
+    updateFailed: string;
+    updating: string;
+    uvIndex: string;
+    warning: string;
+  }
+> = {
+  tc: {
+    cacheNote: "快取資料",
+    currentTemp: "現時氣溫",
+    fallbackWeather: "香港天氣",
+    forecastEmpty: "沒有九天天氣預報資料。",
+    humidity: "相對濕度",
+    lastUpdated: "更新",
+    loadingFailed: "未能載入",
+    noWarningSignals: "沒有警告信號",
+    noWeatherTips: "沒有生效提示",
+    radarRangeSuffix: "公里",
+    radarSnapshot: "雷達圖",
+    snapshotNext: "下一張",
+    snapshotPrevious: "上一張",
+    settings: "設定",
+    specialWeather: "特別天氣提示",
+    temperatureUnit: "度",
+    unableToLoad: "未能載入天氣資料，亦沒有可用快取。",
+    updateFailed: "更新失敗，正顯示快取資料。",
+    updating: "更新中...",
+    uvIndex: "紫外線指數",
+    warning: "警告"
+  },
+  sc: {
+    cacheNote: "快取资料",
+    currentTemp: "现时气温",
+    fallbackWeather: "香港天气",
+    forecastEmpty: "没有九天天气预报资料。",
+    humidity: "相对湿度",
+    lastUpdated: "更新",
+    loadingFailed: "未能载入",
+    noWarningSignals: "没有警告信号",
+    noWeatherTips: "没有生效提示",
+    radarRangeSuffix: "公里",
+    radarSnapshot: "雷达图",
+    snapshotNext: "下一张",
+    snapshotPrevious: "上一张",
+    settings: "设定",
+    specialWeather: "特别天气提示",
+    temperatureUnit: "度",
+    unableToLoad: "未能载入天气资料，亦没有可用快取。",
+    updateFailed: "更新失败，正显示快取资料。",
+    updating: "更新中...",
+    uvIndex: "紫外线指数",
+    warning: "警告"
+  },
+  en: {
+    cacheNote: "Cached data",
+    currentTemp: "Temperature",
+    fallbackWeather: "Hong Kong Weather",
+    forecastEmpty: "No forecast data available.",
+    humidity: "Humidity",
+    lastUpdated: "Updated",
+    loadingFailed: "Unable to load",
+    noWarningSignals: "No warning signals",
+    noWeatherTips: "No active notice",
+    radarRangeSuffix: "km",
+    radarSnapshot: "Radar snapshot",
+    snapshotNext: "Next image",
+    snapshotPrevious: "Previous image",
+    settings: "Settings",
+    specialWeather: "Special Weather Tips",
+    temperatureUnit: "°C",
+    unableToLoad: "Unable to load weather data and no cache is available.",
+    updateFailed: "Update failed. Showing cached data.",
+    updating: "Updating...",
+    uvIndex: "UV Index",
+    warning: "Warning"
+  }
+};
+
+const IMAGERY_TITLES: Record<Language, Record<ImageryType, string>> = {
+  tc: {
+    radar: "等雨量線圖",
+    satellite: "衛星圖像",
+    lightning: "閃電位置"
+  },
+  sc: {
+    radar: "等雨量线图",
+    satellite: "卫星图像",
+    lightning: "闪电位置"
+  },
+  en: {
+    radar: "Radar Image",
+    satellite: "Satellite Image",
+    lightning: "Lightning"
+  }
 };
 
 const els = {
@@ -104,30 +285,66 @@ const els = {
   topUvValue: query<HTMLElement>("#top-uv-value"),
   topUvDesc: query<HTMLElement>("#top-uv-desc"),
   topSummary: query<HTMLElement>("#top-summary"),
-  specialWeatherCard: query<HTMLElement>("#special-weather-card"),
-  specialWeatherContent: query<HTMLElement>("#special-weather-content"),
+  labelCurrentTemp: query<HTMLElement>("#label-current-temp"),
+  labelHumidity: query<HTMLElement>("#label-humidity"),
+  labelUv: query<HTMLElement>("#label-uv"),
+  warningCount: query<HTMLElement>("#warning-count"),
   warningSignalRow: query<HTMLElement>("#warning-signal-row"),
   forecastList: query<HTMLElement>("#forecast-list"),
+  imageryCard: query<HTMLElement>("#imagery-card"),
+  radarRanges: query<HTMLElement>("#radar-ranges"),
+  specialWeatherOpen: query<HTMLButtonElement>("#special-weather-open"),
   typhoonMap: query<HTMLButtonElement>("#typhoon-map"),
   imageryTabs: document.querySelectorAll<HTMLButtonElement>(".imagery-tab"),
-  imageryOpen: query<HTMLButtonElement>("#imagery-open"),
+  imageryOpen: query<HTMLElement>("#imagery-open"),
   imageryImage: query<HTMLImageElement>("#imagery-image"),
   imageryFallback: query<HTMLElement>("#imagery-fallback"),
+  imageryNext: query<HTMLButtonElement>("#imagery-next"),
+  imageryPosition: query<HTMLElement>("#imagery-position"),
+  imageryPrev: query<HTMLButtonElement>("#imagery-prev"),
   imageryTitle: query<HTMLElement>("#imagery-title"),
-  imageryTime: query<HTMLElement>("#imagery-time")
+  imageryTime: query<HTMLElement>("#imagery-time"),
+  specialWeatherTitle: query<HTMLElement>("#special-weather-title")
 };
 
 query<HTMLButtonElement>("#refresh").addEventListener("click", () => {
   void load({ force: true });
 });
+query<HTMLButtonElement>("#hko-page").addEventListener("click", () => {
+  void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "index.html") });
+});
 query<HTMLButtonElement>("#settings").addEventListener("click", openOptions);
 els.typhoonMap.addEventListener("click", () => {
-  void browserApi.tabs.create({ url: TYPHOON_TRACK_URL });
+  void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "wxinfo/currwx/tc_pos.htm") });
+});
+els.specialWeatherOpen.addEventListener("click", () => {
+  void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "sweather_tips.html") });
 });
 els.imageryOpen.addEventListener("click", () => {
-  const type = toImageryType(els.imageryOpen.dataset.imagery);
-  void browserApi.tabs.create({ url: IMAGERY[type].pageUrl || RADAR_PAGE_URL });
+  toggleImageryExpanded();
 });
+els.imageryOpen.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  toggleImageryExpanded();
+});
+els.imageryPrev.addEventListener("click", (event) => {
+  event.stopPropagation();
+  stepImagerySnapshot(-1);
+});
+els.imageryNext.addEventListener("click", (event) => {
+  event.stopPropagation();
+  stepImagerySnapshot(1);
+});
+document.addEventListener(
+  "click",
+  (event) => {
+    if (!els.imageryCard.classList.contains("is-expanded")) return;
+    if (event.target instanceof Node && els.imageryCard.contains(event.target)) return;
+    collapseImageryExpanded();
+  },
+  { capture: true }
+);
 els.imageryImage.addEventListener("error", () => {
   const type = toImageryType(els.imageryOpen.dataset.imagery);
   const fallbackUrl = IMAGERY[type].fallbackUrl;
@@ -136,7 +353,7 @@ els.imageryImage.addEventListener("error", () => {
   } else {
     els.imageryImage.hidden = true;
     els.imageryFallback.hidden = false;
-    els.imageryFallback.textContent = "未能載入";
+    els.imageryFallback.textContent = copy().loadingFailed;
   }
 });
 els.imageryTabs.forEach((tab) => {
@@ -147,11 +364,12 @@ await load();
 
 async function load({ force = false }: { force?: boolean } = {}): Promise<void> {
   state.settings = await getSettings();
+  applyLanguage(state.settings.language);
   setUpdating(true);
 
   try {
     const cached = await getCachedWeather();
-    if (cached && !force) {
+    if (cached && cachedMatchesSettings(cached) && !force) {
       state.data = cached;
       render();
     }
@@ -160,12 +378,12 @@ async function load({ force = false }: { force?: boolean } = {}): Promise<void> 
     render();
   } catch (error) {
     const cached = await getCachedWeather();
-    if (cached) {
+    if (cached && cachedMatchesSettings(cached)) {
       state.data = {
         ...cached,
         stale: true,
         error: {
-          message: errorMessage(error, "Unable to update weather data.")
+          message: errorMessage(error, copy().unableToLoad)
         }
       };
       render();
@@ -175,6 +393,10 @@ async function load({ force = false }: { force?: boolean } = {}): Promise<void> 
   } finally {
     setUpdating(false);
   }
+}
+
+function cachedMatchesSettings(data: WeatherData): boolean {
+  return data.language === activeLanguage();
 }
 
 async function refreshThroughBackground(): Promise<WeatherData> {
@@ -194,28 +416,29 @@ async function refreshThroughBackground(): Promise<WeatherData> {
 function render(): void {
   const data = state.data;
   if (!data) return;
+  applyLanguage(data.language);
+  const localized = copy(data.language);
 
   els.loading.hidden = true;
   els.content.hidden = false;
   els.error.hidden = !data.error;
-  els.error.textContent = data.error
-    ? `Update failed. Showing cached data. ${data.error.message}`
-    : "";
-  els.cacheNote.textContent = data.stale ? "Cached data" : "";
-  els.lastUpdated.textContent = `Last updated: ${formatDateTime(data.fetchedAt)}`;
+  els.error.textContent = data.error ? `${localized.updateFailed} ${data.error.message}` : "";
+  els.cacheNote.textContent = data.stale ? localized.cacheNote : "";
+  els.lastUpdated.textContent = `${formatUpdateTime(data.fetchedAt)} ${localized.lastUpdated}`;
 
-  setWeatherIcon(els.weatherIcon, data.current.icon, weatherCaption(data.current.icon));
+  const caption = weatherCaption(data.current.icon, data.language);
+  els.content.dataset.weatherScene = weatherScene(data.current.icon);
+  setWeatherIcon(els.weatherIcon, data.current.icon, caption);
   els.topTemp.textContent = formatDegree(data.current.temperature);
   els.topHumidity.textContent = formatUnit(data.current.humidity, "%");
   els.topUvValue.textContent = String(data.current.uvIndex ?? "--");
   els.topUvDesc.textContent = data.current.uvDesc ? `(${data.current.uvDesc})` : "";
   els.topSummary.textContent =
-    weatherCaption(data.current.icon) ||
-    data.current.forecast ||
-    data.current.summary ||
-    "香港天氣";
+    caption || data.current.forecast || data.current.summary || localized.fallbackWeather;
 
   renderSpecialWeather(data.current.tips);
+  fitWeatherTitle();
+  renderTyphoonMap(data.warnings);
   renderWarningSignals(data.warnings);
   renderForecast(data.forecast);
   void loadImagery();
@@ -223,40 +446,104 @@ function render(): void {
 
 function renderWarningSignals(warnings: WeatherWarning[]): void {
   els.warningSignalRow.replaceChildren();
+  const signalWarnings = getSignalWarnings(warnings);
 
-  if (!warnings.length) {
+  if (!signalWarnings.length) {
     const emptySignal = document.createElement("div");
     emptySignal.className = "warning-signal-empty";
-    emptySignal.textContent = "沒有警告信號";
+    emptySignal.textContent = copy().noWarningSignals;
     els.warningSignalRow.append(emptySignal);
     return;
   }
 
-  warnings.slice(0, 4).forEach((warning) => {
-    const signal = document.createElement("div");
+  signalWarnings.slice(0, 4).forEach((warning) => {
+    const signal = document.createElement("button");
     const signalType = signalTypeClass(warning);
     signal.className = `warning-signal warning-signal-${signalType}`;
+    signal.type = "button";
     signal.title = warning.name;
+    signal.setAttribute("aria-label", warning.name || copy().warning);
     signal.innerHTML = warningSignalHtml(warning, signalType);
+    signal.addEventListener("click", () => {
+      void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "detail.htm") });
+    });
     els.warningSignalRow.append(signal);
   });
 }
 
 function renderSpecialWeather(tips: string[]): void {
   const text = formatSpecialWeatherTips(tips);
-  els.specialWeatherCard.hidden = !text;
-  els.specialWeatherContent.textContent = text ?? "";
+  els.specialWeatherOpen.hidden = !text;
+  els.warningCount.textContent = text ?? "";
+}
+
+function fitWeatherTitle(): void {
+  els.topSummary.style.removeProperty("font-size");
+  els.topSummary.style.removeProperty("max-width");
+
+  const titleRect = els.topSummary.getBoundingClientRect();
+  const rightEdge = els.specialWeatherOpen.hidden
+    ? (els.topSummary.parentElement?.getBoundingClientRect().right ?? titleRect.right)
+    : els.specialWeatherOpen.getBoundingClientRect().left;
+  const availableWidth = Math.floor(Math.max(110, rightEdge - titleRect.left - 8));
+
+  els.topSummary.style.maxWidth = `${availableWidth}px`;
+  els.topSummary.style.fontSize = `${WEATHER_TITLE_MAX_FONT_SIZE}px`;
+
+  for (
+    let size = WEATHER_TITLE_MAX_FONT_SIZE;
+    size > WEATHER_TITLE_MIN_FONT_SIZE && els.topSummary.scrollWidth > els.topSummary.clientWidth;
+    size -= 1
+  ) {
+    els.topSummary.style.fontSize = `${size - 1}px`;
+  }
+}
+
+function renderTyphoonMap(warnings: WeatherWarning[]): void {
+  const typhoonWarning = getSignalWarnings(warnings).find((warning) => warning.type === "typhoon");
+  els.typhoonMap.hidden = !typhoonWarning;
+  if (!typhoonWarning) {
+    els.typhoonMap.textContent = "";
+    return;
+  }
+
+  const fallback = localText({
+    tc: "熱帶氣旋",
+    sc: "热带气旋",
+    en: "Tropical Cyclone"
+  });
+  const suffix = localText({
+    tc: "路徑圖",
+    sc: "路径图",
+    en: "Track"
+  });
+  els.typhoonMap.textContent = `${typhoonWarning.name || fallback} ${suffix}`;
 }
 
 async function loadImagery(): Promise<void> {
   const currentType = toImageryType(els.imageryOpen.dataset.imagery);
-  const [radarUrl, lightningUrl] = await Promise.all([
-    getLatestRadarImage().catch(() => ""),
-    getLatestLightningImage().catch(() => "")
+  const [radarRanges, lightningRanges] = await Promise.all([
+    getRadarRanges().catch(() => []),
+    getLightningRanges().catch(() => [])
   ]);
 
-  IMAGERY.radar.imageUrl = radarUrl || IMAGERY.radar.fallbackUrl;
-  IMAGERY.lightning.imageUrl = lightningUrl || IMAGERY.lightning.fallbackUrl;
+  IMAGERY.radar.ranges = radarRanges;
+  IMAGERY.radar.selectedRangeId = IMAGERY.radar.selectedRangeId ?? "range2";
+  if (!selectedImageryRange("radar"))
+    IMAGERY.radar.selectedRangeId = radarRanges[0]?.id ?? "range2";
+  const radarUrls = currentImageryUrls("radar");
+  IMAGERY.radar.selectedIndex = Math.max(0, radarUrls.length - 1);
+  IMAGERY.radar.imageUrl = radarUrls.at(-1) || IMAGERY.radar.fallbackUrl;
+
+  IMAGERY.lightning.ranges = lightningRanges;
+  IMAGERY.lightning.selectedRangeId = IMAGERY.lightning.selectedRangeId ?? "range2";
+  if (!selectedImageryRange("lightning")) {
+    IMAGERY.lightning.selectedRangeId = lightningRanges[0]?.id ?? "range2";
+  }
+  const lightningUrls = currentImageryUrls("lightning");
+  IMAGERY.lightning.selectedIndex = Math.max(0, lightningUrls.length - 1);
+  IMAGERY.lightning.imageUrl = lightningUrls.at(-1) || IMAGERY.lightning.fallbackUrl;
+
   selectImagery(currentType);
 }
 
@@ -267,79 +554,248 @@ function selectImagery(type: ImageryType = "radar"): void {
   });
 
   els.imageryOpen.dataset.imagery = type;
-  els.imageryTitle.textContent = item.title;
+  const canCropMap = usesSnapshotControls(type) && Boolean(currentImageryUrls(type).length);
+  els.imageryImage.classList.toggle("imagery-image-crop-map", canCropMap);
+  els.imageryImage.classList.toggle("imagery-image-lightning", type === "lightning" && canCropMap);
+  const title = imageryTitle(type);
+  els.imageryTitle.textContent = title;
   els.imageryTime.textContent = imageTime(item.imageUrl) || "";
   els.imageryFallback.hidden = true;
   els.imageryImage.hidden = false;
   els.imageryImage.src = item.imageUrl || item.fallbackUrl;
-  els.imageryImage.alt = item.title;
+  els.imageryImage.alt = title;
+  renderImageryStepper(type);
+  renderRadarRanges(type);
 }
 
-async function getLatestRadarImage(): Promise<string> {
+function toggleImageryExpanded(): void {
+  els.imageryCard.classList.toggle("is-expanded");
+}
+
+function collapseImageryExpanded(): void {
+  els.imageryCard.classList.remove("is-expanded");
+}
+
+function renderRadarRanges(type: ImageryType): void {
+  els.radarRanges.replaceChildren();
+  const ranges = IMAGERY[type].ranges ?? [];
+  els.radarRanges.style.setProperty("--range-count", String(Math.max(1, ranges.length)));
+  els.radarRanges.hidden = !usesSnapshotControls(type) || !ranges.length;
+  if (!usesSnapshotControls(type)) return;
+
+  for (const range of ranges) {
+    const button = document.createElement("button");
+    button.className = "radar-range";
+    button.type = "button";
+    button.textContent = range.label;
+    button.title = range.label.replace("km", copy().radarRangeSuffix);
+    button.setAttribute("aria-selected", String(range.id === IMAGERY[type].selectedRangeId));
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectImageryRange(type, range.id);
+    });
+    els.radarRanges.append(button);
+  }
+}
+
+function selectImageryRange(type: ImageryType, id: RadarRangeId): void {
+  IMAGERY[type].selectedRangeId = id;
+  const urls = currentImageryUrls(type);
+  IMAGERY[type].selectedIndex = Math.max(0, urls.length - 1);
+  IMAGERY[type].imageUrl = urls.at(-1) || IMAGERY[type].fallbackUrl;
+  selectImagery(type);
+}
+
+function selectImagerySnapshot(type: ImageryType, index: number): void {
+  const urls = currentImageryUrls(type);
+  const url = urls[index];
+  if (!url) return;
+  IMAGERY[type].selectedIndex = index;
+  IMAGERY[type].imageUrl = url;
+  selectImagery(type);
+}
+
+function stepImagerySnapshot(direction: -1 | 1): void {
+  const type = toImageryType(els.imageryOpen.dataset.imagery);
+  const snapshots = latestImagerySnapshotUrls(type);
+  if (!snapshots.length) return;
+
+  const selectedIndex = IMAGERY[type].selectedIndex ?? snapshots.at(-1)?.originalIndex ?? 0;
+  const currentDisplayIndex = Math.max(
+    0,
+    snapshots.findIndex((item) => item.originalIndex === selectedIndex)
+  );
+  const nextDisplayIndex = currentDisplayIndex + direction;
+  const next = snapshots[nextDisplayIndex];
+  if (!next) return;
+
+  selectImagerySnapshot(type, next.originalIndex);
+}
+
+function renderImageryStepper(type: ImageryType): void {
+  const snapshots = latestImagerySnapshotUrls(type);
+  const selectedIndex = IMAGERY[type].selectedIndex ?? snapshots.at(-1)?.originalIndex ?? 0;
+  const currentDisplayIndex = snapshots.findIndex((item) => item.originalIndex === selectedIndex);
+  const safeDisplayIndex = currentDisplayIndex >= 0 ? currentDisplayIndex : snapshots.length - 1;
+  const hasSnapshots = usesSnapshotControls(type) && snapshots.length > 0;
+
+  els.imageryPrev.hidden = !hasSnapshots;
+  els.imageryNext.hidden = !hasSnapshots;
+  els.imageryPosition.hidden = !hasSnapshots;
+  els.imageryPosition.textContent = hasSnapshots
+    ? `${safeDisplayIndex + 1} / ${snapshots.length}`
+    : "-- / --";
+  els.imageryPrev.disabled = !hasSnapshots || safeDisplayIndex <= 0;
+  els.imageryNext.disabled = !hasSnapshots || safeDisplayIndex >= snapshots.length - 1;
+  els.imageryPrev.title = copy().snapshotPrevious;
+  els.imageryNext.title = copy().snapshotNext;
+  els.imageryPrev.setAttribute("aria-label", copy().snapshotPrevious);
+  els.imageryNext.setAttribute("aria-label", copy().snapshotNext);
+}
+
+function selectedImageryRange(type: ImageryType): ImageryRangeImages | undefined {
+  return (IMAGERY[type].ranges ?? []).find((range) => range.id === IMAGERY[type].selectedRangeId);
+}
+
+function currentImageryUrls(type: ImageryType): string[] {
+  return selectedImageryRange(type)?.urls ?? [];
+}
+
+function latestImagerySnapshotUrls(
+  type: ImageryType
+): Array<{ originalIndex: number; url: string }> {
+  return currentImageryUrls(type)
+    .map((url, originalIndex) => ({ originalIndex, url }))
+    .slice(-5);
+}
+
+function usesSnapshotControls(type: ImageryType): boolean {
+  return type === "radar" || type === "lightning";
+}
+
+async function getRadarRanges(): Promise<ImageryRangeImages[]> {
+  const ranges = await getImageryUrlsWithCache("radar", getRadarRangePaths);
+  const rangeEntries = ranges.filter(isCachedRadarRangePath);
+  if (!rangeEntries.length && ranges.length) {
+    return parseRadarRangePaths(await getRadarRangePaths());
+  }
+
+  return parseRadarRangePaths(rangeEntries);
+}
+
+function parseRadarRangePaths(ranges: string[]): ImageryRangeImages[] {
+  const grouped = new Map<RadarRangeId, string[]>();
+  for (const entry of ranges) {
+    const [id, path] = entry.split("|");
+    if (!isRadarRangeId(id) || !path) continue;
+    grouped.set(id, [...(grouped.get(id) ?? []), `${HKO_ROOT}/wxinfo/radars/${path}`]);
+  }
+
+  return VISIBLE_RADAR_RANGE_IDS.map((id) => ({
+    id,
+    label: RADAR_RANGE_LABELS[id],
+    urls: grouped.get(id) ?? []
+  })).filter((range) => range.urls.length);
+}
+
+function isCachedRadarRangePath(value: string): boolean {
+  const [id, path] = value.split("|");
+  return isRadarRangeId(id) && Boolean(path);
+}
+
+async function getRadarRangePaths(): Promise<string[]> {
   const response = await fetch(`${RADAR_LIST_URL}?${Date.now()}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Unable to load radar image list.");
   const data: unknown = await response.json();
-  const entries = radarListEntries(data);
-  const latest = extractLastImagePath(entries);
-  return latest ? `${HKO_ROOT}/wxinfo/radars/${latest}` : "";
+  return radarRangeEntries(data).flatMap(({ id, entries }) =>
+    extractImagePaths(entries).map((path) => `${id}|${path}`)
+  );
 }
 
-async function getLatestLightningImage(): Promise<string> {
+async function getLightningRanges(): Promise<ImageryRangeImages[]> {
+  const ranges = await getImageryUrlsWithCache("lightning", getLightningRangePaths);
+  const rangeEntries = ranges.filter(isCachedRadarRangePath);
+  if (!rangeEntries.length && ranges.length) {
+    return parseLightningRangePaths(await getLightningRangePaths());
+  }
+
+  return parseLightningRangePaths(rangeEntries);
+}
+
+function parseLightningRangePaths(ranges: string[]): ImageryRangeImages[] {
+  const grouped = new Map<RadarRangeId, string[]>();
+  for (const entry of ranges) {
+    const [id, filename] = entry.split("|");
+    if (!isRadarRangeId(id) || !filename) continue;
+    grouped.set(id, [...(grouped.get(id) ?? []), `${LIGHTNING_IMAGE_ROOT}/${filename}`]);
+  }
+
+  return VISIBLE_RADAR_RANGE_IDS.map((id) => ({
+    id,
+    label: RADAR_RANGE_LABELS[id],
+    urls: grouped.get(id) ?? []
+  })).filter((range) => range.urls.length);
+}
+
+async function getLightningRangePaths(): Promise<string[]> {
   const response = await fetch(`${LIGHTNING_SCRIPT_URL}?${Date.now()}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Unable to load lightning image list.");
   const script = await response.text();
-  const matches = [...script.matchAll(/cgPngArray64\[\d+\]="([^"]+)"/g)];
-  const latest = matches.at(-1)?.[1] || "";
-  return latest ? `${LIGHTNING_IMAGE_ROOT}/${latest}` : "";
+  return [
+    ...extractLightningArrayPaths(script, "cgPngArray", "range0"),
+    ...extractLightningArrayPaths(script, "cgPngArray64", "range2")
+  ];
 }
 
-function extractLastImagePath(entries: unknown[]): string {
-  const paths = entries.map((entry) => String(entry).match(/"([^"]+)"/)?.[1]).filter(Boolean);
-  return paths.at(-1) || "";
+function extractLightningArrayPaths(
+  script: string,
+  arrayName: string,
+  rangeId: RadarRangeId
+): string[] {
+  const escapedArrayName = arrayName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matches = [...script.matchAll(new RegExp(`${escapedArrayName}\\[\\d+\\]="([^"]+)"`, "g"))];
+  return matches
+    .map((match) => `${rangeId}|${match[1] ?? ""}`)
+    .filter((entry) => !entry.endsWith("|"));
+}
+
+function extractImagePaths(entries: unknown[]): string[] {
+  return entries
+    .map((entry) => String(entry).match(/"([^"]+)"/)?.[1])
+    .filter((path): path is string => Boolean(path));
+}
+
+function radarRangeEntries(value: unknown): Array<{ entries: unknown[]; id: RadarRangeId }> {
+  if (!value || typeof value !== "object") return [];
+  const radar = "radar" in value ? value.radar : undefined;
+  if (!radar || typeof radar !== "object") return [];
+  const radarRecord = radar as Record<string, unknown>;
+
+  return VISIBLE_RADAR_RANGE_IDS.map((id) => {
+    const range = radarRecord[id];
+    const image = range && typeof range === "object" && "image" in range ? range.image : undefined;
+    return {
+      id,
+      entries: Array.isArray(image) ? image : []
+    };
+  });
 }
 
 function signalTypeClass(warning: WeatherWarning): WarningSignalClass {
-  const value = `${warning.code} ${warning.badge} ${warning.name}`.toUpperCase();
-  if (
-    value.includes("TC") ||
-    value.includes("T1") ||
-    value.includes("T3") ||
-    value.includes("T8") ||
-    value.includes("T9") ||
-    value.includes("T10")
-  ) {
-    return "typhoon";
-  }
-  if (value.includes("WTS") || value.includes("雷")) return "thunderstorm";
-  if (value.includes("WRAINB") || value.includes("黑")) return "rain-black";
-  if (value.includes("WRAINR") || value.includes("紅")) return "rain-red";
-  if (value.includes("WRAINA") || value.includes("黃")) return "rain-amber";
-  if (value.includes("HOT") || value.includes("熱")) return "heat";
-  if (value.includes("COLD") || value.includes("冷")) return "cold";
-  return "other";
+  return warning.type;
 }
 
 function warningSignalHtml(warning: WeatherWarning, type: WarningSignalClass): string {
-  if (type === "typhoon") {
-    return `<span class="typhoon-stem"></span><strong>${escapeHtml(formatWarningBadge(warning.badge))}</strong>`;
-  }
-
-  if (type === "thunderstorm") {
-    return `<span class="lightning-mark">⚡</span><span class="signal-text">雷暴<small>Thunderstorm</small></span>`;
-  }
-
-  if (type.startsWith("rain-")) {
-    const text = type === "rain-black" ? "黑雨" : type === "rain-red" ? "紅雨" : "黃雨";
-    return `<span class="rain-block">${escapeHtml(text)}</span>`;
-  }
-
-  return `<span class="rain-block">${escapeHtml(warning.badge || warning.name)}</span>`;
+  const iconUrl = hkoWarningIconUrl(warning);
+  if (!iconUrl)
+    return `<span class="warning-signal-fallback">${escapeHtml(warning.badge || warning.name)}</span>`;
+  return `<img class="warning-signal-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(warning.name || type)}" />`;
 }
 
 function renderForecast(forecast: ForecastDay[]): void {
   els.forecastList.replaceChildren();
   if (!forecast.length) {
-    els.forecastList.append(empty("No forecast data available."));
+    els.forecastList.append(empty(copy().forecastEmpty));
     return;
   }
 
@@ -353,12 +809,12 @@ function renderForecast(forecast: ForecastDay[]): void {
 
     const icon = document.createElement("img");
     icon.className = "legacy-forecast-icon";
-    icon.alt = weatherCaption(item.icon) || item.text || "";
+    icon.alt = weatherCaption(item.icon, activeLanguage()) || item.text || "";
     setWeatherIcon(icon, item.icon, icon.alt);
 
     const temp = document.createElement("div");
     temp.className = "legacy-forecast-temp";
-    temp.textContent = `${formatNumber(item.minTemp)}-${formatNumber(item.maxTemp)} 度`;
+    temp.textContent = `${formatNumber(item.minTemp)}-${formatNumber(item.maxTemp)} ${copy().temperatureUnit}`;
 
     row.append(date, icon, temp);
     els.forecastList.append(row);
@@ -369,7 +825,7 @@ function renderFatalError(error: unknown): void {
   els.loading.hidden = true;
   els.content.hidden = true;
   els.error.hidden = false;
-  els.error.textContent = `Unable to load weather data and no cache is available. ${errorMessage(error, "")}`;
+  els.error.textContent = `${copy().unableToLoad} ${errorMessage(error, "")}`;
 }
 
 function setUpdating(value: boolean): void {
@@ -379,6 +835,41 @@ function setUpdating(value: boolean): void {
 
 function openOptions(): void {
   void browserApi.runtime.openOptionsPage();
+}
+
+function applyLanguage(language: Language): void {
+  const localized = copy(language);
+  document.documentElement.lang =
+    language === "en" ? "en" : language === "sc" ? "zh-Hans" : "zh-Hant";
+  els.labelCurrentTemp.textContent = localized.currentTemp;
+  els.labelHumidity.textContent = localized.humidity;
+  els.labelUv.textContent = localized.uvIndex;
+  els.specialWeatherTitle.textContent = localized.specialWeather;
+  els.updating.textContent = localized.updating;
+  query<HTMLButtonElement>("#settings").title = localized.settings;
+  query<HTMLButtonElement>("#settings").setAttribute("aria-label", localized.settings);
+  els.imageryTabs.forEach((tab) => {
+    tab.textContent = imageryTitle(toImageryType(tab.dataset.imagery), language);
+  });
+}
+
+function activeLanguage(): Language {
+  return state.data?.language ?? state.settings?.language ?? "tc";
+}
+
+function copy(language: Language = activeLanguage()): (typeof COPY)[Language] {
+  return COPY[language] ?? COPY.tc;
+}
+
+function localText(
+  values: Record<Language, string>,
+  language: Language = activeLanguage()
+): string {
+  return values[language] ?? values.tc;
+}
+
+function imageryTitle(type: ImageryType, language: Language = activeLanguage()): string {
+  return IMAGERY_TITLES[language]?.[type] ?? IMAGERY_TITLES.tc[type];
 }
 
 function empty(message: string): HTMLElement {
@@ -405,7 +896,7 @@ function formatLegacyDate(value: string, weekday: string): string {
   const date = /^\d{8}$/.test(value || "")
     ? `${Number(value.slice(4, 6))}/${Number(value.slice(6, 8))}`
     : value || "--";
-  return `${date} ${weekdayShort(weekday)}`.trim();
+  return `${date} ${weekdayShort(weekday, activeLanguage())}`.trim();
 }
 
 function imageTime(value: string | undefined): string {
@@ -415,20 +906,22 @@ function imageTime(value: string | undefined): string {
   return `${Number(stamp.slice(8, 10))}:${stamp.slice(10, 12)}`;
 }
 
-function formatDateTime(value: string): string {
+function formatUpdateTime(value: string): string {
   if (!value) return "--";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString([], {
-    month: "2-digit",
-    day: "2-digit",
+  return date.toLocaleTimeString(dateLocale(activeLanguage()), {
     hour: "2-digit",
-    minute: "2-digit"
+    hour12: false,
+    minute: "2-digit",
+    timeZone: "Asia/Hong_Kong"
   });
 }
 
-function weekdayShort(value: string): string {
+function weekdayShort(value: string, language: Language): string {
   const weekday = String(value || "").trim();
+  if (language === "en") return weekday.slice(0, 3) || weekday;
+
   const english: Record<string, string> = {
     Sun: "日",
     Mon: "一",
@@ -476,15 +969,17 @@ function setWeatherIcon(img: HTMLImageElement, icon: number | string | null, alt
   img.src = url;
 }
 
-function weatherCaption(icon: number | string | null): string {
-  return WEATHER_CAPTIONS_TC[Number(icon)] || "";
+function dateLocale(language: Language): string {
+  if (language === "en") return "en-HK";
+  if (language === "sc") return "zh-Hans-HK";
+  return "zh-Hant-HK";
 }
 
-function formatWarningBadge(value: string): string {
-  const badge = String(value || "").trim();
-  const typhoonSignal = badge.match(/^T(\d+)$/i);
-  if (typhoonSignal) return `T ${typhoonSignal[1]}`;
-  return badge || "無";
+function weatherCaption(
+  icon: number | string | null,
+  language: Language = activeLanguage()
+): string {
+  return WEATHER_CAPTIONS[language]?.[Number(icon)] || "";
 }
 
 function toImageryType(value: string | undefined): ImageryType {
@@ -492,14 +987,8 @@ function toImageryType(value: string | undefined): ImageryType {
   return "radar";
 }
 
-function radarListEntries(value: unknown): unknown[] {
-  if (!value || typeof value !== "object") return [];
-  const radar = "radar" in value ? value.radar : undefined;
-  if (!radar || typeof radar !== "object") return [];
-  const range2 = "range2" in radar ? radar.range2 : undefined;
-  if (!range2 || typeof range2 !== "object") return [];
-  const image = "image" in range2 ? range2.image : undefined;
-  return Array.isArray(image) ? image : [];
+function isRadarRangeId(value: string | undefined): value is RadarRangeId {
+  return value === "range0" || value === "range1" || value === "range2";
 }
 
 function errorMessage(error: unknown, fallback: string): string {

@@ -54,6 +54,7 @@ export const WARNING_PRIORITY = [
 ] as const;
 
 const API_ROOT = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php";
+const HKO_ICON_BASE = "https://www.hko.gov.hk/images/wxicon";
 const STORAGE_KEYS = {
   settings: "settings",
   cache: "weatherCache"
@@ -103,7 +104,7 @@ export async function refreshWeather(settings: Settings | null = null): Promise<
     await reconcileWarningNotifications(previous, data, activeSettings);
     return data;
   } catch (error) {
-    return cacheRefreshError(previous, error);
+    return cacheRefreshError(previous, error, activeSettings.language);
   }
 }
 
@@ -112,7 +113,7 @@ export async function refreshCurrentWeather(settings: Settings | null = null): P
   const lang = toHkoLang(activeSettings.language);
   const previous = await getCachedWeather();
 
-  if (!previous) {
+  if (!previous || previous.language !== activeSettings.language) {
     return refreshWeather(activeSettings);
   }
 
@@ -131,7 +132,7 @@ export async function refreshCurrentWeather(settings: Settings | null = null): P
     await browserApi.storage.local.set({ [STORAGE_KEYS.cache]: data });
     return data;
   } catch (error) {
-    return cacheRefreshError(previous, error);
+    return cacheRefreshError(previous, error, activeSettings.language);
   }
 }
 
@@ -140,7 +141,7 @@ export async function refreshForecast(settings: Settings | null = null): Promise
   const lang = toHkoLang(activeSettings.language);
   const previous = await getCachedWeather();
 
-  if (!previous) {
+  if (!previous || previous.language !== activeSettings.language) {
     return refreshWeather(activeSettings);
   }
 
@@ -159,7 +160,7 @@ export async function refreshForecast(settings: Settings | null = null): Promise
     await browserApi.storage.local.set({ [STORAGE_KEYS.cache]: data });
     return data;
   } catch (error) {
-    return cacheRefreshError(previous, error);
+    return cacheRefreshError(previous, error, activeSettings.language);
   }
 }
 
@@ -168,7 +169,7 @@ export async function refreshWeatherWarnings(settings: Settings | null = null): 
   const lang = toHkoLang(activeSettings.language);
   const previous = await getCachedWeather();
 
-  if (!previous) {
+  if (!previous || previous.language !== activeSettings.language) {
     return refreshWeather(activeSettings);
   }
 
@@ -196,7 +197,7 @@ export async function refreshWeatherWarnings(settings: Settings | null = null): 
     await reconcileWarningNotifications(previous, data, activeSettings);
     return data;
   } catch (error) {
-    return cacheRefreshError(previous, error);
+    return cacheRefreshError(previous, error, activeSettings.language);
   }
 }
 
@@ -212,26 +213,96 @@ export async function updateBadge(
     return;
   }
 
-  const warningBadge = getHighestPriorityWarning(weather.warnings)?.badge ?? "";
-  const temperatureBadge =
-    weather.current.temperature != null ? `${Math.round(weather.current.temperature)}°` : "";
+  const highestWarning = getHighestPriorityWarning(getSignalWarnings(weather.warnings));
+  const warningBadge = highestWarning
+    ? formatWarningBadgeForLanguage(highestWarning, weather.language)
+    : "";
+  const warningColorBadge = highestWarning?.badge ?? "";
+  const temperatureBadge = formatTemperatureBadge(weather.current.temperature);
 
-  const text =
-    activeSettings.badgeMode === "warning"
-      ? warningBadge
-      : activeSettings.badgeMode === "temperature"
-        ? temperatureBadge
-        : warningBadge || temperatureBadge;
+  const text = formatActionBadgeText(activeSettings.badgeMode, warningBadge, temperatureBadge);
 
   await browserApi.action.setBadgeText({ text: text.slice(0, 4) });
   await browserApi.action.setBadgeBackgroundColor({
-    color: warningBadge ? "#b42318" : "#2f5f98"
+    color: badgeBackgroundColor(warningColorBadge)
   });
+  await browserApi.action.setBadgeTextColor({
+    color: badgeTextColor(warningColorBadge)
+  });
+  await browserApi.action.setTitle({
+    title: formatActionTitle(weather, warningBadge, temperatureBadge)
+  });
+  await updateActionIcon(weather.current.icon);
+}
+
+export async function sendTestNotification(language: Language): Promise<void> {
+  await createNotification(
+    text("Weather notification test", "天氣通知測試", language),
+    text(
+      "Notifications are working. Real alerts are only sent when warning status changes.",
+      "通知功能正常。真正提示只會在天氣警告狀態有變化時發出。",
+      language
+    )
+  );
 }
 
 export function getHighestPriorityWarning(warnings: WeatherWarning[] = []): WeatherWarning | null {
   if (!warnings.length) return null;
   return [...warnings].sort((a, b) => b.priority - a.priority)[0] ?? null;
+}
+
+export function getSignalWarnings(warnings: WeatherWarning[] = []): WeatherWarning[] {
+  return warnings.filter((warning) => warning.type !== "other");
+}
+
+export function formatActionBadgeText(
+  badgeMode: Settings["badgeMode"],
+  warningBadge: string,
+  temperatureBadge: string
+): string {
+  if (badgeMode === "warning") return warningBadge;
+  if (badgeMode === "temperature") return temperatureBadge;
+  return formatAutoBadgeText(warningBadge, temperatureBadge);
+}
+
+export function badgeBackgroundColor(warningBadge: string): string {
+  if (warningBadge === "黑") return "#111111";
+  if (warningBadge === "紅") return "#df1d1d";
+  if (warningBadge === "黃") return "#ffd200";
+  if (warningBadge) return "#b42318";
+  return "#2f5f98";
+}
+
+export function badgeTextColor(warningBadge: string): string {
+  if (warningBadge === "黃") return "#111111";
+  return "#ffffff";
+}
+
+export function formatWarningBadgeForLanguage(
+  warning: Pick<WeatherWarning, "badge" | "code" | "type">,
+  language: Language
+): string {
+  if (language !== "en") {
+    if (language === "sc" && warning.badge === "熱") return "热";
+    if (language === "sc" && warning.badge === "海嘯") return "海啸";
+    return warning.badge;
+  }
+
+  if (warning.type === "rain-black") return "Blk";
+  if (warning.type === "rain-red") return "Red";
+  if (warning.type === "rain-amber") return "Amb";
+  if (warning.type === "thunderstorm") return "TS";
+  if (warning.type === "landslip") return "LS";
+  if (warning.type === "flooding") return "Fld";
+  if (warning.type === "monsoon") return "Mon";
+  if (warning.type === "frost") return "Frst";
+  if (warning.type === "fire-yellow" || warning.type === "fire-red") return "Fire";
+  if (warning.type === "heat") return "Hot";
+  if (warning.type === "cold") return "Cold";
+  if (warning.type === "tsunami") return "Tsu";
+  if (warning.type === "typhoon" && warning.badge) return warning.badge;
+
+  return warning.code.replace(/^W/, "").slice(0, 4);
 }
 
 interface NormalizeWeatherInput {
@@ -284,6 +355,7 @@ function normalizeCurrentWeather(
       ? text("Weather data updated", "天氣資料已更新", settings.language)
       : "",
     tips: asStringArray(current.specialWxTips),
+    warningMessages: asStringArray(current.warningMessage),
     forecast: current.forecastDesc || current.generalSituation || "",
     warningSummary: warnings.map((warning) => warning.name).join(", ")
   };
@@ -306,13 +378,13 @@ function normalizeForecast(forecast: HkoForecast): ForecastDay[] {
 
 function normalizeWarningInfo(warningInfo: HkoWarningInfo): WarningInfo[] {
   return asArray(warningInfo.details).map<WarningInfo>((item) => ({
-      code: item.warningStatementCode || "",
-      name: item.subtype || item.warningStatementCode || "",
-      contents: asStringArray(item.contents).join("\n"),
-      issueTime: item.issueTime || "",
-      updateTime: item.updateTime || "",
-      expireTime: item.expireTime || ""
-    }));
+    code: item.warningStatementCode || "",
+    name: item.subtype || item.warningStatementCode || "",
+    contents: asStringArray(item.contents).join("\n"),
+    issueTime: item.issueTime || "",
+    updateTime: item.updateTime || "",
+    expireTime: item.expireTime || ""
+  }));
 }
 
 function normalizeWarnings(
@@ -346,9 +418,10 @@ function normalizeWarnings(
 
 async function cacheRefreshError(
   previous: WeatherData | null,
-  error: unknown
+  error: unknown,
+  language?: Language
 ): Promise<WeatherData> {
-  if (!previous) {
+  if (!previous || (language && previous.language !== language)) {
     throw error;
   }
 
@@ -414,15 +487,19 @@ async function reconcileWarningNotifications(
 
 async function notify(title: string, message: string): Promise<void> {
   try {
-    await browserApi.notifications.create({
-      type: "basic",
-      title,
-      message,
-      iconUrl: browserApi.runtime.getUrl("assets/generated/weather-mark-128.png")
-    });
+    await createNotification(title, message);
   } catch {
     // Notifications may be unavailable in some extension contexts.
   }
+}
+
+async function createNotification(title: string, message: string): Promise<void> {
+  await browserApi.notifications.create({
+    type: "basic",
+    title,
+    message,
+    iconUrl: browserApi.runtime.getUrl("assets/generated/weather-mark-128.png")
+  });
 }
 
 async function fetchHkoJson<T>(url: string, schema: { parse: (value: unknown) => T }): Promise<T> {
@@ -446,10 +523,16 @@ function warningPriority(code: string): number {
   if (normalized.includes("8")) return 90;
   if (normalized.includes("RAIN") && normalized.includes("B")) return 86;
   if (normalized.includes("RAIN") && normalized.includes("R")) return 82;
+  if (normalized === "WL") return 78;
+  if (normalized.includes("MSGNL")) return 74;
   if (normalized.includes("TC")) return 70;
+  if (normalized.includes("FNTSA") || normalized.includes("FLOOD")) return 58;
   if (normalized.includes("TS")) return 60;
+  if (normalized.includes("FROST")) return 55;
+  if (normalized.includes("FIRE")) return 53;
   if (normalized.includes("HOT")) return 50;
   if (normalized.includes("COLD")) return 45;
+  if (normalized.includes("TMW")) return 88;
   return 20;
 }
 
@@ -463,10 +546,16 @@ function warningBadge(code: string, name: string): string {
   if (value.includes("8")) return "T8";
   if (value.includes("3")) return "T3";
   if (value.includes("1")) return "T1";
+  if (isLandslipWarning(code, name)) return "山";
+  if (isFloodingWarning(code, name)) return "水";
+  if (isMonsoonWarning(code, name)) return "季";
+  if (isFrostWarning(code, name)) return "霜";
+  if (isFireDangerWarning(code, name)) return "火";
+  if (isTsunamiWarning(code, name)) return "海嘯";
   if (value.includes("BLACK") || value.includes("黑")) return "黑";
   if (value.includes("RED") || value.includes("紅")) return "紅";
   if (value.includes("AMBER") || value.includes("黃")) return "黃";
-  if (value.includes("TS") || value.includes("雷")) return "雷";
+  if (isThunderstormWarning(code, name)) return "雷";
   if (value.includes("HOT") || value.includes("熱")) return "熱";
   if (value.includes("COLD") || value.includes("冷")) return "冷";
   return code.replace(/^W/, "").slice(0, 3);
@@ -477,6 +566,13 @@ function warningType(code: string, name: string): WarningType {
   if (value.includes("WRAINB")) return "rain-black";
   if (value.includes("WRAINR")) return "rain-red";
   if (value.includes("WRAINA")) return "rain-amber";
+  if (isLandslipWarning(code, name)) return "landslip";
+  if (isFloodingWarning(code, name)) return "flooding";
+  if (isMonsoonWarning(code, name)) return "monsoon";
+  if (isFrostWarning(code, name)) return "frost";
+  if (isYellowFireDangerWarning(code, name)) return "fire-yellow";
+  if (isRedFireDangerWarning(code, name)) return "fire-red";
+  if (isTsunamiWarning(code, name)) return "tsunami";
   if (
     value.includes("TC") ||
     value.includes("TROPICAL") ||
@@ -488,12 +584,106 @@ function warningType(code: string, name: string): WarningType {
   if (value.includes("BLACK") || value.includes("黑")) return "rain-black";
   if (value.includes("RED") || value.includes("紅")) return "rain-red";
   if (value.includes("AMBER") || value.includes("黃")) return "rain-amber";
-  if (value.includes("TS") || value.includes("THUNDER") || value.includes("雷")) {
+  if (isThunderstormWarning(code, name)) {
     return "thunderstorm";
   }
   if (value.includes("HOT") || value.includes("熱")) return "heat";
   if (value.includes("COLD") || value.includes("冷")) return "cold";
   return "other";
+}
+
+function isThunderstormWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode === "WTS" ||
+    normalizedCode.startsWith("WTS_") ||
+    normalizedName.includes("THUNDER") ||
+    normalizedName.includes("雷暴")
+  );
+}
+
+function isLandslipWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return normalizedCode === "WL" || normalizedName.includes("LANDSLIP") || name.includes("山泥");
+}
+
+function isFloodingWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode === "WFNTSA" ||
+    normalizedCode.includes("FLOOD") ||
+    normalizedName.includes("FLOOD") ||
+    name.includes("水浸")
+  );
+}
+
+function isMonsoonWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode.includes("MSGNL") ||
+    normalizedName.includes("MONSOON") ||
+    name.includes("季候風") ||
+    name.includes("季候风")
+  );
+}
+
+function isFrostWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode === "WFROST" ||
+    normalizedName.includes("FROST") ||
+    name.includes("霜凍") ||
+    name.includes("霜冻")
+  );
+}
+
+function isFireDangerWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode.includes("WFIRE") ||
+    normalizedName.includes("FIRE") ||
+    name.includes("火災") ||
+    name.includes("火灾")
+  );
+}
+
+function isYellowFireDangerWarning(code: string, name: string): boolean {
+  const value = `${code} ${name}`.toUpperCase();
+  return (
+    isFireDangerWarning(code, name) &&
+    (value.includes("YELLOW") ||
+      value.includes("WFIREY") ||
+      name.includes("黃") ||
+      name.includes("黄"))
+  );
+}
+
+function isRedFireDangerWarning(code: string, name: string): boolean {
+  const value = `${code} ${name}`.toUpperCase();
+  return (
+    isFireDangerWarning(code, name) &&
+    (value.includes("RED") ||
+      value.includes("WFIRER") ||
+      name.includes("紅") ||
+      name.includes("红"))
+  );
+}
+
+function isTsunamiWarning(code: string, name: string): boolean {
+  const normalizedCode = code.toUpperCase();
+  const normalizedName = name.toUpperCase();
+  return (
+    normalizedCode === "WTMW" ||
+    normalizedName.includes("TSUNAMI") ||
+    name.includes("海嘯") ||
+    name.includes("海啸")
+  );
 }
 
 function formatHumidityRange(item: NonNullable<HkoForecast["weatherForecast"]>[number]): string {
@@ -530,4 +720,63 @@ function text(en: string, tc: string, language: Language): string {
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
+}
+
+function formatAutoBadgeText(warningBadge: string, temperatureBadge: string): string {
+  return warningBadge || temperatureBadge;
+}
+
+function formatTemperatureBadge(value: number | null): string {
+  return value != null ? `${Math.round(value)}°` : "";
+}
+
+async function updateActionIcon(icon: number | string | null): Promise<void> {
+  if (!icon) return;
+
+  try {
+    await browserApi.action.setIcon({
+      imageData: await buildActionIconImageData(hkoIconUrl(icon))
+    });
+  } catch {
+    // Keep the previous extension icon if the HKO icon cannot be loaded in this context.
+  }
+}
+
+async function buildActionIconImageData(url: string): Promise<Record<number, ImageData>> {
+  const response = await fetch(url, { cache: "force-cache" });
+  if (!response.ok) throw new Error(`Weather icon request failed: ${response.status}`);
+
+  const bitmap = await createImageBitmap(await response.blob());
+  return Object.fromEntries([16, 32, 48, 128].map((size) => [size, renderIconSize(bitmap, size)]));
+}
+
+function renderIconSize(bitmap: ImageBitmap, size: number): ImageData {
+  const canvas = new OffscreenCanvas(size, size);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Unable to render weather icon.");
+
+  context.clearRect(0, 0, size, size);
+  context.drawImage(bitmap, 0, 0, size, size);
+  return context.getImageData(0, 0, size, size);
+}
+
+function hkoIconUrl(icon: number | string): string {
+  return `${HKO_ICON_BASE}/pic${encodeURIComponent(String(icon))}.png`;
+}
+
+function formatActionTitle(
+  weather: WeatherData,
+  warningBadge: string,
+  temperatureBadge: string
+): string {
+  const warning = getHighestPriorityWarning(getSignalWarnings(weather.warnings))?.name ?? "";
+  const temperatureLabel = text("Temperature", "現時氣溫", weather.language);
+  const warningLabel = text("Warning", "警告", weather.language);
+  const parts = [
+    "HK Weather Alerts",
+    weather.current.temperature != null ? `${temperatureLabel} ${temperatureBadge}` : "",
+    warningBadge && warning ? `${warningLabel} ${warning}` : ""
+  ].filter(Boolean);
+
+  return parts.join(" · ");
 }
