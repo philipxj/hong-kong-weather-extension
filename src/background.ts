@@ -1,4 +1,5 @@
 import { browserApi } from "./shared/browser-api";
+import { createInFlightTaskRunner } from "./shared/in-flight-task";
 import {
   getSettings,
   type NotificationTestResult,
@@ -12,6 +13,7 @@ import {
 import type { Language, WeatherData } from "./shared/types";
 
 const FORECAST_REFRESH_MINUTES = 120;
+const runRefreshTask = createInFlightTaskRunner<WeatherData>();
 
 browserApi.runtime.onInstalled(async () => {
   await scheduleRefreshes();
@@ -96,29 +98,37 @@ async function scheduleRefreshes(): Promise<void> {
 }
 
 async function refreshAndBadge(): Promise<WeatherData> {
-  const settings = await getSettings();
-  const data = await refreshWeather(settings);
-  await updateBadge(data, settings);
-  return data;
+  return runRefreshTask("full", async () => {
+    const settings = await getSettings();
+    const data = await refreshWeather(settings);
+    await updateBadge(data, settings);
+    return data;
+  });
 }
 
 async function refreshCurrentAndBadge(): Promise<WeatherData> {
-  const settings = await getSettings();
-  const data = await refreshCurrentWeather(settings);
-  await updateBadge(data, settings);
-  return data;
+  return runRefreshTask("current", async () => {
+    const settings = await getSettings();
+    const data = await refreshCurrentWeather(settings);
+    await updateBadge(data, settings);
+    return data;
+  });
 }
 
 async function refreshForecastAndBadge(): Promise<WeatherData> {
-  const settings = await getSettings();
-  const data = await refreshForecast(settings);
-  await updateBadge(data, settings);
-  return data;
+  return runRefreshTask("forecast", async () => {
+    const settings = await getSettings();
+    const data = await refreshForecast(settings);
+    await updateBadge(data, settings);
+    return data;
+  });
 }
 
 async function refreshWarningsAndBadge(): Promise<WeatherData> {
-  const settings = await getSettings();
-  const data = await refreshWeatherWarnings(settings);
-  await updateBadge(data, settings);
-  return data;
+  return runRefreshTask("warnings", async () => {
+    const settings = await getSettings();
+    const data = await refreshWeatherWarnings(settings);
+    await updateBadge(data, settings);
+    return data;
+  });
 }

@@ -27,6 +27,8 @@ Do not bundle the Hong Kong Observatory logo, government logos, or other protect
 
 ## Development
 
+Use Node.js 20.19.0 or newer. The current Vite and Vitest toolchain requires Node 20+.
+
 Install dependencies:
 
 ```bash

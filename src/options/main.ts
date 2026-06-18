@@ -1,5 +1,12 @@
 import { optionsCopy } from "./options-copy";
-import { getSettings, refreshWeather, saveSettings, updateBadge } from "../shared/weather-service";
+import {
+  getCachedWeather,
+  getSettings,
+  refreshWeather,
+  saveSettings,
+  updateBadge
+} from "../shared/weather-service";
+import { optionsSaveAction } from "./save-action";
 import { browserApi } from "../shared/browser-api";
 import type { Language, Settings } from "../shared/types";
 
@@ -72,9 +79,17 @@ function readForm(): Settings {
 
 async function save(): Promise<void> {
   const next = readForm();
+  const action = optionsSaveAction(settings, next);
   await saveSettings(next);
-  const weather = await refreshWeather(next);
-  await updateBadge(weather, next);
+
+  if (action === "refresh-weather") {
+    const weather = await refreshWeather(next);
+    await updateBadge(weather, next);
+  } else if (action === "update-badge") {
+    await updateBadge(await getCachedWeather(), next);
+  }
+
+  Object.assign(settings, next);
   status.textContent = optionsCopy(next.language).saved;
   setTimeout(() => {
     status.textContent = "";
