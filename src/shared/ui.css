@@ -758,16 +758,17 @@ body.popup-page {
   background: var(--accent-soft);
 }
 
-.hko-page-button {
+.observatory-page-button {
   display: grid;
   place-items: center;
 }
 
-.hko-logo-icon {
+.app-mark-icon {
   display: block;
   width: 25px;
   height: 25px;
   object-fit: contain;
+  border-radius: 6px;
 }
 
 .legacy-current {

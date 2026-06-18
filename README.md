@@ -1,6 +1,24 @@
 # HK Weather Alerts Extension
 
-Browser extension for compact Hong Kong weather alerts.
+Unofficial browser extension for compact Hong Kong weather alerts.
+
+The extension uses Hong Kong Observatory Open Data and keeps a compact popup layout inspired by public weather-warning dashboards. It is not an official Hong Kong Observatory product and is not affiliated with or endorsed by the Hong Kong Observatory.
+
+## Data Source
+
+Weather observations, forecasts, warnings, and related imagery are fetched from:
+
+- Hong Kong Observatory Open Data: https://data.weather.gov.hk/
+- Hong Kong Observatory website assets and links: https://www.hko.gov.hk/
+- DATA.GOV.HK open data portal terms: https://data.gov.hk/en/terms-and-conditions
+
+Use of the data is subject to the source terms. The extension should always identify the Hong Kong Observatory, the Government of the Hong Kong Special Administrative Region, and DATA.GOV.HK as the relevant data source where attribution is shown.
+
+## Branding
+
+This project uses its own extension icon in `assets/weather-mark.png` and `assets/generated/`.
+
+Do not bundle the Hong Kong Observatory logo, government logos, or other protected marks in this repository unless you have explicit permission and have documented that permission. HKO warning, weather, radar, satellite, and lightning images are loaded from the official source URLs at runtime where needed.
 
 ## Documentation
 
@@ -38,3 +56,11 @@ npm test
 ```
 
 This runs TypeScript checking, linting, unit tests, popup layout tests, and a production build.
+
+## Contributing
+
+See `CONTRIBUTING.md` for development, testing, browser compatibility, and attribution expectations.
+
+## License
+
+MIT. See `LICENSE`.
