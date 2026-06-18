@@ -182,6 +182,7 @@ test.describe("popup layout", () => {
         node.textContent = "閃電位置";
       });
     await page.locator(".radar-ranges").evaluate((node) => {
+      node.style.setProperty("--range-count", "2");
       node.innerHTML =
         '<button class="radar-range">256km</button><button class="radar-range" aria-selected="true">64km</button>';
     });
@@ -189,6 +190,11 @@ test.describe("popup layout", () => {
     await expect(page.locator(".imagery-snapshot")).toHaveCount(5);
     await expect(page.locator(".radar-range")).toHaveText(["256km", "64km"]);
     await expect(page.locator(".radar-range", { hasText: "128km" })).toHaveCount(0);
+
+    const gridColumnCount = await page.locator(".radar-ranges").evaluate((node) => {
+      return getComputedStyle(node).gridTemplateColumns.split(" ").length;
+    });
+    expect(gridColumnCount).toBe(2);
   });
 });
 

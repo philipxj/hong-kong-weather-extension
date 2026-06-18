@@ -897,7 +897,7 @@ body.popup-page {
 
 .radar-ranges {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(var(--range-count, 3), 1fr);
   height: 22px;
   border-top: 1px solid #c8c8c8;
 }

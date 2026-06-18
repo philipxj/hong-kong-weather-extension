@@ -542,10 +542,12 @@ function renderImagerySnapshots(type: ImageryType): void {
 
 function renderRadarRanges(type: ImageryType): void {
   els.radarRanges.replaceChildren();
-  els.radarRanges.hidden = !usesSnapshotControls(type) || !(IMAGERY[type].ranges ?? []).length;
+  const ranges = IMAGERY[type].ranges ?? [];
+  els.radarRanges.style.setProperty("--range-count", String(Math.max(1, ranges.length)));
+  els.radarRanges.hidden = !usesSnapshotControls(type) || !ranges.length;
   if (!usesSnapshotControls(type)) return;
 
-  for (const range of IMAGERY[type].ranges ?? []) {
+  for (const range of ranges) {
     const button = document.createElement("button");
     button.className = "radar-range";
     button.type = "button";
