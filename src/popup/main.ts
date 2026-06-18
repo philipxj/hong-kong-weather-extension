@@ -314,6 +314,15 @@ els.imageryOpen.addEventListener("keydown", (event) => {
   event.preventDefault();
   toggleImageryExpanded();
 });
+document.addEventListener(
+  "click",
+  (event) => {
+    if (!els.imageryCard.classList.contains("is-expanded")) return;
+    if (event.target instanceof Node && els.imageryCard.contains(event.target)) return;
+    collapseImageryExpanded();
+  },
+  { capture: true }
+);
 els.imageryImage.addEventListener("error", () => {
   const type = toImageryType(els.imageryOpen.dataset.imagery);
   const fallbackUrl = IMAGERY[type].fallbackUrl;
@@ -516,6 +525,10 @@ function selectImagery(type: ImageryType = "radar"): void {
 
 function toggleImageryExpanded(): void {
   els.imageryCard.classList.toggle("is-expanded");
+}
+
+function collapseImageryExpanded(): void {
+  els.imageryCard.classList.remove("is-expanded");
 }
 
 function renderImagerySnapshots(type: ImageryType): void {

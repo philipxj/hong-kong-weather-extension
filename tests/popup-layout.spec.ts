@@ -205,6 +205,25 @@ test.describe("popup layout", () => {
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
   });
 
+  test("collapses expanded imagery widget when clicking outside", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    await page.locator(".imagery-preview").click();
+    await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
+
+    await page.locator(".radar-range").first().click();
+    await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
+
+    await page.locator(".legacy-forecast-day").first().click();
+    await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+  });
+
   test("supports lightning snapshots with available ranges only", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
@@ -296,6 +315,18 @@ async function fixtureHtml({
             <div class="legacy-meta"><span class="timestamp">13:30 更新</span></div>
           </section>
         </main>
+        <script>
+          const imageryCard = document.querySelector(".imagery-card");
+          const imageryPreview = document.querySelector(".imagery-preview");
+          imageryPreview?.addEventListener("click", () => {
+            imageryCard?.classList.toggle("is-expanded");
+          });
+          document.addEventListener("click", (event) => {
+            if (!imageryCard?.classList.contains("is-expanded")) return;
+            if (event.target instanceof Node && imageryCard.contains(event.target)) return;
+            imageryCard.classList.remove("is-expanded");
+          }, { capture: true });
+        </script>
       </body>
     </html>`;
 }
