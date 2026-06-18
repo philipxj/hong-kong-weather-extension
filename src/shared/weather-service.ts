@@ -236,14 +236,8 @@ export async function updateBadge(
 }
 
 export async function sendTestNotification(language: Language): Promise<void> {
-  await createNotification(
-    text("Weather notification test", "天氣通知測試", language),
-    text(
-      "Notifications are working. Real alerts are only sent when warning status changes.",
-      "通知功能正常。真正提示只會在天氣警告狀態有變化時發出。",
-      language
-    )
-  );
+  const copy = notificationCopy(language);
+  await createNotification(copy.testTitle, copy.testMessage);
 }
 
 export function getHighestPriorityWarning(warnings: WeatherWarning[] = []): WeatherWarning | null {
@@ -716,6 +710,28 @@ function asStringArray(value: string | string[] | null | undefined): string[] {
 
 function text(en: string, tc: string, language: Language): string {
   return language === "en" ? en : tc;
+}
+
+function notificationCopy(language: Language): { testMessage: string; testTitle: string } {
+  if (language === "en") {
+    return {
+      testTitle: "Weather notification test",
+      testMessage:
+        "Notifications are working. Real alerts are only sent when warning status changes."
+    };
+  }
+
+  if (language === "sc") {
+    return {
+      testTitle: "天气通知测试",
+      testMessage: "通知功能正常。真正提示只会在天气警告状态有变化时发出。"
+    };
+  }
+
+  return {
+    testTitle: "天氣通知測試",
+    testMessage: "通知功能正常。真正提示只會在天氣警告狀態有變化時發出。"
+  };
 }
 
 function errorMessage(error: unknown, fallback: string): string {

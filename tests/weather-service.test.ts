@@ -268,6 +268,24 @@ describe("weather service normalization", () => {
     }
   });
 
+  test("localizes test notifications for simplified Chinese", async () => {
+    const create = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("chrome", {
+      notifications: { create },
+      runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
+    });
+
+    try {
+      await sendTestNotification("sc");
+      const details = create.mock.calls[0]?.[0] as { message?: string; title?: string } | undefined;
+      expect(details?.title).toBe("天气通知测试");
+      expect(details?.message).toContain("天气警告状态");
+      expect(details?.message).not.toContain("天氣警告狀態");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test("does not reuse cached weather from a different language after refresh failure", async () => {
     const localSet = vi.fn();
     vi.stubGlobal("chrome", {
