@@ -512,6 +512,23 @@ button:hover {
   line-height: 1.35;
 }
 
+.section-note {
+  margin: 0 0 8px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.notification-test-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
 input[type="number"],
 select {
   width: 150px;
@@ -538,6 +555,18 @@ select {
 
 .primary-button:hover {
   background: #274f80;
+}
+
+.secondary-button {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  color: #214b78;
+  background: #eef6ff;
+  border-color: #bcd4ee;
+}
+
+.secondary-button:hover {
+  background: #dfefff;
 }
 
 html.popup-page,

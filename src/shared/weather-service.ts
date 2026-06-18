@@ -159,6 +159,17 @@ export async function updateBadge(
   await updateActionIcon(weather.current.icon);
 }
 
+export async function sendTestNotification(language: Language): Promise<void> {
+  await createNotification(
+    text("Weather notification test", "天氣通知測試", language),
+    text(
+      "Notifications are working. Real alerts are only sent when warning status changes.",
+      "通知功能正常。真正提示只會在天氣警告狀態有變化時發出。",
+      language
+    )
+  );
+}
+
 export function getHighestPriorityWarning(warnings: WeatherWarning[] = []): WeatherWarning | null {
   if (!warnings.length) return null;
   return [...warnings].sort((a, b) => b.priority - a.priority)[0] ?? null;
@@ -362,15 +373,19 @@ async function reconcileWarningNotifications(
 
 async function notify(title: string, message: string): Promise<void> {
   try {
-    await browserApi.notifications.create({
-      type: "basic",
-      title,
-      message,
-      iconUrl: browserApi.runtime.getUrl("assets/generated/weather-mark-128.png")
-    });
+    await createNotification(title, message);
   } catch {
     // Notifications may be unavailable in some extension contexts.
   }
+}
+
+async function createNotification(title: string, message: string): Promise<void> {
+  await browserApi.notifications.create({
+    type: "basic",
+    title,
+    message,
+    iconUrl: browserApi.runtime.getUrl("assets/generated/weather-mark-128.png")
+  });
 }
 
 async function fetchHkoJson<T>(url: string, schema: { parse: (value: unknown) => T }): Promise<T> {

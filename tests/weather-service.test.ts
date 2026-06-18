@@ -7,7 +7,8 @@ import {
   formatWarningBadgeForLanguage,
   getSignalWarnings,
   normalizeWeather,
-  refreshWeather
+  refreshWeather,
+  sendTestNotification
 } from "../src/shared/weather-service";
 
 describe("weather service normalization", () => {
@@ -239,6 +240,30 @@ describe("weather service normalization", () => {
     expect(badgeTextColor("黃")).toBe("#111111");
     expect(badgeTextColor("紅")).toBe("#ffffff");
     expect(badgeTextColor("黑")).toBe("#ffffff");
+  });
+
+  test("sends a test notification through the browser adapter", async () => {
+    const create = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("chrome", {
+      notifications: { create },
+      runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
+    });
+
+    try {
+      await sendTestNotification("tc");
+      expect(create).toHaveBeenCalledOnce();
+      const details = create.mock.calls[0]?.[0] as
+        | { iconUrl?: string; message?: string; title?: string; type?: string }
+        | undefined;
+      expect(details?.type).toBe("basic");
+      expect(details?.title).toBe("天氣通知測試");
+      expect(details?.message).toContain("通知功能正常");
+      expect(details?.iconUrl).toBe(
+        "chrome-extension://test/assets/generated/weather-mark-128.png"
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   test("does not reuse cached weather from a different language after refresh failure", async () => {

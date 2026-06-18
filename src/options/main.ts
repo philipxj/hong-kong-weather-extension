@@ -1,9 +1,16 @@
 import { optionsCopy } from "./options-copy";
-import { getSettings, refreshWeather, saveSettings, updateBadge } from "../shared/weather-service";
+import {
+  getSettings,
+  refreshWeather,
+  saveSettings,
+  sendTestNotification,
+  updateBadge
+} from "../shared/weather-service";
 import type { Language, Settings } from "../shared/types";
 
 const form = query<HTMLFormElement>("#options-form");
 const status = query<HTMLElement>("#save-status");
+const testNotificationButton = query<HTMLButtonElement>("#test-notification");
 
 const settings = await getSettings();
 hydrate(settings);
@@ -18,6 +25,9 @@ form.addEventListener("change", (event) => {
   if (target instanceof HTMLInputElement && target.name === "language") {
     applyOptionsLanguage(target.value as Language);
   }
+});
+testNotificationButton.addEventListener("click", () => {
+  void testNotification();
 });
 
 function hydrate(values: Settings): void {
@@ -69,6 +79,21 @@ async function save(): Promise<void> {
   setTimeout(() => {
     status.textContent = "";
   }, 1800);
+}
+
+async function testNotification(): Promise<void> {
+  const language = query<HTMLInputElement>('input[name="language"]:checked', form)
+    .value as Settings["language"];
+  const copy = optionsCopy(language);
+  try {
+    await sendTestNotification(language);
+    status.textContent = copy.testNotificationSent;
+  } catch {
+    status.textContent = copy.testNotificationFailed;
+  }
+  setTimeout(() => {
+    status.textContent = "";
+  }, 2200);
 }
 
 function applyOptionsLanguage(language: Language): void {

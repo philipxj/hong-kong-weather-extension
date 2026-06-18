@@ -17,6 +17,7 @@ interface OptionsCopy {
   english: string;
   englishDescription: string;
   language: string;
+  notificationChangesOnlyDescription: string;
   notifications: string;
   off: string;
   options: string;
@@ -26,6 +27,10 @@ interface OptionsCopy {
   simplifiedChinese: string;
   simplifiedChineseDescription: string;
   temperature: string;
+  testNotification: string;
+  testNotificationDescription: string;
+  testNotificationFailed: string;
+  testNotificationSent: string;
   traditionalChinese: string;
   traditionalChineseDescription: string;
   warning: string;
@@ -60,6 +65,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     english: "English",
     englishDescription: "設定頁、popup 文字及天文台連結使用英文。",
     language: "語言",
+    notificationChangesOnlyDescription:
+      "通知只會在警告狀態有變化時發出；已經生效中的警告不會每次更新都彈出。",
     notifications: "通知",
     off: "關閉",
     options: "設定",
@@ -69,6 +76,10 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     simplifiedChinese: "簡體中文",
     simplifiedChineseDescription: "設定頁、popup 文字及天文台連結使用簡體中文。",
     temperature: "溫度",
+    testNotification: "測試通知",
+    testNotificationDescription: "立即發出一個測試通知，確認 Chrome 或系統通知設定是否已開啟。",
+    testNotificationFailed: "未能發出測試通知，請檢查瀏覽器或系統通知權限。",
+    testNotificationSent: "已發出測試通知",
     traditionalChinese: "繁體中文",
     traditionalChineseDescription: "設定頁、popup 文字及天文台連結使用繁體中文。",
     warning: "警告",
@@ -79,7 +90,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     warningExtended: "警告延長",
     warningExtendedDescription: "雷暴等警告延長有效時間時發出通知。",
     warningIssued: "警告發出",
-    warningIssuedDescription: "有新天氣警告生效時發出通知。",
+    warningIssuedDescription: "有新天氣警告由未生效變成生效時發出通知。",
     warningUpdated: "警告更新",
     warningUpdatedDescription: "警告內容更新時發出通知；可能會比較頻密。"
   },
@@ -101,6 +112,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     english: "English",
     englishDescription: "设置页、popup 文字及天文台链接使用英文。",
     language: "语言",
+    notificationChangesOnlyDescription:
+      "通知只会在警告状态有变化时发出；已经生效中的警告不会每次更新都弹出。",
     notifications: "通知",
     off: "关闭",
     options: "设置",
@@ -110,6 +123,10 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     simplifiedChinese: "簡體中文",
     simplifiedChineseDescription: "设置页、popup 文字及天文台链接使用简体中文。",
     temperature: "温度",
+    testNotification: "测试通知",
+    testNotificationDescription: "立即发出一个测试通知，确认 Chrome 或系统通知设置是否已开启。",
+    testNotificationFailed: "未能发出测试通知，请检查浏览器或系统通知权限。",
+    testNotificationSent: "已发出测试通知",
     traditionalChinese: "繁體中文",
     traditionalChineseDescription: "设置页、popup 文字及天文台链接使用繁体中文。",
     warning: "警告",
@@ -120,7 +137,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     warningExtended: "警告延长",
     warningExtendedDescription: "雷暴等警告延长有效时间时发出通知。",
     warningIssued: "警告发出",
-    warningIssuedDescription: "有新天气警告生效时发出通知。",
+    warningIssuedDescription: "有新天气警告由未生效变成生效时发出通知。",
     warningUpdated: "警告更新",
     warningUpdatedDescription: "警告内容更新时发出通知；可能会比较频密。"
   },
@@ -144,6 +161,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     english: "English",
     englishDescription: "Use English for settings, popup labels, and Observatory links.",
     language: "Language",
+    notificationChangesOnlyDescription:
+      "Notifications are sent only when warning status changes. Existing active warnings do not notify on every refresh.",
     notifications: "Notifications",
     off: "Off",
     options: "Options",
@@ -154,6 +173,12 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     simplifiedChineseDescription:
       "Use Simplified Chinese for settings, popup labels, and Observatory links.",
     temperature: "Temperature",
+    testNotification: "Test notification",
+    testNotificationDescription:
+      "Send a test notification now to confirm Chrome and system notifications are enabled.",
+    testNotificationFailed:
+      "Unable to send a test notification. Check browser or system notification permissions.",
+    testNotificationSent: "Test notification sent",
     traditionalChinese: "繁體中文",
     traditionalChineseDescription:
       "Use Traditional Chinese for settings, popup labels, and Observatory links.",
@@ -167,7 +192,8 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     warningExtendedDescription:
       "Send a notification when warnings such as thunderstorms are extended.",
     warningIssued: "Warning issued",
-    warningIssuedDescription: "Send a notification when a new weather warning becomes active.",
+    warningIssuedDescription:
+      "Send a notification when a weather warning changes from inactive to active.",
     warningUpdated: "Warning updated",
     warningUpdatedDescription:
       "Send a notification when warning content changes; this may be more frequent."

@@ -21,8 +21,12 @@ describe("options copy", () => {
   test("explains what configurable options do", () => {
     expect(optionsCopy("tc").badgeModeDescription).toContain("警告");
     expect(optionsCopy("tc").warningIssuedDescription).toContain("新天氣警告");
+    expect(optionsCopy("tc").notificationChangesOnlyDescription).toContain("狀態有變化");
+    expect(optionsCopy("tc").testNotificationDescription).toContain("測試通知");
     expect(optionsCopy("tc").currentRefreshMinutesDescription).toContain("隔多久");
     expect(optionsCopy("en").badgeModeDescription).toContain("highest warning");
+    expect(optionsCopy("en").notificationChangesOnlyDescription).toContain("status changes");
+    expect(optionsCopy("en").testNotification).toBe("Test notification");
     expect(optionsCopy("en").warningCheckMinutesDescription).toContain("background service");
   });
 });

@@ -51,6 +51,10 @@
 
         <section class="panel">
           <div class="section-title" data-i18n="notifications">Notifications</div>
+          <p class="section-note" data-i18n="notificationChangesOnlyDescription">
+            Notifications are sent only when warning status changes. Existing active warnings do not
+            notify on every refresh.
+          </p>
           <div class="form-grid">
             <label class="option-choice"
               ><input type="checkbox" id="notifyIssued" />
@@ -89,6 +93,18 @@
                 >
               </span></label
             >
+          </div>
+          <div class="notification-test-row">
+            <div class="setting-copy">
+              <span data-i18n="testNotification">Test notification</span>
+              <small data-i18n="testNotificationDescription"
+                >Send a test notification now to confirm Chrome and system notifications are
+                enabled.</small
+              >
+            </div>
+            <button id="test-notification" class="secondary-button" type="button">
+              Test notification
+            </button>
           </div>
         </section>
 
