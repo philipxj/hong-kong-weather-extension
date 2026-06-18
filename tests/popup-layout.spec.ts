@@ -16,7 +16,7 @@ const scenarios = [
       <div class="warning-signal warning-signal-thunderstorm"><span class="lightning-mark">⚡</span><span class="signal-text">雷暴<small>Thunderstorm</small></span></div>
       <div class="warning-signal warning-signal-rain-amber"><span class="rain-block">黃雨</span></div>
     `,
-    special: "暴雨警告信號"
+    special: "局部地區有大雨"
   },
   {
     name: "four warnings",
@@ -26,26 +26,26 @@ const scenarios = [
       <div class="warning-signal warning-signal-rain-amber"><span class="rain-block">黃雨</span></div>
       <div class="warning-signal warning-signal-heat"><span class="rain-block">酷熱</span></div>
     `,
-    special: "雷暴警告、黃色暴雨警告信號"
+    special: "離岸及高地間中吹強風"
   },
   {
-    name: "no warnings with long labels",
+    name: "no warnings and no special tips",
     warnings: `<div class="warning-signal-empty">沒有警告信號</div>`,
-    special: "沒有生效提示"
+    special: null
   },
   {
-    name: "long warning text",
+    name: "long special weather tip",
     warnings: `
       <div class="warning-signal warning-signal-thunderstorm"><span class="lightning-mark">⚡</span><span class="signal-text">雷暴<small>Thunderstorm</small></span></div>
       <div class="warning-signal warning-signal-rain-amber"><span class="rain-block">黃雨</span></div>
     `,
-    special: "雷暴警告信號、黃色暴雨警告信號、山泥傾瀉警告及強烈季候風信號"
+    special: "高溫天氣可能影響健康，市民應補充足夠水分，避免長時間在戶外曝曬"
   }
 ];
 
 interface LayoutScenario {
   warnings: string;
-  special: string;
+  special: string | null;
 }
 
 test.describe("popup layout", () => {
@@ -86,6 +86,7 @@ test.describe("popup layout", () => {
           forecast: rect(".legacy-forecast"),
           shell: rect(".popup-shell"),
           side: rect(".legacy-side-panel"),
+          specialHidden: document.querySelector(".special-weather-card")?.hasAttribute("hidden"),
           warning: rect(".warning-signal-row"),
           forecastItemsInside: allInside(".legacy-forecast", ".legacy-forecast-day"),
           signalItemsInside: allInside(".warning-signal-row", ".warning-signal"),
@@ -103,6 +104,7 @@ test.describe("popup layout", () => {
       expect(layout.side.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(layout.forecastItemsInside).toBe(true);
       expect(layout.signalItemsInside).toBe(true);
+      expect(layout.specialHidden).toBe(scenario.special === null);
     });
   }
 });
@@ -138,7 +140,7 @@ async function fixtureHtml({ warnings, special }: LayoutScenario) {
             </section>
             <section class="legacy-side-panel">
               <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">衛星</button><button class="imagery-tab">閃電</button></div><button class="imagery-preview"><img src="${RADAR}" alt=""></button><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div></div>
-              <div class="special-weather-card"><div class="special-weather-title">特別天氣提示</div><div class="special-weather-content">${special}</div></div>
+              <div class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">特別天氣提示</div><div class="special-weather-content">${special ?? ""}</div></div>
               <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
             </section>
             <section class="legacy-forecast">

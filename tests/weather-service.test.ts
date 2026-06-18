@@ -10,6 +10,7 @@ describe("weather service normalization", () => {
       error: null,
       current: {
         icon: [64],
+        specialWxTips: ["局部地區有大雨"],
         uvindex: { data: [{ value: 0.4, desc: "低" }] },
         temperature: { data: [{ place: "香港天文台", value: 28 }] },
         humidity: { data: [{ place: "香港天文台", value: 87 }] }
@@ -34,6 +35,7 @@ describe("weather service normalization", () => {
     const badges = new Map(weather.warnings.map((warning) => [warning.code, warning.badge]));
     expect(badges.get("WRAINA")).toBe("黃");
     expect(badges.get("WTS")).toBe("雷");
+    expect(weather.current.tips).toEqual(["局部地區有大雨"]);
     expect(weather.current.uvIndex).toBe(0.4);
     expect(weather.current.uvDesc).toBe("低");
   });

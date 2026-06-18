@@ -37,13 +37,13 @@ function readForm(): Settings {
     badgeMode: query<HTMLSelectElement>("#badgeMode", form).value as Settings["badgeMode"],
     currentRefreshMinutes: clampNumber(
       query<HTMLInputElement>("#currentRefreshMinutes", form).value,
-      5,
+      10,
       180,
-      10
+      15
     ),
     warningCheckMinutes: clampNumber(
       query<HTMLInputElement>("#warningCheckMinutes", form).value,
-      3,
+      5,
       180,
       5
     )

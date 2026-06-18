@@ -12,6 +12,7 @@ import type {
   WeatherData,
   WeatherWarning
 } from "../shared/types";
+import { formatSpecialWeatherTips } from "./special-weather";
 
 type WarningSignalClass = WeatherWarning["type"];
 
@@ -103,7 +104,8 @@ const els = {
   topUvValue: query<HTMLElement>("#top-uv-value"),
   topUvDesc: query<HTMLElement>("#top-uv-desc"),
   topSummary: query<HTMLElement>("#top-summary"),
-  warningCount: query<HTMLElement>("#warning-count"),
+  specialWeatherCard: query<HTMLElement>("#special-weather-card"),
+  specialWeatherContent: query<HTMLElement>("#special-weather-content"),
   warningSignalRow: query<HTMLElement>("#warning-signal-row"),
   forecastList: query<HTMLElement>("#forecast-list"),
   typhoonMap: query<HTMLButtonElement>("#typhoon-map"),
@@ -213,7 +215,7 @@ function render(): void {
     data.current.summary ||
     "香港天氣";
 
-  renderSpecialWeather(data.warnings);
+  renderSpecialWeather(data.current.tips);
   renderWarningSignals(data.warnings);
   renderForecast(data.forecast);
   void loadImagery();
@@ -240,9 +242,10 @@ function renderWarningSignals(warnings: WeatherWarning[]): void {
   });
 }
 
-function renderSpecialWeather(warnings: WeatherWarning[]): void {
-  const highestWarning = warnings[0] || null;
-  els.warningCount.textContent = highestWarning ? highestWarning.name : "沒有生效提示";
+function renderSpecialWeather(tips: string[]): void {
+  const text = formatSpecialWeatherTips(tips);
+  els.specialWeatherCard.hidden = !text;
+  els.specialWeatherContent.textContent = text ?? "";
 }
 
 async function loadImagery(): Promise<void> {

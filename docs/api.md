@@ -53,6 +53,15 @@ https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lan
 https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warningInfo&lang=tc
 ```
 
+Refresh paths:
+
+| Trigger | API datasets called | Count |
+| --- | --- | --- |
+| Popup/manual refresh, install, startup, or missing cache fallback | `rhrread`, `fnd`, `warnsum`, `warningInfo` | 4 |
+| Current weather alarm, default every 15 minutes | `rhrread` | 1 |
+| Forecast alarm, fixed every 120 minutes | `fnd` | 1 |
+| Warning check alarm | `warnsum`, `warningInfo` | 2 |
+
 Implementation notes:
 
 - Fetching is centralized in `src/shared/weather-service.ts`.
