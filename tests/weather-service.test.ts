@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
+import { hkoCurrentSchema } from "../src/shared/hko-schemas";
 import {
   badgeBackgroundColor,
   badgeTextColor,
@@ -12,6 +13,28 @@ import {
 } from "../src/shared/weather-service";
 
 describe("weather service normalization", () => {
+  test("accepts missing overnight UV index from HKO current data", () => {
+    const current = hkoCurrentSchema.parse({
+      icon: [64],
+      uvindex: "",
+      temperature: { data: [{ value: 26 }] },
+      humidity: { data: [{ value: 96 }] }
+    });
+    const weather = normalizeWeather({
+      settings: { language: "tc" },
+      fetchedAt: "2026-06-18T21:06:00.000Z",
+      stale: false,
+      error: null,
+      current,
+      forecast: { weatherForecast: [] },
+      warnsum: {},
+      warningInfo: { details: [] }
+    });
+
+    expect(weather.current.uvIndex).toBeNull();
+    expect(weather.current.uvDesc).toBe("");
+  });
+
   test("normalizes active warning badges from warnsum codes", () => {
     const weather = normalizeWeather({
       settings: { language: "tc" },

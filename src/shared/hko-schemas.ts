@@ -2,6 +2,23 @@ import { z } from "zod";
 
 const numberValue = z.object({ value: z.number().optional() }).passthrough();
 const rainfallValue = z.object({ max: z.number().optional() }).passthrough();
+const uvIndexSchema = z.preprocess(
+  (value) => (typeof value === "string" ? undefined : value),
+  z
+    .object({
+      data: z
+        .array(
+          z
+            .object({
+              desc: z.string().optional(),
+              value: z.union([z.number(), z.string()]).optional()
+            })
+            .passthrough()
+        )
+        .optional()
+    })
+    .optional()
+);
 
 export const hkoCurrentSchema = z
   .object({
@@ -13,20 +30,7 @@ export const hkoCurrentSchema = z
     rainfall: z.object({ data: z.array(rainfallValue).optional() }).optional(),
     specialWxTips: z.union([z.array(z.string()), z.string()]).optional(),
     temperature: z.object({ data: z.array(numberValue).optional() }).optional(),
-    uvindex: z
-      .object({
-        data: z
-          .array(
-            z
-              .object({
-                desc: z.string().optional(),
-                value: z.union([z.number(), z.string()]).optional()
-              })
-              .passthrough()
-          )
-          .optional()
-      })
-      .optional(),
+    uvindex: uvIndexSchema,
     warningMessage: z.union([z.array(z.string()), z.string()]).optional()
   })
   .passthrough();
