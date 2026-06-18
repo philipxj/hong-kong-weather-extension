@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import {
   badgeBackgroundColor,
+  badgeTextColor,
   DEFAULT_SETTINGS,
   formatActionBadgeText,
   formatWarningBadgeForLanguage,
@@ -232,6 +233,10 @@ describe("weather service normalization", () => {
     expect(badgeBackgroundColor("紅")).toBe("#df1d1d");
     expect(badgeBackgroundColor("黃")).toBe("#ffd200");
     expect(badgeBackgroundColor("")).toBe("#2f5f98");
+  });
+
+  test("uses white toolbar badge text for amber rainstorm", () => {
+    expect(badgeTextColor()).toBe("#ffffff");
   });
 
   test("does not reuse cached weather from a different language after refresh failure", async () => {

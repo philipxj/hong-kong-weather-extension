@@ -1,5 +1,6 @@
 type StorageRecord<T> = Record<string, T | undefined>;
 type BadgeBackgroundColorDetails = Parameters<typeof chrome.action.setBadgeBackgroundColor>[0];
+type BadgeTextColorDetails = Parameters<typeof chrome.action.setBadgeTextColor>[0];
 type IconDetails = Parameters<typeof chrome.action.setIcon>[0];
 type NotificationCreateOptions = Parameters<typeof chrome.notifications.create>[0];
 type TitleDetails = Parameters<typeof chrome.action.setTitle>[0];
@@ -37,6 +38,7 @@ export const browserApi = {
     setBadgeText: (details: chrome.action.BadgeTextDetails) => chrome.action.setBadgeText(details),
     setBadgeBackgroundColor: (details: BadgeBackgroundColorDetails) =>
       chrome.action.setBadgeBackgroundColor(details),
+    setBadgeTextColor: (details: BadgeTextColorDetails) => chrome.action.setBadgeTextColor(details),
     setIcon: (details: IconDetails) => chrome.action.setIcon(details),
     setTitle: (details: TitleDetails) => chrome.action.setTitle(details)
   },
