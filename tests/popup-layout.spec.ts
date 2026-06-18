@@ -200,6 +200,26 @@ test.describe("popup layout", () => {
         waitUntil: "domcontentloaded"
       }
     );
+    const compactControls = await page.evaluate(() => {
+      const visible = (selector: string) =>
+        [...document.querySelectorAll(selector)].filter((node) => {
+          const style = getComputedStyle(node);
+          const box = node.getBoundingClientRect();
+          return (
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            box.width > 0 &&
+            box.height > 0
+          );
+        }).length;
+      return {
+        ranges: visible(".radar-range"),
+        snapshots: visible(".imagery-snapshot")
+      };
+    });
+    expect(compactControls.snapshots).toBe(0);
+    expect(compactControls.ranges).toBe(1);
+
     await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
 
     const layout = await page.evaluate(() => {
@@ -223,11 +243,30 @@ test.describe("popup layout", () => {
         shell: rect(".popup-shell")
       };
     });
+    const expandedControls = await page.evaluate(() => {
+      const visible = (selector: string) =>
+        [...document.querySelectorAll(selector)].filter((node) => {
+          const style = getComputedStyle(node);
+          const box = node.getBoundingClientRect();
+          return (
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            box.width > 0 &&
+            box.height > 0
+          );
+        }).length;
+      return {
+        ranges: visible(".radar-range"),
+        snapshots: visible(".imagery-snapshot")
+      };
+    });
 
     expect(layout.card.width).toBeGreaterThanOrEqual(466);
     expect(layout.preview.height).toBeGreaterThanOrEqual(281);
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
+    expect(expandedControls.snapshots).toBe(5);
+    expect(expandedControls.ranges).toBe(3);
   });
 
   test("collapses expanded imagery widget when clicking outside", async ({ page }) => {

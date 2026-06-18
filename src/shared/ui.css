@@ -922,6 +922,10 @@ html[lang="en"] .legacy-weather-title {
   box-shadow: 0 16px 34px rgba(16, 35, 55, 0.3);
 }
 
+.imagery-card:not(.is-expanded) .imagery-tabs {
+  background: rgba(9, 23, 37, 0.54);
+}
+
 .imagery-tabs {
   position: absolute;
   top: 13px;
@@ -1013,7 +1017,7 @@ html[lang="en"] .legacy-weather-title {
   box-shadow: 0 4px 12px rgba(12, 25, 40, 0.2);
 }
 
-.imagery-card:not(.is-expanded) .imagery-snapshot:not([aria-selected="true"]) {
+.imagery-card:not(.is-expanded) .imagery-snapshots {
   display: none;
 }
 
@@ -1079,6 +1083,26 @@ html[lang="en"] .legacy-weather-title {
   backdrop-filter: blur(8px);
 }
 
+.imagery-card:not(.is-expanded) .imagery-caption {
+  right: auto;
+  bottom: 12px;
+  left: 13px;
+  width: max-content;
+  max-width: 132px;
+  height: 20px;
+  gap: 7px;
+  padding: 0 8px;
+  font-size: 10px;
+  background: rgba(9, 23, 37, 0.58);
+}
+
+.imagery-card:not(.is-expanded) .imagery-caption span:first-child {
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .radar-ranges {
   position: absolute;
   right: 13px;
@@ -1090,6 +1114,19 @@ html[lang="en"] .legacy-weather-title {
   gap: 4px;
   height: 20px;
   border-top: 0;
+}
+
+.imagery-card:not(.is-expanded) .radar-ranges {
+  right: 13px;
+  bottom: 12px;
+  left: auto;
+  display: block;
+  width: 58px;
+  height: 20px;
+}
+
+.imagery-card:not(.is-expanded) .radar-range:not([aria-selected="true"]) {
+  display: none;
 }
 
 .radar-range {
@@ -1104,6 +1141,10 @@ html[lang="en"] .legacy-weather-title {
   font-weight: 700;
   line-height: 20px;
   backdrop-filter: blur(8px);
+}
+
+.imagery-card:not(.is-expanded) .radar-range {
+  width: 58px;
 }
 
 .radar-range:last-child {
