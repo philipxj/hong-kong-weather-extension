@@ -299,8 +299,10 @@ test.describe("popup layout", () => {
 
     expect(layout.card.width).toBeGreaterThanOrEqual(528);
     expect(layout.preview.height).toBeGreaterThanOrEqual(358);
+    expect(layout.card.top).toBeGreaterThanOrEqual(layout.shell.top);
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
+    expect(layout.card.bottom).toBeLessThanOrEqual(layout.shell.bottom);
     expect(Math.abs(layout.stepper.top - layout.tabs.top)).toBeLessThanOrEqual(1);
     expect(Math.abs(layout.stepper.bottom - layout.tabs.bottom)).toBeLessThanOrEqual(1);
     expect(expandedControls.snapshots).toBe(0);
