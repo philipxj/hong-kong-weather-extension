@@ -830,7 +830,7 @@ function formatActionTitle(
   const temperatureLabel = text("Temperature", "現時氣溫", weather.language);
   const warningLabel = text("Warning", "警告", weather.language);
   const parts = [
-    "HK Weather Alerts",
+    "香港天氣警報",
     weather.current.temperature != null ? `${temperatureLabel} ${temperatureBadge}` : "",
     warningBadge && warning ? `${warningLabel} ${warning}` : ""
   ].filter(Boolean);
