@@ -39,6 +39,7 @@ Do not bundle the Hong Kong Observatory logo, government logos, or other protect
 
 - [API and external resources](docs/api.md): HKO Open Data API usage, imagery URLs, related official documentation, and host permissions.
 - [AMO source build instructions](docs/amo-source-build.md): Firefox Add-ons reviewer build and source package notes.
+- [Release uploads](docs/release-upload.md): packaging and manual Chrome/Edge draft upload workflow.
 - DATA.GOV.HK weather dataset search: https://data.gov.hk/tc-datasets/search/%E5%A4%A9%E6%B0%A3
 
 ## Development
@@ -55,6 +56,12 @@ Build the unpacked extension:
 
 ```bash
 npm run build
+```
+
+Build the store upload package:
+
+```bash
+npm run package:chromium
 ```
 
 Load this folder in Chrome or Edge:

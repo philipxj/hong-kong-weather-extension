@@ -1,0 +1,78 @@
+name: Release Upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_chrome:
+        description: Upload the package to the configured Chrome Web Store draft.
+        required: false
+        default: false
+        type: boolean
+      upload_edge:
+        description: Upload the package to the configured Microsoft Edge Add-ons draft.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  draft-upload:
+    runs-on: ubuntu-latest
+    env:
+      CHROME_EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID || secrets.CHROME_EXTENSION_ID }}
+      CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID || secrets.CHROME_PUBLISHER_ID }}
+      CHROME_CLIENT_ID: ${{ vars.CHROME_CLIENT_ID || secrets.CHROME_CLIENT_ID }}
+      CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+      CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+      EDGE_PRODUCT_ID: ${{ vars.EDGE_PRODUCT_ID || secrets.EDGE_PRODUCT_ID }}
+      EDGE_CLIENT_ID: ${{ vars.EDGE_CLIENT_ID || secrets.EDGE_CLIENT_ID }}
+      EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm test
+
+      - name: Package Chromium extension
+        id: package
+        run: |
+          npm run package:chromium | tee package.log
+          ZIP_PATH="$(tail -n 1 package.log)"
+          test -f "$ZIP_PATH"
+          echo "zip_path=${ZIP_PATH}" >> "$GITHUB_OUTPUT"
+          unzip -Z1 "$ZIP_PATH" | sed -n '1,40p'
+          unzip -Z1 "$ZIP_PATH" | grep -qx 'manifest.json'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chromium-extension-package
+          path: ${{ steps.package.outputs.zip_path }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Chrome Web Store draft
+        if: ${{ inputs.upload_chrome && env.CHROME_EXTENSION_ID != '' && env.CHROME_PUBLISHER_ID != '' && env.CHROME_CLIENT_ID != '' && env.CHROME_CLIENT_SECRET != '' && env.CHROME_REFRESH_TOKEN != '' }}
+        run: node scripts/upload-chrome-draft.mjs "${{ steps.package.outputs.zip_path }}"
+
+      - name: Skip Chrome Web Store draft upload
+        if: ${{ !inputs.upload_chrome || env.CHROME_EXTENSION_ID == '' || env.CHROME_PUBLISHER_ID == '' || env.CHROME_CLIENT_ID == '' || env.CHROME_CLIENT_SECRET == '' || env.CHROME_REFRESH_TOKEN == '' }}
+        run: echo "Chrome Web Store draft upload was not requested or credentials are incomplete; uploaded the package artifact only."
+
+      - name: Upload Microsoft Edge Add-ons draft
+        if: ${{ inputs.upload_edge && env.EDGE_PRODUCT_ID != '' && env.EDGE_CLIENT_ID != '' && env.EDGE_API_KEY != '' }}
+        run: node scripts/upload-edge-draft.mjs "${{ steps.package.outputs.zip_path }}"
+
+      - name: Skip Microsoft Edge Add-ons draft upload
+        if: ${{ !inputs.upload_edge || env.EDGE_PRODUCT_ID == '' || env.EDGE_CLIENT_ID == '' || env.EDGE_API_KEY == '' }}
+        run: echo "Microsoft Edge Add-ons draft upload was not requested or credentials are incomplete; uploaded the package artifact only."
