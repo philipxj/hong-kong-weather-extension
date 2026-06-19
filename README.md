@@ -32,6 +32,7 @@ Do not bundle the Hong Kong Observatory logo, government logos, or other protect
 ## Documentation
 
 - [API and external resources](docs/api.md): HKO Open Data API usage, imagery URLs, related official documentation, and host permissions.
+- [AMO source build instructions](docs/amo-source-build.md): Firefox Add-ons reviewer build and source package notes.
 - DATA.GOV.HK weather dataset search: https://data.gov.hk/tc-datasets/search/%E5%A4%A9%E6%B0%A3
 
 ## Development
