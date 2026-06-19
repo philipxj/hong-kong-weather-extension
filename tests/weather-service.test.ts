@@ -295,8 +295,7 @@ describe("weather service normalization", () => {
     vi.stubGlobal("chrome", {
       notifications: {
         create,
-        getAll: vi.fn().mockResolvedValue({ "hk-weather-alerts-test": true }),
-        getPermissionLevel: vi.fn().mockResolvedValue("granted")
+        getAll: vi.fn().mockResolvedValue({ "hk-weather-alerts-test": true })
       },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
     });
@@ -306,7 +305,7 @@ describe("weather service normalization", () => {
       expect(create).toHaveBeenCalledOnce();
       expect(result).toEqual({
         id: "hk-weather-alerts-test",
-        permission: "granted",
+        permission: "unknown",
         visibleInChrome: true
       });
       expect(create.mock.calls[0]?.[0]).toBe("hk-weather-alerts-test");
@@ -338,8 +337,7 @@ describe("weather service normalization", () => {
     vi.stubGlobal("chrome", {
       notifications: {
         create,
-        getAll: vi.fn().mockResolvedValue({ "hk-weather-alerts-test": true }),
-        getPermissionLevel: vi.fn().mockResolvedValue("granted")
+        getAll: vi.fn().mockResolvedValue({ "hk-weather-alerts-test": true })
       },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
     });
@@ -356,20 +354,19 @@ describe("weather service normalization", () => {
     }
   });
 
-  test("reports denied notification permission before creating a test notification", async () => {
-    const create = vi.fn();
+  test("reports browser notification creation failures", async () => {
+    const create = vi.fn().mockRejectedValue(new Error("Notifications are denied."));
     vi.stubGlobal("chrome", {
       notifications: {
         create,
-        getAll: vi.fn(),
-        getPermissionLevel: vi.fn().mockResolvedValue("denied")
+        getAll: vi.fn()
       },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) }
     });
 
     try {
       await expect(sendTestNotification("en")).rejects.toThrow("Notifications are denied.");
-      expect(create).not.toHaveBeenCalled();
+      expect(create).toHaveBeenCalledOnce();
     } finally {
       vi.unstubAllGlobals();
     }
