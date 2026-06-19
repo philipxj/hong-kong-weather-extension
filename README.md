@@ -23,7 +23,7 @@ Hong Kong Weather keeps current weather, active warning signals, special weather
 
 ## Privacy
 
-The extension does not collect, sell, share, or transmit personal user data to Fireshark HK or third parties. It stores preferences and cached public weather data locally in the browser so the popup, badge, and notification features can work.
+The extension does not collect, sell, share, or transmit personal user data to Fireshark HK or third parties. It stores preferences in browser extension sync storage when available, and stores cached public weather data in browser storage so the popup, badge, and notification features can work.
 
 See the [privacy policy](https://fireshark.tech/legal/hk-weather-alerts-privacy-policy.html) for details.
 
