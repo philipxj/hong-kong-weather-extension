@@ -1087,13 +1087,6 @@ html[lang="en"] .special-weather-title {
   font-size: 14px;
 }
 
-html[lang="en"] .special-weather-content {
-  display: block;
-  font-size: 10px;
-  line-height: 11px;
-  -webkit-line-clamp: unset;
-}
-
 .special-weather-title {
   height: 18px;
   padding: 0 8px;
@@ -1118,6 +1111,15 @@ html[lang="en"] .special-weather-content {
   font-size: 10.5px;
   font-weight: 600;
   line-height: 11px;
+}
+
+html[lang="en"] .special-weather-content {
+  display: block;
+  height: 52px;
+  padding: 2px 7px;
+  font-size: 8.2px;
+  line-height: 9.4px;
+  -webkit-line-clamp: unset;
 }
 
 .special-weather-card:hover {

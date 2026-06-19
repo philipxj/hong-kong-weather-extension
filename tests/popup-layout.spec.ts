@@ -161,6 +161,12 @@ test.describe("popup layout", () => {
           specialContentDisplay: getComputedStyle(
             document.querySelector(".special-weather-content")!
           ).display,
+          specialContentFontSize: parseFloat(
+            getComputedStyle(document.querySelector(".special-weather-content")!).fontSize
+          ),
+          specialContentLineHeight: parseFloat(
+            getComputedStyle(document.querySelector(".special-weather-content")!).lineHeight
+          ),
           specialContentLineClamp: getComputedStyle(
             document.querySelector(".special-weather-content")!
           ).webkitLineClamp,
@@ -205,6 +211,7 @@ test.describe("popup layout", () => {
       if (scenario.lang === "en" && scenario.special !== null) {
         expect(layout.specialContentDisplay).toBe("block");
         expect(layout.specialContentLineClamp).not.toBe("4");
+        expect(layout.specialContentLineHeight).toBeGreaterThan(layout.specialContentFontSize + 1);
         expect(layout.titleTextOverflow).not.toBe("ellipsis");
       }
       expect(layout.meta.top).toBeGreaterThanOrEqual(layout.forecast.bottom);
