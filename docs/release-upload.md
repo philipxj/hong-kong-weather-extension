@@ -17,7 +17,7 @@ Build and create a Chromium MV3 zip locally:
 npm run package:chromium
 ```
 
-The package is written to `release/hk-weather-alerts-{version}-chromium.zip`.
+The package is written to `release/hong-kong-weather-extension-{version}-chromium.zip`.
 The script validates that `manifest.json` is at the zip root, as required by the
 browser stores.
 

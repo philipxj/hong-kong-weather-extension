@@ -24,7 +24,7 @@ if (typeof version !== "string" || version.length === 0) {
 
 await mkdir(release, { recursive: true });
 
-const zipPath = path.join(release, `hk-weather-alerts-${version}-${target}.zip`);
+const zipPath = path.join(release, `hong-kong-weather-extension-${version}-${target}.zip`);
 await rm(zipPath, { force: true });
 
 const zipResult = spawnSync("zip", ["-r", "-q", zipPath, ".", "-x", "*.DS_Store", "__MACOSX/*"], {

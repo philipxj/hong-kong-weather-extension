@@ -1,16 +1,16 @@
-# HK Weather Alerts Extension
+# 香港天氣預報 / Hong Kong Weather
 
-Unofficial browser extension for compact Hong Kong weather alerts.
+Unofficial browser extension for compact Hong Kong weather.
 
 The extension uses Hong Kong Observatory Open Data and keeps a compact popup layout inspired by public weather-warning dashboards. It is not an official Hong Kong Observatory product and is not affiliated with or endorsed by the Hong Kong Observatory.
 
 ## Screenshot
 
-![HK Weather Alerts popup screenshot](docs/screenshots/popup-zh-Hant.png)
+![Hong Kong Weather popup screenshot](docs/screenshots/popup-zh-Hant.png)
 
 ## Website
 
-- Product page: https://fireshark.tech/apps/hk-weather-alerts/
+- Product page: https://fireshark.tech/apps/hong-kong-weather/
 - Privacy policy: https://fireshark.tech/legal/hk-weather-alerts-privacy-policy.html
 
 ## Install

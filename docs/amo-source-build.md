@@ -55,7 +55,7 @@ To reproduce the submitted package, zip the contents of `dist/firefox`, not the 
 
 ```bash
 cd dist/firefox
-zip -r ../../hk-weather-alerts-firefox.zip .
+zip -r ../../hong-kong-weather-firefox.zip .
 ```
 
 ## Validation
