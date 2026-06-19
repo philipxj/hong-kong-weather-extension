@@ -468,7 +468,7 @@ function renderWarningSignals(warnings: WeatherWarning[]): void {
     signal.type = "button";
     signal.title = warning.name;
     signal.setAttribute("aria-label", warning.name || copy().warning);
-    signal.innerHTML = warningSignalHtml(warning, signalType);
+    signal.append(warningSignalElement(warning, signalType));
     signal.addEventListener("click", () => {
       void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "detail.htm") });
     });
@@ -790,11 +790,23 @@ function signalTypeClass(warning: WeatherWarning): WarningSignalClass {
   return warning.type;
 }
 
-function warningSignalHtml(warning: WeatherWarning, type: WarningSignalClass): string {
+function warningSignalElement(
+  warning: WeatherWarning,
+  type: WarningSignalClass
+): HTMLImageElement | HTMLSpanElement {
   const iconUrl = hkoWarningIconUrl(warning);
-  if (!iconUrl)
-    return `<span class="warning-signal-fallback">${escapeHtml(warning.badge || warning.name)}</span>`;
-  return `<img class="warning-signal-icon" src="${escapeHtml(iconUrl)}" alt="${escapeHtml(warning.name || type)}" />`;
+  if (!iconUrl) {
+    const fallback = document.createElement("span");
+    fallback.className = "warning-signal-fallback";
+    fallback.textContent = stringifyHtmlValue(warning.badge || warning.name);
+    return fallback;
+  }
+
+  const icon = document.createElement("img");
+  icon.className = "warning-signal-icon";
+  icon.src = iconUrl;
+  icon.alt = warning.name || type;
+  return icon;
 }
 
 function renderForecast(forecast: ForecastDay[]): void {
@@ -939,15 +951,6 @@ function weekdayShort(value: string, language: Language): string {
   const englishWeekday = english[weekday.slice(0, 3)];
   if (englishWeekday) return englishWeekday;
   return weekday.replace("星期", "").replace("周", "").replace("週", "").replace("禮拜", "");
-}
-
-function escapeHtml(value: unknown): string {
-  return stringifyHtmlValue(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
 
 function stringifyHtmlValue(value: unknown): string {

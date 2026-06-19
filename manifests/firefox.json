@@ -22,8 +22,17 @@
     }
   },
   "background": {
-    "service_worker": "background.js",
+    "scripts": ["background.js"],
     "type": "module"
   },
-  "options_page": "options/index.html"
+  "options_page": "options/index.html",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "hk-weather-alerts@fireshark.tech",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
 }

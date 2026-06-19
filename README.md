@@ -4,6 +4,21 @@ Unofficial browser extension for compact Hong Kong weather alerts.
 
 The extension uses Hong Kong Observatory Open Data and keeps a compact popup layout inspired by public weather-warning dashboards. It is not an official Hong Kong Observatory product and is not affiliated with or endorsed by the Hong Kong Observatory.
 
+## Screenshot
+
+![HK Weather Alerts popup screenshot](docs/screenshots/popup-zh-Hant.png)
+
+## Website
+
+- Product page: https://fireshark.tech/apps/hk-weather-alerts/
+- Privacy policy: https://fireshark.tech/legal/hk-weather-alerts-privacy-policy.html
+
+## Install
+
+- Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/koemdfkhpkadjclicmmjoaglaapcdlco
+- Chrome Web Store: Coming soon
+- Firefox Add-ons: Coming soon
+
 ## Data Source
 
 Weather observations, forecasts, warnings, and related imagery are fetched from:
@@ -23,6 +38,7 @@ Do not bundle the Hong Kong Observatory logo, government logos, or other protect
 ## Documentation
 
 - [API and external resources](docs/api.md): HKO Open Data API usage, imagery URLs, related official documentation, and host permissions.
+- [AMO source build instructions](docs/amo-source-build.md): Firefox Add-ons reviewer build and source package notes.
 - [Release uploads](docs/release-upload.md): packaging and manual Chrome/Edge draft upload workflow.
 - DATA.GOV.HK weather dataset search: https://data.gov.hk/tc-datasets/search/%E5%A4%A9%E6%B0%A3
 
@@ -53,6 +69,14 @@ Load this folder in Chrome or Edge:
 ```text
 dist/chromium
 ```
+
+Build the Firefox package source:
+
+```bash
+npm run build:firefox
+```
+
+Use `dist/firefox` when creating the Firefox/AMO zip. Do not upload the Chromium zip to AMO because Firefox needs its own Gecko manifest metadata.
 
 Do not load the repository root. The root folder contains TypeScript source files and does not contain the runtime `manifest.json`.
 

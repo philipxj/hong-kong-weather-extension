@@ -121,7 +121,7 @@ function applyOptionsLanguage(language: Language): void {
   const copy = optionsCopy(language);
   document.documentElement.lang =
     language === "en" ? "en" : language === "sc" ? "zh-Hans" : "zh-Hant";
-  document.title = `HK Weather Alerts ${copy.options}`;
+  document.title = `香港天氣警報 ${copy.options}`;
   document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
     const key = element.dataset.i18n as keyof typeof copy | undefined;
     if (!key) return;

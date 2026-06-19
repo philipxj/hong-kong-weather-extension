@@ -244,16 +244,11 @@ export async function updateBadge(
 
 export async function sendTestNotification(language: Language): Promise<NotificationTestResult> {
   const copy = notificationCopy(language);
-  const permission = await browserApi.notifications.getPermissionLevel();
-  if (permission !== "granted") {
-    throw new Error(`Notifications are ${permission}.`);
-  }
-
   const id = await createTestNotification(copy.testTitle, copy.testMessage);
   const activeNotifications = await browserApi.notifications.getAll();
   return {
     id,
-    permission,
+    permission: "unknown",
     visibleInChrome: Boolean(activeNotifications[id])
   };
 }
@@ -830,7 +825,7 @@ function formatActionTitle(
   const temperatureLabel = text("Temperature", "現時氣溫", weather.language);
   const warningLabel = text("Warning", "警告", weather.language);
   const parts = [
-    "HK Weather Alerts",
+    "香港天氣警報",
     weather.current.temperature != null ? `${temperatureLabel} ${temperatureBadge}` : "",
     warningBadge && warning ? `${warningLabel} ${warning}` : ""
   ].filter(Boolean);
