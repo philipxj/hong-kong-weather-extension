@@ -4,7 +4,7 @@
 
 ## Testing
 
-- [ ] `npm test`
+- [ ] `npm test`, or explained why it is not needed
 
 ## Checklist
 
