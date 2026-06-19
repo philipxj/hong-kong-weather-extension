@@ -1,8 +1,10 @@
 # 香港天氣預報 / Hong Kong Weather
 
-Unofficial browser extension for compact Hong Kong weather.
+[![CI](https://github.com/philipxj/hong-kong-weather-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/philipxj/hong-kong-weather-extension/actions/workflows/ci.yml)
 
-The extension uses Hong Kong Observatory Open Data and keeps a compact popup layout inspired by public weather-warning dashboards. It is not an official Hong Kong Observatory product and is not affiliated with or endorsed by the Hong Kong Observatory.
+Unofficial browser extension for Hong Kong weather using Hong Kong Observatory Open Data.
+
+Hong Kong Weather keeps current weather, active warning signals, special weather tips, radar imagery, lightning location, and 7-day forecasts close to your browser toolbar. It is not an official Hong Kong Observatory product and is not affiliated with or endorsed by the Hong Kong Observatory.
 
 ## Screenshot
 
@@ -16,8 +18,14 @@ The extension uses Hong Kong Observatory Open Data and keeps a compact popup lay
 ## Install
 
 - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/koemdfkhpkadjclicmmjoaglaapcdlco
-- Chrome Web Store: https://chromewebstore.google.com/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/chmlbbhplbepjboepkcngfnmbellhfge
-- Firefox Add-ons: Coming soon
+- Chrome Web Store: submitted for review: https://chromewebstore.google.com/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/chmlbbhplbepjboepkcngfnmbellhfge
+- Firefox Add-ons: submitted for review
+
+## Privacy
+
+The extension does not collect, sell, share, or transmit personal user data to Fireshark HK or third parties. It stores preferences in browser extension sync storage when available, and stores cached public weather data in browser storage so the popup, badge, and notification features can work.
+
+See the [privacy policy](https://fireshark.tech/legal/hk-weather-alerts-privacy-policy.html) for details.
 
 ## Data Source
 
