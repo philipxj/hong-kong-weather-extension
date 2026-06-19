@@ -4,6 +4,10 @@ Unofficial browser extension for compact Hong Kong weather alerts.
 
 The extension uses Hong Kong Observatory Open Data and keeps a compact popup layout inspired by public weather-warning dashboards. It is not an official Hong Kong Observatory product and is not affiliated with or endorsed by the Hong Kong Observatory.
 
+## Screenshot
+
+![HK Weather Alerts popup screenshot](docs/screenshots/popup-zh-Hant.png)
+
 ## Data Source
 
 Weather observations, forecasts, warnings, and related imagery are fetched from:
