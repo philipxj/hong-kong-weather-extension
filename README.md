@@ -56,6 +56,14 @@ Load this folder in Chrome or Edge:
 dist/chromium
 ```
 
+Build the Firefox package source:
+
+```bash
+npm run build:firefox
+```
+
+Use `dist/firefox` when creating the Firefox/AMO zip. Do not upload the Chromium zip to AMO because Firefox needs its own Gecko manifest metadata.
+
 Do not load the repository root. The root folder contains TypeScript source files and does not contain the runtime `manifest.json`.
 
 ## Testing

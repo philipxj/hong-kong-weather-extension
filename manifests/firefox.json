@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "香港天氣警報",
+  "description": "快速查看香港現時天氣、天氣警告、雷達圖、閃電位置及 7 天天氣預報。",
+  "version": "0.1.0",
+  "permissions": ["alarms", "notifications", "storage"],
+  "host_permissions": ["https://data.weather.gov.hk/*", "https://www.hko.gov.hk/*"],
+  "icons": {
+    "16": "assets/generated/weather-mark-16.png",
+    "32": "assets/generated/weather-mark-32.png",
+    "48": "assets/generated/weather-mark-48.png",
+    "128": "assets/generated/weather-mark-128.png"
+  },
+  "action": {
+    "default_title": "香港天氣警報",
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "assets/generated/weather-mark-16.png",
+      "32": "assets/generated/weather-mark-32.png",
+      "48": "assets/generated/weather-mark-48.png",
+      "128": "assets/generated/weather-mark-128.png"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "options_page": "options/index.html",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "hk-weather-alerts@fireshark.tech",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
+}

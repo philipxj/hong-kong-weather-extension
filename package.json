@@ -8,7 +8,9 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "build": "vite build && node scripts/build-manifest.mjs",
+    "build": "npm run build:chromium",
+    "build:chromium": "vite build && node scripts/build-manifest.mjs",
+    "build:firefox": "npm run build:chromium && node scripts/build-firefox.mjs",
     "format": "prettier --check .",
     "lint": "eslint .",
     "test": "npm run typecheck && npm run lint && npm run test:unit && npm run test:layout && npm run build",
