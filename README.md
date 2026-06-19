@@ -16,7 +16,7 @@ The extension uses Hong Kong Observatory Open Data and keeps a compact popup lay
 ## Install
 
 - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/koemdfkhpkadjclicmmjoaglaapcdlco
-- Chrome Web Store: Coming soon
+- Chrome Web Store: https://chromewebstore.google.com/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/chmlbbhplbepjboepkcngfnmbellhfge
 - Firefox Add-ons: Coming soon
 
 ## Data Source

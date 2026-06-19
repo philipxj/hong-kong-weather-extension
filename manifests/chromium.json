@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "香港天氣警報",
+  "name": "香港天氣預報",
   "description": "快速查看香港現時天氣、天氣警告、雷達圖、閃電位置及 7 天天氣預報。",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "permissions": ["alarms", "notifications", "storage"],
   "host_permissions": ["https://data.weather.gov.hk/*", "https://www.hko.gov.hk/*"],
   "icons": {
@@ -12,7 +12,7 @@
     "128": "assets/generated/weather-mark-128.png"
   },
   "action": {
-    "default_title": "香港天氣警報",
+    "default_title": "香港天氣預報",
     "default_popup": "popup/index.html",
     "default_icon": {
       "16": "assets/generated/weather-mark-16.png",

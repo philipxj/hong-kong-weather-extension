@@ -3,6 +3,22 @@ import { constants } from "node:fs";
 import { describe, expect, test } from "vitest";
 
 describe("open source readiness", () => {
+  test("uses the localized product name in browser manifests", async () => {
+    const [chromiumManifest, firefoxManifest] = await Promise.all([
+      readFile(new URL("../manifests/chromium.json", import.meta.url), "utf8"),
+      readFile(new URL("../manifests/firefox.json", import.meta.url), "utf8")
+    ]);
+
+    for (const manifestText of [chromiumManifest, firefoxManifest]) {
+      const manifest = JSON.parse(manifestText) as {
+        name?: string;
+        action?: { default_title?: string };
+      };
+      expect(manifest.name).toBe("香港天氣預報");
+      expect(manifest.action?.default_title).toBe("香港天氣預報");
+    }
+  });
+
   test("documents license, data attribution, and unofficial status", async () => {
     const [license, notice, readme] = await Promise.all([
       readFile(new URL("../LICENSE", import.meta.url), "utf8"),
@@ -16,6 +32,8 @@ describe("open source readiness", () => {
     expect(notice).toContain("not affiliated with or endorsed by");
     expect(readme).toMatch(/unofficial/i);
     expect(readme).toContain("Hong Kong Observatory Open Data");
+    expect(readme).toContain("https://chromewebstore.google.com/detail/");
+    expect(readme).not.toContain("Chrome Web Store: Coming soon");
   });
 
   test("does not bundle or render the Hong Kong Observatory logo", async () => {
