@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a problem with Hong Kong Weather.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough detail to reproduce it.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the extension popup
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome
+        - Microsoft Edge
+        - Firefox
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      placeholder: "0.1.0"
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or logs
+      description: Add screenshots, console errors, or other useful context.
