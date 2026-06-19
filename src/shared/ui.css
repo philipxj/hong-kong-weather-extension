@@ -1108,16 +1108,16 @@ html[lang="en"] .special-weather-content {
 
 .special-weather-content {
   display: -webkit-box;
-  height: 56px;
-  padding: 3px 8px;
+  height: 48px;
+  padding: 2px 8px;
   overflow: hidden;
   color: #2b2b25;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
   background: transparent;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  line-height: 13px;
+  line-height: 11px;
 }
 
 .special-weather-card:hover {

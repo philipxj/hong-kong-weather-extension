@@ -200,7 +200,7 @@ test.describe("popup layout", () => {
         expect(overlaps(layout.readings, layout.special)).toBe(false);
         expect(overlaps(layout.special, layout.warning)).toBe(false);
         expect(overlaps(layout.currentTemp, layout.special)).toBe(false);
-        expect(layout.specialContent.height).toBeGreaterThanOrEqual(54);
+        expect(layout.specialContent.height).toBeGreaterThanOrEqual(46);
       }
       if (scenario.lang === "en" && scenario.special !== null) {
         expect(layout.specialContentDisplay).toBe("block");
