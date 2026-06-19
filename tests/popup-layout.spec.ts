@@ -246,7 +246,8 @@ test.describe("popup layout", () => {
         return {
           bottom: box.bottom,
           height: box.height,
-          top: box.top
+          top: box.top,
+          width: box.width
         };
       };
       const visible = (selector: string) =>
@@ -261,6 +262,7 @@ test.describe("popup layout", () => {
           );
         }).length;
       return {
+        preview: rect(".imagery-preview"),
         stepper: rect(".imagery-stepper"),
         tabs: rect(".imagery-tabs"),
         ranges: visible(".radar-range"),
@@ -317,8 +319,9 @@ test.describe("popup layout", () => {
       };
     });
 
-    expect(layout.card.width).toBeGreaterThanOrEqual(528);
-    expect(layout.preview.height).toBeGreaterThanOrEqual(358);
+    expect(Math.abs(layout.preview.width - layout.preview.height)).toBeLessThanOrEqual(1);
+    expect(layout.preview.width).toBeGreaterThan(compactControls.preview.width);
+    expect(layout.preview.height).toBeGreaterThan(compactControls.preview.height);
     expect(layout.card.top).toBeGreaterThanOrEqual(layout.shell.top);
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
