@@ -8,6 +8,11 @@ The extension uses Hong Kong Observatory Open Data and keeps a compact popup lay
 
 ![HK Weather Alerts popup screenshot](docs/screenshots/popup-zh-Hant.png)
 
+## Website
+
+- Product page: https://fireshark.tech/apps/hk-weather-alerts/
+- Privacy policy: https://fireshark.tech/legal/hk-weather-alerts-privacy-policy.html
+
 ## Data Source
 
 Weather observations, forecasts, warnings, and related imagery are fetched from:
