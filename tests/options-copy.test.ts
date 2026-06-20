@@ -35,6 +35,15 @@ describe("options copy", () => {
     expect(optionsCopy("en").warningCheckMinutesDescription).toContain("background service");
   });
 
+  test("describes the current refresh interval without including forecast updates", () => {
+    expect(optionsCopy("tc").currentRefreshMinutesDescription).toContain("紫外線");
+    expect(optionsCopy("tc").currentRefreshMinutesDescription).not.toContain("預報");
+    expect(optionsCopy("sc").currentRefreshMinutesDescription).toContain("紫外线");
+    expect(optionsCopy("sc").currentRefreshMinutesDescription).not.toContain("预报");
+    expect(optionsCopy("en").currentRefreshMinutesDescription).toContain("UV index");
+    expect(optionsCopy("en").currentRefreshMinutesDescription).not.toContain("forecast");
+  });
+
   test("marks the test notification button for localization", async () => {
     const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
     expect(html).toContain('id="test-notification"');

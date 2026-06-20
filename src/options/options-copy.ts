@@ -53,7 +53,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     badgeModeDescription:
       "自動會優先顯示警告；沒有警告時顯示溫度。也可改為只顯示溫度、只顯示警告，或關閉徽章。",
     currentRefreshMinutes: "現時天氣更新分鐘",
-    currentRefreshMinutesDescription: "控制現時氣溫、濕度、紫外線及預報資料隔多久重新更新。",
+    currentRefreshMinutesDescription: "控制現時氣溫、濕度及紫外線指數隔多久重新更新。",
     dataSource: "資料來源",
     dataSourceValue: "香港天文台開放數據",
     disclaimer: "免責聲明",
@@ -100,7 +100,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     badgeModeDescription:
       "自动会优先显示警告；没有警告时显示温度。也可改为只显示温度、只显示警告，或关闭徽章。",
     currentRefreshMinutes: "现时天气更新分钟",
-    currentRefreshMinutesDescription: "控制现时气温、湿度、紫外线及预报资料隔多久重新更新。",
+    currentRefreshMinutesDescription: "控制现时气温、湿度及紫外线指数隔多久重新更新。",
     dataSource: "资料来源",
     dataSourceValue: "香港天文台开放数据",
     disclaimer: "免责声明",
@@ -148,7 +148,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
       "Auto shows the highest warning first, then temperature when no warning is active. You can also force temperature, warning only, or hide the badge.",
     currentRefreshMinutes: "Current weather refresh minutes",
     currentRefreshMinutesDescription:
-      "Controls how often current temperature, humidity, UV index, and forecast data refresh.",
+      "Controls how often current temperature, humidity, and UV index refresh.",
     dataSource: "Data source",
     dataSourceValue: "Hong Kong Observatory Open Data",
     disclaimer: "Disclaimer",
