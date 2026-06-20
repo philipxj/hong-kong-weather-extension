@@ -437,6 +437,60 @@ test.describe("popup layout", () => {
     await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
   });
 
+  test("hides unavailable snapshot controls in expanded imagery fallback", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    await page.locator(".imagery-stepper").evaluate((node) => {
+      node.setAttribute("hidden", "");
+      node.querySelectorAll("button, span").forEach((child) => child.setAttribute("hidden", ""));
+    });
+    await page.locator(".radar-ranges").evaluate((node) => {
+      node.setAttribute("hidden", "");
+      node.replaceChildren();
+    });
+    await page.locator(".imagery-fallback").evaluate((node) => {
+      node.removeAttribute("hidden");
+      node.textContent = "未能載入";
+    });
+    await page.locator(".imagery-image-crop-map").evaluate((node) => {
+      node.setAttribute("hidden", "");
+    });
+
+    await page.locator(".imagery-expand").click();
+
+    await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
+    await expect(page.locator(".imagery-stepper")).toBeHidden();
+    await expect(page.locator(".radar-ranges")).toBeHidden();
+    await expect(page.locator(".imagery-expand")).toHaveText("縮小");
+
+    const layout = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          left: box.left,
+          right: box.right,
+          top: box.top
+        };
+      };
+      return {
+        expandButton: rect(".imagery-expand"),
+        fallback: rect(".imagery-fallback")
+      };
+    });
+    expect(layout.expandButton.bottom).toBeLessThan(
+      layout.fallback.top + (layout.fallback.bottom - layout.fallback.top) / 2 - 20
+    );
+  });
+
   test("collapses expanded imagery widget when clicking outside", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
@@ -620,7 +674,7 @@ async function fixtureHtml({
               <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             </section>
             <section class="legacy-side-panel">
-              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div><button class="imagery-expand" type="button">放大</button></div><div class="imagery-caption"><span>時間</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
+              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div><button class="imagery-expand" type="button">放大</button><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"><span>時間</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
               <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
             </section>
             <section class="legacy-forecast">
@@ -661,6 +715,15 @@ async function fixtureHtml({
             window.clearTimeout(previewClickTimer);
             previewClickTimer = undefined;
           };
+          const renderImageryExpandButton = () => {
+            if (imageryExpand) {
+              imageryExpand.textContent = imageryCard?.classList.contains("is-expanded") ? "縮小" : "放大";
+            }
+          };
+          const toggleImageryExpanded = () => {
+            imageryCard?.classList.toggle("is-expanded");
+            renderImageryExpandButton();
+          };
           const shouldIgnorePreviewAction = (target) => {
             return target instanceof Element && Boolean(target.closest(".imagery-stepper, button"));
           };
@@ -700,11 +763,11 @@ async function fixtureHtml({
             if (shouldIgnorePreviewAction(event.target)) return;
             clearPreviewClickTimer();
             event.preventDefault();
-            imageryCard?.classList.toggle("is-expanded");
+            toggleImageryExpanded();
           });
           imageryExpand?.addEventListener("click", (event) => {
             event.stopPropagation();
-            imageryCard?.classList.toggle("is-expanded");
+            toggleImageryExpanded();
           });
           document.addEventListener("click", (event) => {
             if (!imageryCard?.classList.contains("is-expanded")) return;
