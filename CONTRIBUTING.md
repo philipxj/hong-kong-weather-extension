@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve HK Weather Alerts Extension.
+Thanks for helping improve Hong Kong Weather.
 
 ## Development
 

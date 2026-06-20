@@ -1,6 +1,6 @@
 # Notice
 
-HK Weather Alerts Extension is an independent, unofficial browser extension. It is not affiliated with or endorsed by the Hong Kong Observatory, the Government of the Hong Kong Special Administrative Region, or DATA.GOV.HK.
+Hong Kong Weather is an independent, unofficial browser extension. It is not affiliated with or endorsed by the Hong Kong Observatory, the Government of the Hong Kong Special Administrative Region, or DATA.GOV.HK.
 
 ## Data Attribution
 
