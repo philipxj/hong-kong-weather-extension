@@ -149,12 +149,7 @@
         </div>
       </section>
     </main>
-    <script>
-      if (location.protocol === "file:") {
-        document.getElementById("loading").textContent =
-          "不能直接用 file:// 開啟 popup；請用開發伺服器或載入擴充功能。";
-      }
-    </script>
+    <script src="./file-preview.js"></script>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

@@ -24,6 +24,10 @@ function isInsideAssetRoot(path: string): boolean {
   return path === assetRoot || path.startsWith(`${assetRoot}${sep}`);
 }
 
+function removeFilePreviewHelper(html: string): string {
+  return html.replace(/\s*<script src="\.\/file-preview\.js"><\/script>/, "");
+}
+
 async function serveRootAsset(
   url: string | undefined,
   response: ServerResponse,
@@ -60,6 +64,14 @@ export default defineConfig({
         server.middlewares.use("/assets", (request, response, next) => {
           void serveRootAsset(request.url, response, next);
         });
+      }
+    },
+    {
+      name: "remove-file-preview-helper-from-build",
+      apply: "build",
+      enforce: "pre",
+      transformIndexHtml(html, context) {
+        return context.path.endsWith("/popup/index.html") ? removeFilePreviewHelper(html) : html;
       }
     }
   ],
