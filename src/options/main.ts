@@ -13,10 +13,12 @@ import type { Language, Settings } from "../shared/types";
 const form = query<HTMLFormElement>("#options-form");
 const status = query<HTMLElement>("#save-status");
 const testNotificationButton = query<HTMLButtonElement>("#test-notification");
+const appVersion = query<HTMLElement>("#app-version");
 
 const settings = await getSettings();
 hydrate(settings);
 applyOptionsLanguage(settings.language);
+renderAppVersion();
 
 type TestNotificationResponse =
   | {
@@ -127,6 +129,11 @@ function applyOptionsLanguage(language: Language): void {
     if (!key) return;
     element.textContent = copy[key];
   });
+}
+
+function renderAppVersion(): void {
+  const version = browserApi.runtime.getManifest().version;
+  appVersion.textContent = version ? `v${version}` : "";
 }
 
 function clampNumber(value: string, min: number, max: number, fallback: number): number {

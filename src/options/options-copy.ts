@@ -2,6 +2,7 @@ import type { Language } from "../shared/types";
 
 interface OptionsCopy {
   about: string;
+  appVersionLabel: string;
   auto: string;
   badgeMode: string;
   badgeModeDescription: string;
@@ -14,6 +15,7 @@ interface OptionsCopy {
   display: string;
   english: string;
   englishDescription: string;
+  githubRepository: string;
   language: string;
   notificationChangesOnlyDescription: string;
   notifications: string;
@@ -48,6 +50,7 @@ interface OptionsCopy {
 export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
   tc: {
     about: "關於",
+    appVersionLabel: "版本",
     auto: "自動",
     badgeMode: "徽章模式",
     badgeModeDescription:
@@ -61,6 +64,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     display: "顯示",
     english: "English",
     englishDescription: "設定頁、popup 文字及天文台連結使用英文。",
+    githubRepository: "GitHub",
     language: "語言",
     notificationChangesOnlyDescription:
       "通知只會在警告狀態有變化時發出；已經生效中的警告不會每次更新都彈出。",
@@ -95,6 +99,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
   },
   sc: {
     about: "关于",
+    appVersionLabel: "版本",
     auto: "自动",
     badgeMode: "徽章模式",
     badgeModeDescription:
@@ -108,6 +113,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     display: "显示",
     english: "English",
     englishDescription: "设置页、popup 文字及天文台链接使用英文。",
+    githubRepository: "GitHub",
     language: "语言",
     notificationChangesOnlyDescription:
       "通知只会在警告状态有变化时发出；已经生效中的警告不会每次更新都弹出。",
@@ -142,6 +148,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
   },
   en: {
     about: "About",
+    appVersionLabel: "Version",
     auto: "Auto",
     badgeMode: "Badge mode",
     badgeModeDescription:
@@ -157,6 +164,7 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     display: "Display",
     english: "English",
     englishDescription: "Use English for settings, popup labels, and Observatory links.",
+    githubRepository: "GitHub",
     language: "Language",
     notificationChangesOnlyDescription:
       "Notifications are sent only when warning status changes. Existing active warnings do not notify on every refresh.",
