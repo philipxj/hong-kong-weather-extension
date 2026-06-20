@@ -14,6 +14,7 @@ describe("browser API adapter", () => {
     listener = () => false;
     vi.stubGlobal("chrome", {
       runtime: {
+        getManifest: vi.fn(() => ({ version: "0.1.1" })),
         onMessage: {
           addListener: vi.fn((callback: RuntimeListener) => {
             listener = callback;
@@ -41,5 +42,9 @@ describe("browser API adapter", () => {
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith(null));
 
     expect(keepChannelOpen).toBe(true);
+  });
+
+  test("reads extension metadata through the runtime adapter", () => {
+    expect(browserApi.runtime.getManifest().version).toBe("0.1.1");
   });
 });

@@ -50,6 +50,7 @@ export const browserApi = {
   },
   runtime: {
     getUrl: (path: string) => chrome.runtime.getURL(path),
+    getManifest: () => chrome.runtime.getManifest(),
     onInstalled: (callback: () => void | Promise<void>) => {
       chrome.runtime.onInstalled.addListener(() => {
         void callback();

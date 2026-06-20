@@ -134,6 +134,12 @@ test.describe("popup layout", () => {
           forecast: rect(".legacy-forecast"),
           forecastBackground: getComputedStyle(document.querySelector(".legacy-forecast")!)
             .backgroundColor,
+          forecastBorderBottomWidth: getComputedStyle(document.querySelector(".legacy-forecast")!)
+            .borderBottomWidth,
+          forecastBorderTopWidth: getComputedStyle(document.querySelector(".legacy-forecast")!)
+            .borderTopWidth,
+          forecastBoxShadow: getComputedStyle(document.querySelector(".legacy-forecast")!)
+            .boxShadow,
           forecastDayBackground: getComputedStyle(document.querySelector(".legacy-forecast-day")!)
             .backgroundColor,
           forecastDayBackgroundImage: getComputedStyle(
@@ -145,8 +151,14 @@ test.describe("popup layout", () => {
           forecastDayHeights: [...document.querySelectorAll(".legacy-forecast-day")].map((node) =>
             Math.round(node.getBoundingClientRect().height)
           ),
+          firstForecastConnectorContent: getComputedStyle(
+            document.querySelector(".legacy-forecast-day:first-child")!,
+            "::before"
+          ).content,
           imageryCard: rect(".imagery-card"),
           shell: rect(".popup-shell"),
+          shellPaddingBottom: getComputedStyle(document.querySelector(".popup-shell")!)
+            .paddingBottom,
           side: rect(".legacy-side-panel"),
           specialHidden: document.querySelector(".special-weather-card")?.hasAttribute("hidden"),
           special: rect(".special-weather-card"),
@@ -177,8 +189,12 @@ test.describe("popup layout", () => {
             .textOverflow,
           titleTextScrollWidth:
             document.querySelector<HTMLElement>(".legacy-weather-title")!.scrollWidth,
+          appVersion: rect(".app-version"),
+          appVersionText: document.querySelector(".app-version")?.textContent,
           meta: rect(".legacy-meta"),
+          timestamp: rect(".timestamp"),
           warning: rect(".warning-signal-row"),
+          contentLeftPadding: Math.round(rect(".legacy-current").left - rect(".popup-shell").left),
           forecastItemsInside: allInside(".legacy-forecast", ".legacy-forecast-day"),
           signalItemsInside: allInside(".warning-signal-row", ".warning-signal"),
           signalCount: document.querySelectorAll(".warning-signal").length,
@@ -192,6 +208,10 @@ test.describe("popup layout", () => {
 
       expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
       expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight);
+      expect(layout.contentLeftPadding).toBe(12);
+      expect(layout.shellPaddingBottom).toBe("7px");
+      expect(layout.forecast.left).toBe(layout.current.left);
+      expect(layout.meta.left).toBe(layout.current.left);
       expect(layout.forecast.bottom).toBeLessThanOrEqual(layout.shell.bottom - 12);
       expect(layout.warning.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
       expect(layout.side.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
@@ -220,13 +240,19 @@ test.describe("popup layout", () => {
       expect(layout.forecastItemsInside).toBe(true);
       expect(layout.forecastDayCount).toBe(7);
       expect(new Set(layout.forecastDayHeights).size).toBe(1);
-      expect(layout.forecastBackground).not.toBe("rgba(0, 0, 0, 0)");
+      expect(layout.forecastBackground).toBe("rgba(0, 0, 0, 0)");
+      expect(layout.forecastBorderTopWidth).toBe("0px");
+      expect(layout.forecastBorderBottomWidth).toBe("0px");
+      expect(layout.forecastBoxShadow).toBe("none");
       expect(layout.forecastDayBackground).not.toBe("rgb(255, 255, 255)");
       expect(layout.forecastDayBackgroundImage).not.toBe("none");
       expect(layout.forecastDayBorderRadius).toBe("8px");
+      expect(layout.firstForecastConnectorContent).toBe("none");
       expect(layout.specialTitleBackground).not.toBe("rgb(255, 228, 109)");
       expect(layout.signalItemsInside).toBe(true);
       expect(layout.signalIconCount).toBe(layout.signalCount);
+      expect(layout.appVersionText).toBe("v0.1.1");
+      expect(layout.appVersion.left).toBeGreaterThanOrEqual(layout.timestamp.right);
     });
   }
 
@@ -275,6 +301,16 @@ test.describe("popup layout", () => {
     expect(
       Math.abs(compactControls.stepper.bottom - compactControls.tabs.bottom)
     ).toBeLessThanOrEqual(1);
+
+    const radarCrop = await page.locator(".imagery-preview").evaluate((preview) => {
+      const image = preview.querySelector("img");
+      if (!image) throw new Error("Missing imagery image");
+      return {
+        imageWidth: image.getBoundingClientRect().width,
+        previewWidth: preview.getBoundingClientRect().width
+      };
+    });
+    expect(radarCrop.imageWidth).toBeGreaterThan(radarCrop.previewWidth * 1.6);
 
     await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
 
@@ -510,7 +546,7 @@ async function fixtureHtml({
                 ${days.map(([date, temp]) => `<div class="legacy-forecast-day"><div class="legacy-forecast-date">${date}</div><img class="legacy-forecast-icon" src="${ICON}" alt=""><div class="legacy-forecast-temp">${temp}</div></div>`).join("")}
               </div>
             </section>
-            <div class="legacy-meta"><span class="timestamp">13:30 更新</span></div>
+            <div class="legacy-meta"><span class="timestamp">13:30 更新</span><span class="app-version">v0.1.1</span></div>
           </section>
         </main>
         <script>
