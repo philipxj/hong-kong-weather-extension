@@ -26,12 +26,24 @@ describe("options copy", () => {
     expect(optionsCopy("tc").testNotificationDescription).toContain("測試通知");
     expect(optionsCopy("tc").testNotificationCreatedNoPopup).toContain("Chrome 已建立通知");
     expect(optionsCopy("tc").currentRefreshMinutesDescription).toContain("隔多久");
+    expect(optionsCopy("tc").currentRefreshMinutesDescription).toContain("氣溫");
+    expect(optionsCopy("tc").currentRefreshMinutesDescription).toContain("濕度");
+    expect(optionsCopy("tc").currentRefreshMinutesDescription).toContain("紫外線");
+    expect(optionsCopy("tc").currentRefreshMinutesDescription).not.toContain("預報");
+    expect(optionsCopy("sc").currentRefreshMinutesDescription).toContain("气温");
+    expect(optionsCopy("sc").currentRefreshMinutesDescription).toContain("湿度");
+    expect(optionsCopy("sc").currentRefreshMinutesDescription).toContain("紫外线");
+    expect(optionsCopy("sc").currentRefreshMinutesDescription).not.toContain("预报");
     expect(optionsCopy("en").badgeModeDescription).toContain("highest warning");
     expect(optionsCopy("en").notificationChangesOnlyDescription).toContain("status changes");
     expect(optionsCopy("en").testNotification).toBe("Test notification");
     expect(optionsCopy("en").testNotificationCreatedNoPopup).toContain(
       "Chrome created the notification"
     );
+    expect(optionsCopy("en").currentRefreshMinutesDescription).toContain("current temperature");
+    expect(optionsCopy("en").currentRefreshMinutesDescription).toContain("humidity");
+    expect(optionsCopy("en").currentRefreshMinutesDescription).toContain("UV index");
+    expect(optionsCopy("en").currentRefreshMinutesDescription).not.toContain("forecast");
     expect(optionsCopy("en").warningCheckMinutesDescription).toContain("background service");
   });
 
