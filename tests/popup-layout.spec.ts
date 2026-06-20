@@ -189,8 +189,7 @@ test.describe("popup layout", () => {
             .textOverflow,
           titleTextScrollWidth:
             document.querySelector<HTMLElement>(".legacy-weather-title")!.scrollWidth,
-          appVersion: rect(".app-version"),
-          appVersionText: document.querySelector(".app-version")?.textContent,
+          hasAppVersion: document.querySelector(".app-version") !== null,
           meta: rect(".legacy-meta"),
           timestamp: rect(".timestamp"),
           warning: rect(".warning-signal-row"),
@@ -251,8 +250,7 @@ test.describe("popup layout", () => {
       expect(layout.specialTitleBackground).not.toBe("rgb(255, 228, 109)");
       expect(layout.signalItemsInside).toBe(true);
       expect(layout.signalIconCount).toBe(layout.signalCount);
-      expect(layout.appVersionText).toBe("v0.1.1");
-      expect(layout.appVersion.left).toBeGreaterThanOrEqual(layout.timestamp.right);
+      expect(layout.hasAppVersion).toBe(false);
     });
   }
 
@@ -546,7 +544,7 @@ async function fixtureHtml({
                 ${days.map(([date, temp]) => `<div class="legacy-forecast-day"><div class="legacy-forecast-date">${date}</div><img class="legacy-forecast-icon" src="${ICON}" alt=""><div class="legacy-forecast-temp">${temp}</div></div>`).join("")}
               </div>
             </section>
-            <div class="legacy-meta"><span class="timestamp">13:30 更新</span><span class="app-version">v0.1.1</span></div>
+            <div class="legacy-meta"><span class="timestamp">13:30 更新</span></div>
           </section>
         </main>
         <script>

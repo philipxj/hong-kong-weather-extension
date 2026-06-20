@@ -13,10 +13,16 @@ describe("options copy", () => {
   test("localizes settings labels and save status", () => {
     expect(optionsCopy("tc").options).toBe("設定");
     expect(optionsCopy("tc").saveSettings).toBe("儲存設定");
+    expect(optionsCopy("tc").appVersionLabel).toBe("版本");
+    expect(optionsCopy("tc").githubRepository).toBe("GitHub");
     expect(optionsCopy("sc").options).toBe("设置");
     expect(optionsCopy("sc").saveSettings).toBe("保存设置");
+    expect(optionsCopy("sc").appVersionLabel).toBe("版本");
+    expect(optionsCopy("sc").githubRepository).toBe("GitHub");
     expect(optionsCopy("en").options).toBe("Options");
     expect(optionsCopy("en").saveSettings).toBe("Save settings");
+    expect(optionsCopy("en").appVersionLabel).toBe("Version");
+    expect(optionsCopy("en").githubRepository).toBe("GitHub");
   });
 
   test("explains what configurable options do", () => {
@@ -66,5 +72,21 @@ describe("options copy", () => {
     expect(html).not.toContain('id="compactMode"');
     expect(html).not.toContain('data-i18n="compactMode"');
     expect(html).not.toContain('data-i18n="compactModeDescription"');
+  });
+
+  test("shows version and GitHub repository metadata in the about section", async () => {
+    const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
+    expect(html).toContain('data-i18n="appVersionLabel"');
+    expect(html).toContain('id="app-version"');
+    expect(html).toContain('data-i18n="githubRepository"');
+    expect(html).toContain('href="https://github.com/philipxj/hong-kong-weather-extension"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noreferrer"');
+  });
+
+  test("does not show the app version in the popup footer", async () => {
+    const html = await readFile(new URL("../src/popup/index.html", import.meta.url), "utf8");
+    expect(html).not.toContain('id="app-version"');
+    expect(html).not.toContain('class="app-version"');
   });
 });
