@@ -1,6 +1,59 @@
 import type { WeatherWarning } from "./types";
 
-const HKO_WARNING_ICON_ROOT = "https://www.hko.gov.hk/images_e";
+const WEATHER_ICON_ROOT = "assets/hko/weather-icons";
+const WARNING_ICON_ROOT = "assets/hko/warning-icons";
+
+export const HKO_WEATHER_ICON_CODES = [
+  "50",
+  "51",
+  "52",
+  "53",
+  "54",
+  "60",
+  "61",
+  "62",
+  "63",
+  "64",
+  "65",
+  "76",
+  "77",
+  "80",
+  "81",
+  "82",
+  "83",
+  "84",
+  "85",
+  "90",
+  "91",
+  "92",
+  "93"
+] as const;
+
+export const HKO_WARNING_ICON_PREFIXES = [
+  "raina",
+  "rainr",
+  "rainb",
+  "ts",
+  "landslip",
+  "ntfl",
+  "sms",
+  "frost",
+  "firey",
+  "firer",
+  "vhot",
+  "cold",
+  "tsunami-warn",
+  "tc1",
+  "tc3",
+  "tc8ne",
+  "tc8nw",
+  "tc8se",
+  "tc8sw",
+  "tc9",
+  "tc10"
+] as const;
+
+const WEATHER_ICON_CODES = new Set<string>(HKO_WEATHER_ICON_CODES);
 
 const TYPHOON_ICON_PREFIXES: Record<string, string> = {
   TC1: "tc1",
@@ -13,14 +66,20 @@ const TYPHOON_ICON_PREFIXES: Record<string, string> = {
   TC10: "tc10"
 };
 
-export function hkoWarningIconUrl(
-  warning: Pick<WeatherWarning, "badge" | "code" | "type">
-): string {
-  const prefix = hkoWarningIconPrefix(warning);
-  return prefix ? `${HKO_WARNING_ICON_ROOT}/${prefix}.gif` : "";
+export function weatherIconAssetPath(icon: number | string | null): string {
+  if (icon == null || icon === "") return "";
+  const code = String(icon);
+  return WEATHER_ICON_CODES.has(code) ? `${WEATHER_ICON_ROOT}/pic${code}.png` : "";
 }
 
-export function hkoWarningIconPrefix(
+export function warningSignalIconAssetPath(
+  warning: Pick<WeatherWarning, "badge" | "code" | "type">
+): string {
+  const prefix = warningSignalIconPrefix(warning);
+  return prefix ? `${WARNING_ICON_ROOT}/${prefix}.gif` : "";
+}
+
+export function warningSignalIconPrefix(
   warning: Pick<WeatherWarning, "badge" | "code" | "type">
 ): string {
   const code = warning.code.toUpperCase();
@@ -44,4 +103,14 @@ export function hkoWarningIconPrefix(
   if (badge in TYPHOON_ICON_PREFIXES) return TYPHOON_ICON_PREFIXES[badge] ?? "";
 
   return "";
+}
+
+export function warningSignalText(
+  warning: Pick<WeatherWarning, "badge" | "code" | "name">
+): string {
+  return firstText(warning.badge, warning.code, warning.name);
+}
+
+function firstText(...values: Array<string | undefined>): string {
+  return values.map((value) => value?.trim()).find(Boolean) ?? "";
 }

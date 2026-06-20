@@ -54,11 +54,20 @@ export const WARNING_PRIORITY = [
 ] as const;
 
 const API_ROOT = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php";
-const HKO_ICON_BASE = "https://www.hko.gov.hk/images/wxicon";
+const LATEST_UV_URLS: Record<Language, string> = {
+  en: "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex.csv",
+  sc: "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex_sc.csv",
+  tc: "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex_uc.csv"
+};
 const STORAGE_KEYS = {
   settings: "settings",
   cache: "weatherCache"
 } as const;
+
+export interface LatestUvIndex {
+  updatedAt: string;
+  value: number;
+}
 
 export async function getSettings(): Promise<Settings> {
   const stored = await browserApi.storage.sync.get<Partial<Settings>>(STORAGE_KEYS.settings);
@@ -82,11 +91,12 @@ export async function refreshWeather(settings: Settings | null = null): Promise<
   const previous = await getCachedWeather();
 
   try {
-    const [current, forecast, warnsum, warningInfo] = await Promise.all([
+    const [current, forecast, warnsum, warningInfo, latestUv] = await Promise.all([
       fetchHkoJson(`${API_ROOT}?dataType=rhrread&lang=${lang}`, hkoCurrentSchema),
       fetchHkoJson(`${API_ROOT}?dataType=fnd&lang=${lang}`, hkoForecastSchema),
       fetchHkoJson(`${API_ROOT}?dataType=warnsum&lang=${lang}`, hkoWarnsumSchema),
-      fetchHkoJson(`${API_ROOT}?dataType=warningInfo&lang=${lang}`, hkoWarningInfoSchema)
+      fetchHkoJson(`${API_ROOT}?dataType=warningInfo&lang=${lang}`, hkoWarningInfoSchema),
+      fetchLatestUv(activeSettings.language).catch(() => null)
     ]);
 
     const data = normalizeWeather({
@@ -94,6 +104,7 @@ export async function refreshWeather(settings: Settings | null = null): Promise<
       forecast,
       warnsum,
       warningInfo,
+      latestUv,
       settings: activeSettings,
       fetchedAt: new Date().toISOString(),
       stale: false,
@@ -120,10 +131,10 @@ export async function refreshCurrentWeather(
   }
 
   try {
-    const current = await fetchHkoJson(
-      `${API_ROOT}?dataType=rhrread&lang=${lang}`,
-      hkoCurrentSchema
-    );
+    const [current, latestUv] = await Promise.all([
+      fetchHkoJson(`${API_ROOT}?dataType=rhrread&lang=${lang}`, hkoCurrentSchema),
+      fetchLatestUv(activeSettings.language).catch(() => null)
+    ]);
 
     const data: WeatherData = {
       ...previous,
@@ -131,7 +142,7 @@ export async function refreshCurrentWeather(
       fetchedAt: new Date().toISOString(),
       stale: false,
       error: null,
-      current: normalizeCurrentWeather(current, previous.warnings, activeSettings)
+      current: normalizeCurrentWeather(current, previous.warnings, activeSettings, latestUv)
     };
 
     await browserApi.storage.local.set({ [STORAGE_KEYS.cache]: data });
@@ -239,7 +250,6 @@ export async function updateBadge(
   await browserApi.action.setTitle({
     title: formatActionTitle(weather, warningBadge, temperatureBadge)
   });
-  await updateActionIcon(weather.current.icon);
 }
 
 export async function sendTestNotification(language: Language): Promise<NotificationTestResult> {
@@ -321,6 +331,7 @@ export function formatWarningBadgeForLanguage(
 interface NormalizeWeatherInput {
   current: HkoCurrent;
   forecast: HkoForecast;
+  latestUv?: LatestUvIndex | null;
   warnsum: HkoWarnsum;
   warningInfo: HkoWarningInfo;
   settings: Pick<Settings, "language">;
@@ -338,6 +349,7 @@ export interface NotificationTestResult {
 export function normalizeWeather({
   current,
   forecast,
+  latestUv,
   warnsum,
   warningInfo,
   settings,
@@ -351,7 +363,7 @@ export function normalizeWeather({
     fetchedAt,
     stale,
     error,
-    current: normalizeCurrentWeather(current, warnings, settings),
+    current: normalizeCurrentWeather(current, warnings, settings, latestUv),
     forecast: normalizeForecast(forecast),
     warnings,
     warningInfo: normalizeWarningInfo(warningInfo)
@@ -361,12 +373,13 @@ export function normalizeWeather({
 function normalizeCurrentWeather(
   current: HkoCurrent,
   warnings: WeatherWarning[],
-  settings: Pick<Settings, "language">
+  settings: Pick<Settings, "language">,
+  latestUv: LatestUvIndex | null = null
 ): CurrentWeather {
   return {
     temperature: firstNumber(current.temperature?.data, "value"),
     humidity: firstNumber(current.humidity?.data, "value"),
-    uvIndex: current.uvindex?.data?.[0]?.value ?? null,
+    uvIndex: latestUv?.value ?? current.uvindex?.data?.[0]?.value ?? null,
     uvDesc: current.uvindex?.data?.[0]?.desc ?? "",
     rainfall: firstNumber(current.rainfall?.data, "max"),
     icon: current.icon?.[0] ?? null,
@@ -538,6 +551,28 @@ async function fetchHkoJson<T>(url: string, schema: { parse: (value: unknown) =>
     throw new Error(`HKO request failed: ${response.status}`);
   }
   return schema.parse(await response.json());
+}
+
+async function fetchLatestUv(language: Language): Promise<LatestUvIndex | null> {
+  const response = await fetch(LATEST_UV_URLS[language], { cache: "no-store" });
+  if (!response.ok) return null;
+  return parseLatestUvCsv(await response.text());
+}
+
+export function parseLatestUvCsv(text: string): LatestUvIndex | null {
+  const normalized = text.replace(/^\uFEFF/, "").trim();
+  if (!normalized) return null;
+
+  const match = normalized.match(/(\d{12})\s*,\s*([0-9]+(?:\.[0-9]+)?)\s*$/);
+  if (!match) return null;
+
+  const value = Number(match[2]);
+  if (!Number.isFinite(value)) return null;
+
+  return {
+    updatedAt: match[1] ?? "",
+    value
+  };
 }
 
 function toHkoLang(language: Language): Language {
@@ -780,40 +815,6 @@ function formatAutoBadgeText(warningBadge: string, temperatureBadge: string): st
 
 function formatTemperatureBadge(value: number | null): string {
   return value != null ? `${Math.round(value)}°` : "";
-}
-
-async function updateActionIcon(icon: number | string | null): Promise<void> {
-  if (!icon) return;
-
-  try {
-    await browserApi.action.setIcon({
-      imageData: await buildActionIconImageData(hkoIconUrl(icon))
-    });
-  } catch {
-    // Keep the previous extension icon if the HKO icon cannot be loaded in this context.
-  }
-}
-
-async function buildActionIconImageData(url: string): Promise<Record<number, ImageData>> {
-  const response = await fetch(url, { cache: "force-cache" });
-  if (!response.ok) throw new Error(`Weather icon request failed: ${response.status}`);
-
-  const bitmap = await createImageBitmap(await response.blob());
-  return Object.fromEntries([16, 32, 48, 128].map((size) => [size, renderIconSize(bitmap, size)]));
-}
-
-function renderIconSize(bitmap: ImageBitmap, size: number): ImageData {
-  const canvas = new OffscreenCanvas(size, size);
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Unable to render weather icon.");
-
-  context.clearRect(0, 0, size, size);
-  context.drawImage(bitmap, 0, 0, size, size);
-  return context.getImageData(0, 0, size, size);
-}
-
-function hkoIconUrl(icon: number | string): string {
-  return `${HKO_ICON_BASE}/pic${encodeURIComponent(String(icon))}.png`;
 }
 
 function formatActionTitle(

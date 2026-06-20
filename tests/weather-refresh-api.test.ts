@@ -61,21 +61,46 @@ describe("weather refresh API usage", () => {
     vi.stubGlobal("fetch", vi.fn(fetchHkoFixture));
   });
 
-  test("full refresh calls all four HKO weather datasets", async () => {
-    await refreshWeather(DEFAULT_SETTINGS);
+  test("full refresh calls all four HKO weather datasets and latest UV CSV", async () => {
+    const data = await refreshWeather(DEFAULT_SETTINGS);
 
     expect(fetchDataTypes()).toEqual(["rhrread", "fnd", "warnsum", "warningInfo"]);
+    expect(fetchUrls()).toContain(
+      "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex_uc.csv"
+    );
+    expect(data.current.uvIndex).toBe(8.2);
+    expect(data.current.uvDesc).toBe("中等");
   });
 
-  test("current weather refresh only calls the current readings dataset", async () => {
+  test("current weather refresh only calls current readings and latest UV CSV", async () => {
     mockState.local.weatherCache = cachedWeather();
 
     const data = await refreshCurrentWeather(DEFAULT_SETTINGS);
 
     expect(fetchDataTypes()).toEqual(["rhrread"]);
+    expect(fetchUrls()).toContain(
+      "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex_uc.csv"
+    );
     expect(data.current.temperature).toBe(30);
+    expect(data.current.uvIndex).toBe(8.2);
     expect(data.forecast[0]?.date).toBe("20260618");
     expect(data.warnings.map((warning) => warning.code)).toEqual(["WRAINA"]);
+  });
+
+  test("current weather refresh keeps rhrread UV when latest UV CSV fails", async () => {
+    mockState.local.weatherCache = cachedWeather();
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = inputToUrl(input);
+      if (url.includes("latest_15min_uvindex")) {
+        return Promise.resolve({ ok: false, text: () => Promise.resolve("") } as Response);
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const data = await refreshCurrentWeather(DEFAULT_SETTINGS);
+
+    expect(data.current.uvIndex).toBe(4);
+    expect(data.current.uvDesc).toBe("中等");
   });
 
   test("forecast refresh only calls the forecast dataset", async () => {
@@ -109,6 +134,13 @@ describe("weather refresh API usage", () => {
 
 function fetchHkoFixture(input: string | URL | Request): Promise<Response> {
   const url = new URL(inputToUrl(input));
+  if (url.pathname.endsWith("latest_15min_uvindex_uc.csv")) {
+    return Promise.resolve({
+      ok: true,
+      text: () => Promise.resolve("\uFEFF日期 時間,過去十五分鐘平均紫外線指數 202606201800,8.2")
+    } as Response);
+  }
+
   const dataType = url.searchParams.get("dataType");
 
   return Promise.resolve({
@@ -120,7 +152,12 @@ function fetchHkoFixture(input: string | URL | Request): Promise<Response> {
 function fetchDataTypes(): string[] {
   return vi
     .mocked(fetch)
-    .mock.calls.map(([input]) => new URL(inputToUrl(input)).searchParams.get("dataType") ?? "");
+    .mock.calls.map(([input]) => new URL(inputToUrl(input)).searchParams.get("dataType"))
+    .filter((dataType): dataType is string => Boolean(dataType));
+}
+
+function fetchUrls(): string[] {
+  return vi.mocked(fetch).mock.calls.map(([input]) => inputToUrl(input));
 }
 
 function inputToUrl(input: string | URL | Request): string {

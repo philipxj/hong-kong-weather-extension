@@ -755,10 +755,73 @@ html[lang="en"] .legacy-weather-title {
   object-fit: contain;
 }
 
-.warning-signal-fallback {
-  color: #111;
-  font-size: 16px;
-  font-weight: 800;
+.warning-signal-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1;
+  text-align: center;
+  background: #50647a;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  box-shadow:
+    0 5px 12px rgba(25, 38, 52, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.warning-signal-glyph[data-signal-type="rain-amber"] {
+  color: #4b3700;
+  background: #ffd84d;
+}
+
+.warning-signal-glyph[data-signal-type="rain-red"],
+.warning-signal-glyph[data-signal-type="fire-red"] {
+  background: #df1d1d;
+}
+
+.warning-signal-glyph[data-signal-type="rain-black"] {
+  background: #111111;
+}
+
+.warning-signal-glyph[data-signal-type="typhoon"] {
+  background: #295f9d;
+}
+
+.warning-signal-glyph[data-signal-type="thunderstorm"] {
+  color: #2f2600;
+  background: #f5c542;
+}
+
+.warning-signal-glyph[data-signal-type="landslip"],
+.warning-signal-glyph[data-signal-type="flooding"] {
+  background: #7c4d2a;
+}
+
+.warning-signal-glyph[data-signal-type="monsoon"] {
+  background: #2f6f8f;
+}
+
+.warning-signal-glyph[data-signal-type="frost"],
+.warning-signal-glyph[data-signal-type="cold"] {
+  color: #15395d;
+  background: #cce9ff;
+}
+
+.warning-signal-glyph[data-signal-type="fire-yellow"] {
+  color: #402c00;
+  background: #f5bd2d;
+}
+
+.warning-signal-glyph[data-signal-type="heat"] {
+  background: #d94f1f;
+}
+
+.warning-signal-glyph[data-signal-type="tsunami"] {
+  font-size: 11px;
+  background: #6d3f94;
 }
 
 .legacy-side-panel {

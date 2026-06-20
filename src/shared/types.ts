@@ -91,4 +91,4 @@ export interface WeatherData {
   warningInfo: WarningInfo[];
 }
 
-export type ImageryType = "radar" | "satellite" | "lightning";
+export type ImageryType = "radar" | "lightning";
