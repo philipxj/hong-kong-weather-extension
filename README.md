@@ -32,16 +32,18 @@ See the [privacy policy](https://fireshark.tech/legal/hk-weather-alerts-privacy-
 Weather observations, forecasts, warnings, and related imagery are fetched from:
 
 - Hong Kong Observatory Open Data: https://data.weather.gov.hk/
-- Hong Kong Observatory website assets and links: https://www.hko.gov.hk/
+- Bundled Hong Kong Observatory weather and warning icon materials: `assets/hko/`
+- Hong Kong Observatory website radar and lightning imagery: https://www.hko.gov.hk/
 - DATA.GOV.HK open data portal terms: https://data.gov.hk/en/terms-and-conditions
 
-Use of the data is subject to the source terms. The extension should always identify the Hong Kong Observatory, the Government of the Hong Kong Special Administrative Region, and DATA.GOV.HK as the relevant data source where attribution is shown.
+Use of the data and bundled HKO materials is subject to the source terms. The extension should always identify the Hong Kong Observatory, the Government of the Hong Kong Special Administrative Region, and DATA.GOV.HK as the relevant data source where attribution is shown.
 
 ## Branding
 
-This project uses its own extension icon in `assets/weather-mark.png` and `assets/generated/`.
+This project uses its own extension icon in `assets/weather-mark.svg` and `assets/generated/`.
+Popup weather and warning icons in `assets/hko/` are copied from Hong Kong Observatory website materials for free non-commercial use and are not covered by the repository MIT License.
 
-Do not bundle the Hong Kong Observatory logo, government logos, or other protected marks in this repository unless you have explicit permission and have documented that permission. HKO warning, weather, radar, satellite, and lightning images are loaded from the official source URLs at runtime where needed.
+Do not bundle the Hong Kong Observatory logo, government logos, DATA.GOV.HK marks, or other protected marks in this repository unless you have explicit permission and have documented that permission. Radar and lightning imagery are loaded from the official HKO website at runtime because they are core popup features and are not currently replaced by bundled assets.
 
 ## Documentation
 
@@ -105,4 +107,4 @@ See `CONTRIBUTING.md` for development, testing, browser compatibility, and attri
 
 ## License
 
-MIT. See `LICENSE`.
+The extension code is MIT licensed. See `LICENSE`. Bundled HKO icon materials in `assets/hko/` are third-party materials subject to HKO/Government terms; see `assets/hko/NOTICE.md`.

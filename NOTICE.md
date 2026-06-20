@@ -4,13 +4,15 @@ Hong Kong Weather is an independent, unofficial browser extension. It is not aff
 
 ## Data Attribution
 
-This extension uses weather observations, forecasts, warning information, and related public weather resources from the Hong Kong Observatory and DATA.GOV.HK.
+This extension uses weather observations, forecasts, warning information, 15-minute UV index data, bundled weather/warning icon materials, and selected radar/lightning imagery resources from the Hong Kong Observatory and DATA.GOV.HK.
 
 Relevant source links:
 
 - Hong Kong Observatory Open Data: https://data.weather.gov.hk/
 - Hong Kong Observatory: https://www.hko.gov.hk/
 - DATA.GOV.HK terms and conditions: https://data.gov.hk/en/terms-and-conditions
+
+Weather and warning icons in `assets/hko/` are copied from Hong Kong Observatory website materials for free non-commercial use. They are not project artwork and are not licensed under this repository's MIT License. See `assets/hko/NOTICE.md`.
 
 The source data and materials remain subject to the applicable terms, notices, copyright, trademark, and attribution requirements of their providers. The extension code is licensed separately under the MIT License.
 

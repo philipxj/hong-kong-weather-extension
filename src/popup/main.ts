@@ -1,8 +1,12 @@
 import { browserApi } from "../shared/browser-api";
 import { hkoPageUrl } from "../shared/hko-links";
-import { hkoWarningIconUrl } from "../shared/hko-warning-icons";
 import { createInFlightTaskRunner } from "../shared/in-flight-task";
 import { getImageryUrlsWithCache } from "../shared/imagery-cache";
+import {
+  warningSignalIconAssetPath,
+  warningSignalText,
+  weatherIconAssetPath
+} from "../shared/local-weather-assets";
 import { weatherScene } from "./weather-scene";
 import {
   getCachedWeather,
@@ -54,12 +58,10 @@ const state: PopupState = {
 };
 const runImageryLoad = createInFlightTaskRunner<void>();
 
-const HKO_ICON_BASE = "https://www.hko.gov.hk/images/wxicon";
 const HKO_ROOT = "https://www.hko.gov.hk";
 const RADAR_LIST_URL = `${HKO_ROOT}/wxinfo/radars/temp_json/nradar_img.json`;
 const LIGHTNING_SCRIPT_URL = `${HKO_ROOT}/wxinfo/llis/llisradar/radar-image.js`;
 const LIGHTNING_IMAGE_ROOT = `${HKO_ROOT}/wxinfo/llis/llisradar/images`;
-const SATELLITE_IMAGE_URL = `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_sate_gallery_tc.gif`;
 const RADAR_RANGE_LABELS: Record<RadarRangeId, string> = {
   range0: "256km",
   range1: "128km",
@@ -72,10 +74,6 @@ const IMAGERY: Record<ImageryType, ImageryItem> = {
   radar: {
     fallbackUrl: `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_radar_tc.gif`,
     imageUrl: `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_radar_tc.gif`
-  },
-  satellite: {
-    fallbackUrl: SATELLITE_IMAGE_URL,
-    imageUrl: SATELLITE_IMAGE_URL
   },
   lightning: {
     fallbackUrl: `${HKO_ROOT}/en/wxinfo/intersat/misc_images/images/icon_radar_lightn_tc.gif`
@@ -259,17 +257,14 @@ const COPY: Record<
 const IMAGERY_TITLES: Record<Language, Record<ImageryType, string>> = {
   tc: {
     radar: "等雨量線圖",
-    satellite: "衛星圖像",
     lightning: "閃電位置"
   },
   sc: {
     radar: "等雨量线图",
-    satellite: "卫星图像",
     lightning: "闪电位置"
   },
   en: {
     radar: "Radar Image",
-    satellite: "Satellite Image",
     lightning: "Lightning"
   }
 };
@@ -797,19 +792,21 @@ function warningSignalElement(
   warning: WeatherWarning,
   type: WarningSignalClass
 ): HTMLImageElement | HTMLSpanElement {
-  const iconUrl = hkoWarningIconUrl(warning);
-  if (!iconUrl) {
-    const fallback = document.createElement("span");
-    fallback.className = "warning-signal-fallback";
-    fallback.textContent = stringifyHtmlValue(warning.badge || warning.name);
-    return fallback;
+  const iconPath = warningSignalIconAssetPath(warning);
+  if (iconPath) {
+    const icon = document.createElement("img");
+    icon.className = "warning-signal-icon";
+    icon.src = browserApi.runtime.getUrl(iconPath);
+    icon.alt = warning.name || type;
+    return icon;
   }
 
-  const icon = document.createElement("img");
-  icon.className = "warning-signal-icon";
-  icon.src = iconUrl;
-  icon.alt = warning.name || type;
-  return icon;
+  const glyph = document.createElement("span");
+  glyph.className = "warning-signal-icon warning-signal-glyph";
+  glyph.textContent = warningSignalText(warning);
+  glyph.setAttribute("aria-hidden", "true");
+  glyph.dataset.signalType = type;
+  return glyph;
 }
 
 function renderForecast(forecast: ForecastDay[]): void {
@@ -961,21 +958,13 @@ function weekdayShort(value: string, language: Language): string {
   return weekday.replace("星期", "").replace("周", "").replace("週", "").replace("禮拜", "");
 }
 
-function stringifyHtmlValue(value: unknown): string {
-  if (value == null) return "";
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
-    return String(value);
-  }
-  return "";
-}
-
-function hkoIconUrl(icon: number | string | null): string {
-  return icon ? `${HKO_ICON_BASE}/pic${encodeURIComponent(String(icon))}.png` : "";
+function localWeatherIconUrl(icon: number | string | null): string {
+  const assetPath = weatherIconAssetPath(icon);
+  return assetPath ? browserApi.runtime.getUrl(assetPath) : "";
 }
 
 function setWeatherIcon(img: HTMLImageElement, icon: number | string | null, alt = ""): void {
-  const url = hkoIconUrl(icon);
+  const url = localWeatherIconUrl(icon);
   img.alt = alt;
   img.hidden = !url;
   if (!url) {
@@ -999,7 +988,7 @@ function weatherCaption(
 }
 
 function toImageryType(value: string | undefined): ImageryType {
-  if (value === "satellite" || value === "lightning") return value;
+  if (value === "lightning") return value;
   return "radar";
 }
 

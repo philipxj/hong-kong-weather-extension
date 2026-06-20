@@ -20,10 +20,11 @@ describe("open source readiness", () => {
   });
 
   test("documents license, data attribution, and unofficial status", async () => {
-    const [license, notice, readme] = await Promise.all([
+    const [license, notice, readme, hkoNotice] = await Promise.all([
       readFile(new URL("../LICENSE", import.meta.url), "utf8"),
       readFile(new URL("../NOTICE.md", import.meta.url), "utf8"),
-      readFile(new URL("../README.md", import.meta.url), "utf8")
+      readFile(new URL("../README.md", import.meta.url), "utf8"),
+      readFile(new URL("../assets/hko/NOTICE.md", import.meta.url), "utf8")
     ]);
 
     expect(license).toContain("MIT License");
@@ -32,6 +33,9 @@ describe("open source readiness", () => {
     expect(notice).toContain("not affiliated with or endorsed by");
     expect(readme).toMatch(/unofficial/i);
     expect(readme).toContain("Hong Kong Observatory Open Data");
+    expect(readme).toContain("assets/hko/");
+    expect(hkoNotice).toContain("not licensed under this repository's MIT License");
+    expect(hkoNotice).toContain("non-commercial");
     expect(readme).toContain("https://chromewebstore.google.com/detail/");
     expect(readme).not.toContain("Chrome Web Store: Coming soon");
   });

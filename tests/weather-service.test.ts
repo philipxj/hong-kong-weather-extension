@@ -9,8 +9,10 @@ import {
   getActionBadgeWarnings,
   getSignalWarnings,
   normalizeWeather,
+  parseLatestUvCsv,
   refreshWeather,
-  sendTestNotification
+  sendTestNotification,
+  updateBadge
 } from "../src/shared/weather-service";
 import type { WeatherWarning, WarningType } from "../src/shared/types";
 
@@ -35,6 +37,29 @@ describe("weather service normalization", () => {
 
     expect(weather.current.uvIndex).toBeNull();
     expect(weather.current.uvDesc).toBe("");
+  });
+
+  test("parses latest 15-minute UV CSV in supported languages", () => {
+    expect(parseLatestUvCsv("\uFEFF日期 時間,過去十五分鐘平均紫外線指數 202606201800,0.2")).toEqual(
+      {
+        updatedAt: "202606201800",
+        value: 0.2
+      }
+    );
+    expect(parseLatestUvCsv("Date time,past 15-minute mean UV Index 202606170745,8.2")).toEqual({
+      updatedAt: "202606170745",
+      value: 8.2
+    });
+    expect(parseLatestUvCsv("\uFEFF日期 时间,过去十五分钟平均紫外线指数 202605261800,11")).toEqual({
+      updatedAt: "202605261800",
+      value: 11
+    });
+  });
+
+  test("ignores malformed latest UV CSV", () => {
+    expect(parseLatestUvCsv("")).toBeNull();
+    expect(parseLatestUvCsv("Date time,past 15-minute mean UV Index")).toBeNull();
+    expect(parseLatestUvCsv("Date time,past 15-minute mean UV Index 202606170745,N/A")).toBeNull();
   });
 
   test("normalizes active warning badges from warnsum codes", () => {
@@ -290,6 +315,31 @@ describe("weather service normalization", () => {
     expect(badgeTextColor("黑")).toBe("#ffffff");
   });
 
+  test("updates toolbar badge without fetching remote weather icons", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("chrome", {
+      action: {
+        setBadgeBackgroundColor: vi.fn(),
+        setBadgeText: vi.fn(),
+        setBadgeTextColor: vi.fn(),
+        setTitle: vi.fn()
+      },
+      runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) },
+      storage: {
+        local: { get: vi.fn(), set: vi.fn() },
+        sync: { get: vi.fn(), set: vi.fn() }
+      }
+    });
+
+    try {
+      await updateBadge(cachedWeatherForBadge(), DEFAULT_SETTINGS);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test("sends a test notification through the browser adapter", async () => {
     const create = vi.fn().mockResolvedValue("hk-weather-alerts-test");
     vi.stubGlobal("chrome", {
@@ -433,5 +483,30 @@ function warning(type: WarningType, badge: string, priority: number): WeatherWar
     updateTime: "",
     expireTime: "",
     contents: ""
+  };
+}
+
+function cachedWeatherForBadge() {
+  return {
+    current: {
+      forecast: "多雲",
+      humidity: 87,
+      icon: 64,
+      rainfall: null,
+      summary: "",
+      temperature: 28,
+      tips: [],
+      uvDesc: "低",
+      uvIndex: 0.4,
+      warningMessages: [],
+      warningSummary: ""
+    },
+    error: null,
+    fetchedAt: "2026-06-18T04:00:00.000Z",
+    forecast: [],
+    language: "tc" as const,
+    stale: false,
+    warningInfo: [],
+    warnings: []
   };
 }
