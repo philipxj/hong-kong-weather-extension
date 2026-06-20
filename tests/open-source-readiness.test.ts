@@ -52,4 +52,24 @@ describe("open source readiness", () => {
     expect(popupHtml).toContain("HKO");
     expect(popupHtml).toContain("Open Hong Kong Observatory");
   });
+
+  test("keeps extension pages free of inline scripts", async () => {
+    const htmlFiles = [
+      new URL("../src/options/index.html", import.meta.url),
+      new URL("../src/popup/index.html", import.meta.url)
+    ];
+
+    for (const file of htmlFiles) {
+      const html = await readFile(file, "utf8");
+      const inlineScripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>/gi)];
+      expect(inlineScripts).toEqual([]);
+    }
+  });
+
+  test("shows the direct file warning without requiring popup scripts", async () => {
+    const popupHtml = await readFile(new URL("../src/popup/index.html", import.meta.url), "utf8");
+
+    expect(popupHtml).toContain("不能直接用 file:// 開啟 popup；請用開發伺服器或載入擴充功能。");
+    expect(popupHtml).not.toContain("file-preview.js");
+  });
 });

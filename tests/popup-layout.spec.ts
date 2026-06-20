@@ -94,6 +94,13 @@ function overlaps(a: Rect, b: Rect): boolean {
 }
 
 test.describe("popup layout", () => {
+  test("explains direct file popup loading instead of staying stuck", async ({ page }) => {
+    await page.goto(`file://${path.join(ROOT, "src", "popup", "index.html")}`);
+
+    await expect(page.locator("#loading")).toContainText("file://");
+    await expect(page.locator("#loading")).not.toHaveText("Loading weather data...");
+  });
+
   for (const scenario of scenarios) {
     test(`does not overlap in ${scenario.name}`, async ({ page }) => {
       await page.setViewportSize({ width: 790, height: 438 });
@@ -270,6 +277,8 @@ test.describe("popup layout", () => {
         return {
           bottom: box.bottom,
           height: box.height,
+          left: box.left,
+          right: box.right,
           top: box.top,
           width: box.width
         };
@@ -286,7 +295,10 @@ test.describe("popup layout", () => {
           );
         }).length;
       return {
+        caption: rect(".imagery-caption"),
+        expandButton: rect(".imagery-expand"),
         preview: rect(".imagery-preview"),
+        rangeWidget: rect(".radar-ranges"),
         stepper: rect(".imagery-stepper"),
         tabs: rect(".imagery-tabs"),
         ranges: visible(".radar-range"),
@@ -294,7 +306,20 @@ test.describe("popup layout", () => {
       };
     });
     expect(compactControls.snapshots).toBe(0);
-    expect(compactControls.ranges).toBe(1);
+    expect(compactControls.ranges).toBe(3);
+    await expect(page.locator(".imagery-expand")).toHaveText("放大");
+    expect(compactControls.rangeWidget.right).toBeLessThanOrEqual(compactControls.preview.right);
+    expect(compactControls.rangeWidget.bottom).toBeLessThanOrEqual(compactControls.preview.bottom);
+    expect(compactControls.rangeWidget.left).toBeGreaterThanOrEqual(compactControls.preview.left);
+    expect(overlaps(compactControls.caption, compactControls.rangeWidget)).toBe(false);
+    expect(compactControls.expandButton.left).toBeGreaterThanOrEqual(compactControls.preview.left);
+    expect(compactControls.expandButton.right).toBeLessThanOrEqual(compactControls.preview.right);
+    expect(compactControls.expandButton.top).toBeGreaterThanOrEqual(compactControls.preview.top);
+    expect(compactControls.expandButton.bottom).toBeLessThanOrEqual(compactControls.preview.bottom);
+    expect(overlaps(compactControls.expandButton, compactControls.tabs)).toBe(false);
+    expect(overlaps(compactControls.expandButton, compactControls.stepper)).toBe(false);
+    expect(overlaps(compactControls.expandButton, compactControls.caption)).toBe(false);
+    expect(overlaps(compactControls.expandButton, compactControls.rangeWidget)).toBe(false);
     expect(Math.abs(compactControls.stepper.top - compactControls.tabs.top)).toBeLessThanOrEqual(1);
     expect(
       Math.abs(compactControls.stepper.bottom - compactControls.tabs.bottom)
@@ -309,6 +334,7 @@ test.describe("popup layout", () => {
       };
     });
     expect(radarCrop.imageWidth).toBeGreaterThan(radarCrop.previewWidth * 1.6);
+    await expect(page.locator(".imagery-caption")).toHaveText("時間12:06");
 
     await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
 
@@ -366,6 +392,103 @@ test.describe("popup layout", () => {
     expect(expandedControls.ranges).toBe(3);
   });
 
+  test("uses preview click zones and explicit controls for imagery navigation", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    const preview = page.locator(".imagery-preview");
+    const previewBox = await preview.boundingBox();
+    if (!previewBox) throw new Error("Missing imagery preview bounds");
+
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+
+    await preview.click({
+      position: {
+        x: previewBox.width * 0.25,
+        y: previewBox.height * 0.5
+      }
+    });
+    await expect(page.locator(".imagery-position")).toHaveText("4 / 5");
+    await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+
+    await preview.click({
+      position: {
+        x: previewBox.width * 0.75,
+        y: previewBox.height * 0.5
+      }
+    });
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+    await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+
+    await preview.dblclick({
+      position: {
+        x: previewBox.width * 0.5,
+        y: previewBox.height * 0.5
+      }
+    });
+    await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+  });
+
+  test("hides unavailable snapshot controls in expanded imagery fallback", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    await page.locator(".imagery-stepper").evaluate((node) => {
+      node.setAttribute("hidden", "");
+      node.querySelectorAll("button, span").forEach((child) => child.setAttribute("hidden", ""));
+    });
+    await page.locator(".radar-ranges").evaluate((node) => {
+      node.setAttribute("hidden", "");
+      node.replaceChildren();
+    });
+    await page.locator(".imagery-fallback").evaluate((node) => {
+      node.removeAttribute("hidden");
+      node.textContent = "未能載入";
+    });
+    await page.locator(".imagery-image-crop-map").evaluate((node) => {
+      node.setAttribute("hidden", "");
+    });
+
+    await page.locator(".imagery-expand").click();
+
+    await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
+    await expect(page.locator(".imagery-stepper")).toBeHidden();
+    await expect(page.locator(".radar-ranges")).toBeHidden();
+    await expect(page.locator(".imagery-expand")).toHaveText("縮小");
+
+    const layout = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          left: box.left,
+          right: box.right,
+          top: box.top
+        };
+      };
+      return {
+        expandButton: rect(".imagery-expand"),
+        fallback: rect(".imagery-fallback")
+      };
+    });
+    expect(layout.expandButton.bottom).toBeLessThan(
+      layout.fallback.top + (layout.fallback.bottom - layout.fallback.top) / 2 - 20
+    );
+  });
+
   test("collapses expanded imagery widget when clicking outside", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
@@ -375,7 +498,7 @@ test.describe("popup layout", () => {
       }
     );
 
-    await page.locator(".imagery-preview").click();
+    await page.locator(".imagery-expand").click();
     await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
 
     await page.locator(".radar-range").first().click();
@@ -421,12 +544,6 @@ test.describe("popup layout", () => {
         node.setAttribute("aria-selected", "true");
         node.previousElementSibling?.setAttribute("aria-selected", "false");
       });
-    await page
-      .locator(".imagery-caption span")
-      .first()
-      .evaluate((node) => {
-        node.textContent = "閃電位置";
-      });
     await page.locator(".imagery-preview img").evaluate((node) => {
       node.classList.add("imagery-image-lightning");
     });
@@ -439,11 +556,30 @@ test.describe("popup layout", () => {
     await expect(page.locator(".imagery-snapshot")).toHaveCount(0);
     await expect(page.locator(".radar-range")).toHaveText(["256km", "64km"]);
     await expect(page.locator(".radar-range", { hasText: "128km" })).toHaveCount(0);
+    await expect(page.locator(".radar-range").filter({ visible: true })).toHaveCount(2);
 
     const gridColumnCount = await page.locator(".radar-ranges").evaluate((node) => {
       return getComputedStyle(node).gridTemplateColumns.split(" ").length;
     });
     expect(gridColumnCount).toBe(2);
+    const compactLayout = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          left: box.left,
+          right: box.right,
+          top: box.top
+        };
+      };
+      return {
+        caption: rect(".imagery-caption"),
+        rangeWidget: rect(".radar-ranges")
+      };
+    });
+    expect(overlaps(compactLayout.caption, compactLayout.rangeWidget)).toBe(false);
 
     const lightningCrop = await page.locator(".imagery-preview").evaluate((preview) => {
       const image = preview.querySelector("img");
@@ -536,7 +672,7 @@ async function fixtureHtml({
               <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             </section>
             <section class="legacy-side-panel">
-              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div></div><div class="imagery-caption"><span>等雨量線圖</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
+              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div><button class="imagery-expand" type="button">放大</button><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"><span>時間</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
               <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
             </section>
             <section class="legacy-forecast">
@@ -551,10 +687,12 @@ async function fixtureHtml({
           const imageryCard = document.querySelector(".imagery-card");
           const imageryPreview = document.querySelector(".imagery-preview");
           const imageryPosition = document.querySelector(".imagery-position");
+          const imageryExpand = document.querySelector(".imagery-expand");
           const imageryPrev = document.querySelector(".imagery-prev");
           const imageryNext = document.querySelector(".imagery-next");
           const snapshotCount = 5;
           let selectedSnapshotIndex = snapshotCount - 1;
+          let previewClickTimer;
           const updateStepper = () => {
             if (imageryPosition) {
               imageryPosition.textContent = (selectedSnapshotIndex + 1) + " / " + snapshotCount;
@@ -566,15 +704,34 @@ async function fixtureHtml({
               imageryNext.disabled = selectedSnapshotIndex >= snapshotCount - 1;
             }
           };
+          const stepSnapshot = (direction) => {
+            selectedSnapshotIndex = Math.max(0, Math.min(snapshotCount - 1, selectedSnapshotIndex + direction));
+            updateStepper();
+          };
+          const clearPreviewClickTimer = () => {
+            if (previewClickTimer === undefined) return;
+            window.clearTimeout(previewClickTimer);
+            previewClickTimer = undefined;
+          };
+          const renderImageryExpandButton = () => {
+            if (imageryExpand) {
+              imageryExpand.textContent = imageryCard?.classList.contains("is-expanded") ? "縮小" : "放大";
+            }
+          };
+          const toggleImageryExpanded = () => {
+            imageryCard?.classList.toggle("is-expanded");
+            renderImageryExpandButton();
+          };
+          const shouldIgnorePreviewAction = (target) => {
+            return target instanceof Element && Boolean(target.closest(".imagery-stepper, button"));
+          };
           imageryPrev?.addEventListener("click", (event) => {
             event.stopPropagation();
-            selectedSnapshotIndex = Math.max(0, selectedSnapshotIndex - 1);
-            updateStepper();
+            stepSnapshot(-1);
           });
           imageryNext?.addEventListener("click", (event) => {
             event.stopPropagation();
-            selectedSnapshotIndex = Math.min(snapshotCount - 1, selectedSnapshotIndex + 1);
-            updateStepper();
+            stepSnapshot(1);
           });
           updateStepper();
           const title = document.querySelector(".legacy-weather-title");
@@ -590,8 +747,25 @@ async function fixtureHtml({
               title.style.fontSize = (size - 1) + "px";
             }
           }
-          imageryPreview?.addEventListener("click", () => {
-            imageryCard?.classList.toggle("is-expanded");
+          imageryPreview?.addEventListener("click", (event) => {
+            if (shouldIgnorePreviewAction(event.target)) return;
+            const box = imageryPreview.getBoundingClientRect();
+            const direction = event.clientX < box.left + box.width / 2 ? -1 : 1;
+            clearPreviewClickTimer();
+            previewClickTimer = window.setTimeout(() => {
+              previewClickTimer = undefined;
+              stepSnapshot(direction);
+            }, 220);
+          });
+          imageryPreview?.addEventListener("dblclick", (event) => {
+            if (shouldIgnorePreviewAction(event.target)) return;
+            clearPreviewClickTimer();
+            event.preventDefault();
+            toggleImageryExpanded();
+          });
+          imageryExpand?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            toggleImageryExpanded();
           });
           document.addEventListener("click", (event) => {
             if (!imageryCard?.classList.contains("is-expanded")) return;

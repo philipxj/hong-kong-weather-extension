@@ -162,6 +162,8 @@ const COPY: Record<
   {
     cacheNote: string;
     currentTemp: string;
+    collapseImagery: string;
+    expandImagery: string;
     fallbackWeather: string;
     forecastEmpty: string;
     humidity: string;
@@ -169,6 +171,7 @@ const COPY: Record<
     loadingFailed: string;
     noWarningSignals: string;
     noWeatherTips: string;
+    imageryTimePrefix: string;
     radarRangeSuffix: string;
     radarSnapshot: string;
     snapshotNext: string;
@@ -185,7 +188,9 @@ const COPY: Record<
 > = {
   tc: {
     cacheNote: "快取資料",
+    collapseImagery: "縮小",
     currentTemp: "現時氣溫",
+    expandImagery: "放大",
     fallbackWeather: "香港天氣",
     forecastEmpty: "沒有九天天氣預報資料。",
     humidity: "相對濕度",
@@ -193,6 +198,7 @@ const COPY: Record<
     loadingFailed: "未能載入",
     noWarningSignals: "沒有警告信號",
     noWeatherTips: "沒有生效提示",
+    imageryTimePrefix: "時間",
     radarRangeSuffix: "公里",
     radarSnapshot: "雷達圖",
     snapshotNext: "下一張",
@@ -208,7 +214,9 @@ const COPY: Record<
   },
   sc: {
     cacheNote: "快取资料",
+    collapseImagery: "缩小",
     currentTemp: "现时气温",
+    expandImagery: "放大",
     fallbackWeather: "香港天气",
     forecastEmpty: "没有九天天气预报资料。",
     humidity: "相对湿度",
@@ -216,6 +224,7 @@ const COPY: Record<
     loadingFailed: "未能载入",
     noWarningSignals: "没有警告信号",
     noWeatherTips: "没有生效提示",
+    imageryTimePrefix: "时间",
     radarRangeSuffix: "公里",
     radarSnapshot: "雷达图",
     snapshotNext: "下一张",
@@ -231,7 +240,9 @@ const COPY: Record<
   },
   en: {
     cacheNote: "Cached data",
+    collapseImagery: "Collapse",
     currentTemp: "Temperature",
+    expandImagery: "Expand",
     fallbackWeather: "Hong Kong Weather",
     forecastEmpty: "No forecast data available.",
     humidity: "Humidity",
@@ -239,6 +250,7 @@ const COPY: Record<
     loadingFailed: "Unable to load",
     noWarningSignals: "No warning signals",
     noWeatherTips: "No active notice",
+    imageryTimePrefix: "Time",
     radarRangeSuffix: "km",
     radarSnapshot: "Radar snapshot",
     snapshotNext: "Next image",
@@ -296,10 +308,12 @@ const els = {
   imageryTabs: document.querySelectorAll<HTMLButtonElement>(".imagery-tab"),
   imageryOpen: query<HTMLElement>("#imagery-open"),
   imageryImage: query<HTMLImageElement>("#imagery-image"),
+  imageryExpand: query<HTMLButtonElement>("#imagery-expand"),
   imageryFallback: query<HTMLElement>("#imagery-fallback"),
   imageryNext: query<HTMLButtonElement>("#imagery-next"),
   imageryPosition: query<HTMLElement>("#imagery-position"),
   imageryPrev: query<HTMLButtonElement>("#imagery-prev"),
+  imageryStepper: query<HTMLElement>("#imagery-stepper"),
   imageryTitle: query<HTMLElement>("#imagery-title"),
   imageryTime: query<HTMLElement>("#imagery-time"),
   specialWeatherTitle: query<HTMLElement>("#special-weather-title")
@@ -318,12 +332,26 @@ els.typhoonMap.addEventListener("click", () => {
 els.specialWeatherOpen.addEventListener("click", () => {
   void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "sweather_tips.html") });
 });
-els.imageryOpen.addEventListener("click", () => {
+let previewClickTimer: number | undefined;
+
+els.imageryOpen.addEventListener("click", (event) => {
+  if (shouldIgnorePreviewAction(event.target)) return;
+  const rect = els.imageryOpen.getBoundingClientRect();
+  const direction = event.clientX < rect.left + rect.width / 2 ? -1 : 1;
+  clearPreviewClickTimer();
+  previewClickTimer = window.setTimeout(() => {
+    previewClickTimer = undefined;
+    stepImagerySnapshot(direction);
+  }, 220);
+});
+els.imageryOpen.addEventListener("dblclick", (event) => {
+  if (shouldIgnorePreviewAction(event.target)) return;
+  clearPreviewClickTimer();
+  event.preventDefault();
   toggleImageryExpanded();
 });
-els.imageryOpen.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  event.preventDefault();
+els.imageryExpand.addEventListener("click", (event) => {
+  event.stopPropagation();
   toggleImageryExpanded();
 });
 els.imageryPrev.addEventListener("click", (event) => {
@@ -358,6 +386,7 @@ els.imageryTabs.forEach((tab) => {
   tab.addEventListener("click", () => selectImagery(toImageryType(tab.dataset.imagery)));
 });
 
+els.loading.textContent = "Loading weather data...";
 await load();
 
 async function load({ force = false }: { force?: boolean } = {}): Promise<void> {
@@ -558,8 +587,9 @@ function selectImagery(type: ImageryType = "radar"): void {
   els.imageryImage.classList.toggle("imagery-image-crop-map", canCropMap);
   els.imageryImage.classList.toggle("imagery-image-lightning", type === "lightning" && canCropMap);
   const title = imageryTitle(type);
-  els.imageryTitle.textContent = title;
-  els.imageryTime.textContent = imageTime(item.imageUrl) || "";
+  const time = imageTime(item.imageUrl);
+  els.imageryTitle.textContent = time ? copy().imageryTimePrefix : title;
+  els.imageryTime.textContent = time;
   els.imageryFallback.hidden = true;
   els.imageryImage.hidden = false;
   els.imageryImage.src = item.imageUrl || item.fallbackUrl;
@@ -570,10 +600,12 @@ function selectImagery(type: ImageryType = "radar"): void {
 
 function toggleImageryExpanded(): void {
   els.imageryCard.classList.toggle("is-expanded");
+  renderImageryExpandButton();
 }
 
 function collapseImageryExpanded(): void {
   els.imageryCard.classList.remove("is-expanded");
+  renderImageryExpandButton();
 }
 
 function renderRadarRanges(type: ImageryType): void {
@@ -589,7 +621,9 @@ function renderRadarRanges(type: ImageryType): void {
     button.type = "button";
     button.textContent = range.label;
     button.title = range.label.replace("km", copy().radarRangeSuffix);
-    button.setAttribute("aria-selected", String(range.id === IMAGERY[type].selectedRangeId));
+    const isSelected = range.id === IMAGERY[type].selectedRangeId;
+    button.setAttribute("aria-selected", String(isSelected));
+    button.setAttribute("aria-pressed", String(isSelected));
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       selectImageryRange(type, range.id);
@@ -639,6 +673,7 @@ function renderImageryStepper(type: ImageryType): void {
   const safeDisplayIndex = currentDisplayIndex >= 0 ? currentDisplayIndex : snapshots.length - 1;
   const hasSnapshots = usesSnapshotControls(type) && snapshots.length > 0;
 
+  els.imageryStepper.hidden = !hasSnapshots;
   els.imageryPrev.hidden = !hasSnapshots;
   els.imageryNext.hidden = !hasSnapshots;
   els.imageryPosition.hidden = !hasSnapshots;
@@ -860,6 +895,7 @@ function applyLanguage(language: Language): void {
   els.labelUv.textContent = localized.uvIndex;
   els.specialWeatherTitle.textContent = localized.specialWeather;
   els.updating.textContent = localized.updating;
+  renderImageryExpandButton(language);
   query<HTMLButtonElement>("#settings").title = localized.settings;
   query<HTMLButtonElement>("#settings").setAttribute("aria-label", localized.settings);
   els.imageryTabs.forEach((tab) => {
@@ -880,6 +916,26 @@ function localText(
   language: Language = activeLanguage()
 ): string {
   return values[language] ?? values.tc;
+}
+
+function clearPreviewClickTimer(): void {
+  if (previewClickTimer === undefined) return;
+  window.clearTimeout(previewClickTimer);
+  previewClickTimer = undefined;
+}
+
+function shouldIgnorePreviewAction(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest(".imagery-stepper, button"));
+}
+
+function renderImageryExpandButton(language: Language = activeLanguage()): void {
+  const localized = copy(language);
+  const label = els.imageryCard.classList.contains("is-expanded")
+    ? localized.collapseImagery
+    : localized.expandImagery;
+  els.imageryExpand.textContent = label;
+  els.imageryExpand.title = label;
+  els.imageryExpand.setAttribute("aria-label", label);
 }
 
 function imageryTitle(type: ImageryType, language: Language = activeLanguage()): string {
