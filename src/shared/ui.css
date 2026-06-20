@@ -378,7 +378,7 @@ body.popup-page {
   max-width: 790px;
   height: 438px;
   max-height: 438px;
-  padding: 22px 26px 14px 24px;
+  padding: 22px 26px 7px 12px;
   overflow: hidden;
   background-color: var(--surface-bg);
   background-image:
@@ -870,14 +870,13 @@ html[lang="en"] .legacy-weather-title {
 }
 
 .imagery-preview img.imagery-image-crop-map {
-  width: 138%;
+  width: 168%;
   max-width: none;
   object-fit: fill;
   object-position: left center;
 }
 
 .imagery-preview img.imagery-image-lightning {
-  width: 168%;
   object-position: left center;
 }
 
@@ -1150,18 +1149,16 @@ html[lang="en"] .special-weather-content {
 
 .legacy-forecast {
   position: absolute;
-  left: 24px;
+  left: 0;
   right: 26px;
   bottom: 25px;
   z-index: 0;
   padding: 0;
-  background: var(--surface-card);
-  border: 1px solid var(--border-soft);
+  background: transparent;
+  border: 0;
   border-radius: 8px;
-  box-shadow:
-    0 8px 22px rgba(31, 53, 76, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.74);
-  backdrop-filter: blur(12px);
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .legacy-forecast-list {
@@ -1191,24 +1188,10 @@ html[lang="en"] .special-weather-content {
 }
 
 .legacy-forecast-day:first-child {
+  padding-left: 3px;
   background-color: var(--surface-card-strong);
   background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.8), var(--accent-soft));
   border-color: color-mix(in srgb, var(--accent) 45%, white);
-}
-
-.legacy-forecast-day:first-child::before {
-  position: absolute;
-  top: 0;
-  right: 10px;
-  left: 10px;
-  height: 3px;
-  content: "";
-  background: var(--accent);
-  border-radius: 0 0 999px 999px;
-}
-
-.legacy-forecast-day:first-child {
-  padding-left: 3px;
 }
 
 .legacy-forecast-day:last-child {
@@ -1262,17 +1245,24 @@ html[lang="en"] .legacy-forecast-temp {
 
 .legacy-meta {
   position: absolute;
-  left: 24px;
+  left: 0;
   right: 18px;
   bottom: 6px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 7px;
   color: var(--text-muted);
   font-size: 11px;
   line-height: 14px;
   opacity: 1;
   pointer-events: none;
+}
+
+.app-version {
+  color: rgba(88, 112, 136, 0.78);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .popup-page .error-panel {
