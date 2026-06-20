@@ -289,7 +289,6 @@ const els = {
   error: query<HTMLElement>("#error"),
   cacheNote: query<HTMLElement>("#cache-note"),
   lastUpdated: query<HTMLElement>("#last-updated"),
-  appVersion: query<HTMLElement>("#app-version"),
   weatherIcon: query<HTMLImageElement>("#weather-icon"),
   topTemp: query<HTMLElement>("#top-temp"),
   topHumidity: query<HTMLElement>("#top-humidity"),
@@ -388,7 +387,6 @@ els.imageryTabs.forEach((tab) => {
 });
 
 els.loading.textContent = "Loading weather data...";
-renderAppVersion();
 await load();
 
 async function load({ force = false }: { force?: boolean } = {}): Promise<void> {
@@ -454,7 +452,6 @@ function render(): void {
   els.error.textContent = data.error ? `${localized.updateFailed} ${data.error.message}` : "";
   els.cacheNote.textContent = data.stale ? localized.cacheNote : "";
   els.lastUpdated.textContent = `${formatUpdateTime(data.fetchedAt)} ${localized.lastUpdated}`;
-  renderAppVersion();
 
   const caption = weatherCaption(data.current.icon, data.language);
   const scene = weatherScene(data.current.icon);
@@ -989,11 +986,6 @@ function formatUpdateTime(value: string): string {
     minute: "2-digit",
     timeZone: "Asia/Hong_Kong"
   });
-}
-
-function renderAppVersion(): void {
-  const version = browserApi.runtime.getManifest().version;
-  els.appVersion.textContent = version ? `v${version}` : "";
 }
 
 function weekdayShort(value: string, language: Language): string {

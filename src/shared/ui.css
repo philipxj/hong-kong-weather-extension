@@ -1350,12 +1350,6 @@ html[lang="en"] .legacy-forecast-temp {
   pointer-events: none;
 }
 
-.app-version {
-  color: rgba(88, 112, 136, 0.78);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .popup-page .error-panel {
   position: absolute;
   left: 28px;
