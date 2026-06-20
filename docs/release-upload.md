@@ -98,3 +98,6 @@ For store upload runs:
 
 After upload, submit the draft for review manually in the Chrome Developer
 Dashboard or Microsoft Partner Center.
+
+Store dashboard descriptions and release notes should be recorded in
+`docs/store-listing.md` before or alongside submitting a new public version.
