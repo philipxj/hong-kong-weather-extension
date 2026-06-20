@@ -101,9 +101,6 @@
             <div
               id="imagery-open"
               class="imagery-preview"
-              role="button"
-              tabindex="0"
-              aria-label="Open imagery"
             >
               <img id="imagery-image" alt="" />
               <div id="imagery-stepper" class="imagery-stepper" aria-label="Image snapshots">
@@ -125,10 +122,11 @@
                   ›
                 </button>
               </div>
+              <button id="imagery-expand" class="imagery-expand" type="button">放大</button>
               <span id="imagery-fallback" class="imagery-fallback" hidden>Loading</span>
             </div>
             <div class="imagery-caption">
-              <span id="imagery-title">等雨量線圖</span>
+              <span id="imagery-title">時間</span>
               <span id="imagery-time">--</span>
             </div>
             <div id="radar-ranges" class="radar-ranges" aria-label="Radar range"></div>
@@ -151,6 +149,12 @@
         </div>
       </section>
     </main>
+    <script>
+      if (location.protocol === "file:") {
+        document.getElementById("loading").textContent =
+          "不能直接用 file:// 開啟 popup；請用開發伺服器或載入擴充功能。";
+      }
+    </script>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
