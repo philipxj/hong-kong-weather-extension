@@ -69,7 +69,7 @@ describe("weather refresh API usage", () => {
       "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex_uc.csv"
     );
     expect(data.current.uvIndex).toBe(8.2);
-    expect(data.current.uvDesc).toBe("中等");
+    expect(data.current.uvDesc).toBe("甚高");
   });
 
   test("current weather refresh only calls current readings and latest UV CSV", async () => {
@@ -83,6 +83,7 @@ describe("weather refresh API usage", () => {
     );
     expect(data.current.temperature).toBe(30);
     expect(data.current.uvIndex).toBe(8.2);
+    expect(data.current.uvDesc).toBe("甚高");
     expect(data.forecast[0]?.date).toBe("20260618");
     expect(data.warnings.map((warning) => warning.code)).toEqual(["WRAINA"]);
   });

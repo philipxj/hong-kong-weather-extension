@@ -376,11 +376,16 @@ function normalizeCurrentWeather(
   settings: Pick<Settings, "language">,
   latestUv: LatestUvIndex | null = null
 ): CurrentWeather {
+  const rhrreadUv = current.uvindex?.data?.[0];
+  const uvIndex = latestUv?.value ?? rhrreadUv?.value ?? null;
+
   return {
     temperature: firstNumber(current.temperature?.data, "value"),
     humidity: firstNumber(current.humidity?.data, "value"),
-    uvIndex: latestUv?.value ?? current.uvindex?.data?.[0]?.value ?? null,
-    uvDesc: current.uvindex?.data?.[0]?.desc ?? "",
+    uvIndex,
+    uvDesc: latestUv
+      ? uvIndexDescription(latestUv.value, settings.language)
+      : (rhrreadUv?.desc ?? ""),
     rainfall: firstNumber(current.rainfall?.data, "max"),
     icon: current.icon?.[0] ?? null,
     summary: current.iconUpdateTime
@@ -391,6 +396,29 @@ function normalizeCurrentWeather(
     forecast: current.forecastDesc || current.generalSituation || "",
     warningSummary: warnings.map((warning) => warning.name).join(", ")
   };
+}
+
+function uvIndexDescription(value: number, language: Language): string {
+  const band =
+    value < 3
+      ? "low"
+      : value < 6
+        ? "moderate"
+        : value < 8
+          ? "high"
+          : value < 11
+            ? "veryHigh"
+            : "extreme";
+
+  const labels: Record<typeof band, Record<Language, string>> = {
+    low: { en: "Low", sc: "低", tc: "低" },
+    moderate: { en: "Moderate", sc: "中等", tc: "中等" },
+    high: { en: "High", sc: "高", tc: "高" },
+    veryHigh: { en: "Very High", sc: "甚高", tc: "甚高" },
+    extreme: { en: "Extreme", sc: "极高", tc: "極高" }
+  };
+
+  return labels[band][language];
 }
 
 function normalizeForecast(forecast: HkoForecast): ForecastDay[] {

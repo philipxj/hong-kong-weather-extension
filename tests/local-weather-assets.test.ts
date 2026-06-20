@@ -15,6 +15,8 @@ describe("local weather assets", () => {
     expect(weatherIconAssetPath(50)).toBe("assets/hko/weather-icons/pic50.png");
     expect(weatherIconAssetPath(64)).toBe("assets/hko/weather-icons/pic64.png");
     expect(weatherIconAssetPath(65)).toBe("assets/hko/weather-icons/pic65.png");
+    expect(weatherIconAssetPath(70)).toBe("assets/hko/weather-icons/pic70.png");
+    expect(weatherIconAssetPath(75)).toBe("assets/hko/weather-icons/pic75.png");
     expect(weatherIconAssetPath(83)).toBe("assets/hko/weather-icons/pic83.png");
     expect(weatherIconAssetPath(null)).toBe("");
   });
