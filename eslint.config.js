@@ -11,7 +11,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["*.js", "*.mjs", "scripts/*.mjs", "src/popup/*.js"]
+          allowDefaultProject: ["*.js", "*.mjs", "scripts/*.mjs"]
         },
         tsconfigRootDir: import.meta.dirname
       }
@@ -37,7 +37,7 @@ export default tseslint.config(
     }
   },
   {
-    files: ["*.js", "*.mjs", "scripts/*.mjs", "src/popup/*.js"],
+    files: ["*.js", "*.mjs", "scripts/*.mjs"],
     rules: {
       "@typescript-eslint/no-unsafe-assignment": "off"
     }

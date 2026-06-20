@@ -387,6 +387,7 @@ els.imageryTabs.forEach((tab) => {
   tab.addEventListener("click", () => selectImagery(toImageryType(tab.dataset.imagery)));
 });
 
+els.loading.textContent = "Loading weather data...";
 renderAppVersion();
 await load();
 

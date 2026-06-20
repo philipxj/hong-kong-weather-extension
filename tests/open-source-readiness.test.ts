@@ -65,4 +65,11 @@ describe("open source readiness", () => {
       expect(inlineScripts).toEqual([]);
     }
   });
+
+  test("shows the direct file warning without requiring popup scripts", async () => {
+    const popupHtml = await readFile(new URL("../src/popup/index.html", import.meta.url), "utf8");
+
+    expect(popupHtml).toContain("不能直接用 file:// 開啟 popup；請用開發伺服器或載入擴充功能。");
+    expect(popupHtml).not.toContain("file-preview.js");
+  });
 });

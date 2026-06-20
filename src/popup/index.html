@@ -38,7 +38,9 @@
       </div>
 
       <div id="error" class="error-panel" hidden></div>
-      <div id="loading" class="loading-state">Loading weather data...</div>
+      <div id="loading" class="loading-state">
+        不能直接用 file:// 開啟 popup；請用開發伺服器或載入擴充功能。
+      </div>
 
       <section id="content" class="legacy-content" hidden>
         <section class="legacy-current" aria-label="Current weather">
@@ -149,7 +151,6 @@
         </div>
       </section>
     </main>
-    <script src="./file-preview.js"></script>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
