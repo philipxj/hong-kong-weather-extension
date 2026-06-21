@@ -28,10 +28,11 @@ export async function uploadChromeDraft({
     chromeRefreshToken
   });
   const packageBytes = await readFileImpl(zipPath);
-  const itemUrl = `https://chromewebstore.googleapis.com/v2/publishers/${chromePublisherId}/items/${chromeExtensionId}`;
+  const uploadItemUrl = `https://chromewebstore.googleapis.com/upload/v2/publishers/${chromePublisherId}/items/${chromeExtensionId}`;
+  const publishItemUrl = `https://chromewebstore.googleapis.com/v2/publishers/${chromePublisherId}/items/${chromeExtensionId}`;
   const uploadPayload = await postZip({
     fetchImpl,
-    url: `${itemUrl}:upload`,
+    url: `${uploadItemUrl}:upload`,
     accessToken,
     packageBytes
   });
@@ -42,7 +43,7 @@ export async function uploadChromeDraft({
 
   const publishPayload = await postPublish({
     fetchImpl,
-    url: `${itemUrl}:publish`,
+    url: `${publishItemUrl}:publish`,
     accessToken
   });
 

@@ -32,6 +32,18 @@ describe("Chrome Web Store API upload", () => {
     });
 
     expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "https://chromewebstore.googleapis.com/upload/v2/publishers/publisher-id/items/extension-id:upload",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer access-token",
+          "Content-Type": "application/zip"
+        },
+        body: new Uint8Array([1, 2, 3])
+      }
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
       3,
       "https://chromewebstore.googleapis.com/v2/publishers/publisher-id/items/extension-id:publish",
       {
