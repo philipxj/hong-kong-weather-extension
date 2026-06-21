@@ -59,6 +59,15 @@ describe("options copy", () => {
     expect(html).toContain('data-i18n="testNotification"');
   });
 
+  test("keeps the test notification control hidden outside dev debug mode", async () => {
+    const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
+    const script = await readFile(new URL("../src/options/main.ts", import.meta.url), "utf8");
+
+    expect(html).toContain('id="notification-test-row"');
+    expect(html).toMatch(/id="notification-test-row"[^>]*hidden/);
+    expect(script).toContain("import.meta.env.DEV");
+  });
+
   test("uses compact tabs for language choices", async () => {
     const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
     expect(html).toContain('class="language-tabs"');

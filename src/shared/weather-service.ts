@@ -9,6 +9,7 @@ import {
   type HkoWarnsum,
   type HkoWarningInfo
 } from "./hko-schemas";
+import { weatherIconAssetPath } from "./local-weather-assets";
 import type {
   CurrentWeather,
   ForecastDay,
@@ -226,7 +227,14 @@ export async function updateBadge(
   const activeSettings = settings ?? (await getSettings());
   const weather = data ?? (await getCachedWeather());
 
-  if (!weather || activeSettings.badgeMode === "off") {
+  if (!weather) {
+    await browserApi.action.setBadgeText({ text: "" });
+    return;
+  }
+
+  await updateActionIcon(weather.current.icon);
+
+  if (activeSettings.badgeMode === "off") {
     await browserApi.action.setBadgeText({ text: "" });
     return;
   }
@@ -250,6 +258,13 @@ export async function updateBadge(
   await browserApi.action.setTitle({
     title: formatActionTitle(weather, warningBadge, temperatureBadge)
   });
+}
+
+async function updateActionIcon(icon: CurrentWeather["icon"]): Promise<void> {
+  const path = weatherIconAssetPath(icon);
+  if (!path) return;
+
+  await browserApi.action.setIcon({ path });
 }
 
 export async function sendTestNotification(language: Language): Promise<NotificationTestResult> {

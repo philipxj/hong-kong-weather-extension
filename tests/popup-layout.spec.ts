@@ -298,7 +298,11 @@ test.describe("popup layout", () => {
         caption: rect(".imagery-caption"),
         expandButton: rect(".imagery-expand"),
         preview: rect(".imagery-preview"),
+        rangeGap: getComputedStyle(document.querySelector(".radar-ranges")!).gap,
         rangeWidget: rect(".radar-ranges"),
+        rangeWidths: [...document.querySelectorAll(".radar-range")].map((node) =>
+          Math.round(node.getBoundingClientRect().width)
+        ),
         stepper: rect(".imagery-stepper"),
         tabs: rect(".imagery-tabs"),
         ranges: visible(".radar-range"),
@@ -308,9 +312,19 @@ test.describe("popup layout", () => {
     expect(compactControls.snapshots).toBe(0);
     expect(compactControls.ranges).toBe(3);
     await expect(page.locator(".imagery-expand")).toHaveText("放大");
+    expect(Math.round(compactControls.caption.left - compactControls.preview.left)).toBe(16);
+    expect(Math.round(compactControls.preview.bottom - compactControls.caption.bottom)).toBe(8);
     expect(compactControls.rangeWidget.right).toBeLessThanOrEqual(compactControls.preview.right);
     expect(compactControls.rangeWidget.bottom).toBeLessThanOrEqual(compactControls.preview.bottom);
     expect(compactControls.rangeWidget.left).toBeGreaterThanOrEqual(compactControls.preview.left);
+    expect(Math.round(compactControls.preview.right - compactControls.rangeWidget.right)).toBe(16);
+    expect(Math.round(compactControls.preview.bottom - compactControls.rangeWidget.bottom)).toBe(8);
+    expect(Math.abs(compactControls.caption.bottom - compactControls.rangeWidget.bottom)).toBeLessThanOrEqual(
+      1
+    );
+    expect(compactControls.rangeWidget.width).toBeLessThanOrEqual(115);
+    expect(compactControls.rangeGap).toBe("0px");
+    expect(Math.max(...compactControls.rangeWidths)).toBeLessThanOrEqual(38);
     expect(overlaps(compactControls.caption, compactControls.rangeWidget)).toBe(false);
     expect(compactControls.expandButton.left).toBeGreaterThanOrEqual(compactControls.preview.left);
     expect(compactControls.expandButton.right).toBeLessThanOrEqual(compactControls.preview.right);
@@ -355,7 +369,13 @@ test.describe("popup layout", () => {
 
       return {
         card: rect(".imagery-card"),
+        caption: rect(".imagery-caption"),
         preview: rect(".imagery-preview"),
+        rangeGap: getComputedStyle(document.querySelector(".radar-ranges")!).gap,
+        rangeWidget: rect(".radar-ranges"),
+        rangeWidths: [...document.querySelectorAll(".radar-range")].map((node) =>
+          Math.round(node.getBoundingClientRect().width)
+        ),
         stepper: rect(".imagery-stepper"),
         tabs: rect(".imagery-tabs"),
         shell: rect(".popup-shell")
@@ -379,13 +399,26 @@ test.describe("popup layout", () => {
       };
     });
 
-    expect(Math.abs(layout.preview.width - layout.preview.height)).toBeLessThanOrEqual(1);
+    expect(Math.round(layout.card.width)).toBeGreaterThanOrEqual(468);
+    expect(Math.round(layout.preview.width)).toBeGreaterThanOrEqual(448);
+    expect(Math.round(layout.preview.height)).toBeGreaterThanOrEqual(418);
     expect(layout.preview.width).toBeGreaterThan(compactControls.preview.width);
     expect(layout.preview.height).toBeGreaterThan(compactControls.preview.height);
     expect(layout.card.top).toBeGreaterThanOrEqual(layout.shell.top);
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
     expect(layout.card.bottom).toBeLessThanOrEqual(layout.shell.bottom);
+    expect(layout.caption.width).toBeLessThanOrEqual(132);
+    expect(layout.caption.left).toBeGreaterThanOrEqual(layout.preview.left);
+    expect(layout.caption.right).toBeLessThanOrEqual(layout.preview.right);
+    expect(layout.caption.width).toBeLessThan(layout.preview.width * 0.55);
+    expect(overlaps(layout.caption, layout.rangeWidget)).toBe(false);
+    expect(Math.round(layout.preview.right - layout.rangeWidget.right)).toBeLessThanOrEqual(18);
+    expect(Math.round(layout.preview.bottom - layout.rangeWidget.bottom)).toBeLessThanOrEqual(8);
+    expect(Math.abs(layout.caption.bottom - layout.rangeWidget.bottom)).toBeLessThanOrEqual(1);
+    expect(layout.rangeWidget.width).toBeLessThanOrEqual(115);
+    expect(layout.rangeGap).toBe("0px");
+    expect(Math.max(...layout.rangeWidths)).toBeLessThanOrEqual(38);
     expect(Math.abs(layout.stepper.top - layout.tabs.top)).toBeLessThanOrEqual(1);
     expect(Math.abs(layout.stepper.bottom - layout.tabs.bottom)).toBeLessThanOrEqual(1);
     expect(expandedControls.snapshots).toBe(0);
@@ -406,6 +439,7 @@ test.describe("popup layout", () => {
     if (!previewBox) throw new Error("Missing imagery preview bounds");
 
     await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+    await expect(page.locator(".imagery-stepper-button")).toHaveCount(0);
 
     await preview.click({
       position: {
@@ -414,7 +448,9 @@ test.describe("popup layout", () => {
       }
     });
     await expect(page.locator(".imagery-position")).toHaveText("4 / 5");
+    await expect(preview).toHaveClass(/is-stepping-left/);
     await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+    await expect(preview).not.toHaveClass(/is-stepping-left/, { timeout: 1000 });
 
     await preview.click({
       position: {
@@ -423,6 +459,30 @@ test.describe("popup layout", () => {
       }
     });
     await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+    await expect(preview).toHaveClass(/is-stepping-right/);
+    await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+    await expect(preview).not.toHaveClass(/is-stepping-right/, { timeout: 1000 });
+
+    await preview.focus();
+    await expect(preview).toBeFocused();
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(page.locator(".imagery-position")).toHaveText("4 / 5");
+    await expect(preview).toHaveClass(/is-stepping-left/);
+    await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+    await expect(preview).not.toHaveClass(/is-stepping-left/, { timeout: 1000 });
+
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+    await expect(preview).toHaveClass(/is-stepping-right/);
+    await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+    await expect(preview).not.toHaveClass(/is-stepping-right/, { timeout: 1000 });
+
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
+    await expect(page.locator(".imagery-toast")).toBeHidden();
+
+    await page.keyboard.press("Enter");
     await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
 
     await preview.dblclick({
@@ -432,7 +492,65 @@ test.describe("popup layout", () => {
       }
     });
     await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
+    await expect(page.locator(".imagery-toast")).toBeHidden();
     await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+  });
+
+  test("plays imagery step feedback as a single pulse", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    const preview = page.locator(".imagery-preview");
+    const initialOpacity = await preview.evaluate((node) => {
+      return Number(getComputedStyle(node, "::after").opacity);
+    });
+    expect(initialOpacity).toBeLessThanOrEqual(0.1);
+
+    await preview.evaluate((node) => node.classList.add("is-stepping-left"));
+
+    await page.waitForTimeout(140);
+
+    const pulseOpacity = await preview.evaluate((node) => {
+      return Number(getComputedStyle(node, "::after").opacity);
+    });
+    expect(pulseOpacity).toBeGreaterThan(0.5);
+
+    await page.waitForTimeout(250);
+
+    const finishedOpacity = await preview.evaluate((node) => {
+      return Number(getComputedStyle(node, "::after").opacity);
+    });
+    expect(finishedOpacity).toBeLessThanOrEqual(0.1);
+  });
+
+  test("shows an imagery expand hint toast when entering expanded view", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    const toast = page.locator(".imagery-toast");
+    await expect(toast).toBeHidden();
+
+    await page.locator(".imagery-expand").click();
+    await expect(page.locator(".imagery-card")).toHaveClass(/is-expanded/);
+    await expect(toast).toBeVisible();
+    await expect(toast).toHaveText("連按圖像放大");
+    await expect(toast).not.toContainText(/[A-Za-z]/);
+    await page.waitForTimeout(1700);
+    await expect(toast).toBeHidden();
+
+    await page.locator(".imagery-expand").click();
+    await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
+    await expect(toast).toBeHidden();
   });
 
   test("hides unavailable snapshot controls in expanded imagery fallback", async ({ page }) => {
@@ -508,7 +626,7 @@ test.describe("popup layout", () => {
     await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
   });
 
-  test("steps through imagery snapshots with previous and next buttons", async ({ page }) => {
+  test("keeps snapshot position control compact without extra step buttons", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
       await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
@@ -518,15 +636,13 @@ test.describe("popup layout", () => {
     );
 
     await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
-    await expect(page.locator(".imagery-next")).toBeDisabled();
+    await expect(page.locator(".imagery-stepper-button")).toHaveCount(0);
 
-    await page.locator(".imagery-prev").click();
-    await expect(page.locator(".imagery-position")).toHaveText("4 / 5");
-    await expect(page.locator(".imagery-next")).toBeEnabled();
+    const stepperWidth = await page.locator(".imagery-stepper").evaluate((node) => {
+      return Math.round(node.getBoundingClientRect().width);
+    });
+    expect(stepperWidth).toBeLessThanOrEqual(58);
     await expect(page.locator(".imagery-card")).not.toHaveClass(/is-expanded/);
-
-    await page.locator(".imagery-next").click();
-    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
   });
 
   test("supports lightning snapshots with available ranges only", async ({ page }) => {
@@ -672,7 +788,7 @@ async function fixtureHtml({
               <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             </section>
             <section class="legacy-side-panel">
-              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><button class="imagery-stepper-button imagery-prev" type="button">‹</button><span class="imagery-position">5 / 5</span><button class="imagery-stepper-button imagery-next" type="button" disabled>›</button></div><button class="imagery-expand" type="button">放大</button><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"><span>時間</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div></div>
+              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"><span>時間</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div><div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
               <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
             </section>
             <section class="legacy-forecast">
@@ -688,51 +804,78 @@ async function fixtureHtml({
           const imageryPreview = document.querySelector(".imagery-preview");
           const imageryPosition = document.querySelector(".imagery-position");
           const imageryExpand = document.querySelector(".imagery-expand");
-          const imageryPrev = document.querySelector(".imagery-prev");
-          const imageryNext = document.querySelector(".imagery-next");
+          const imageryToast = document.querySelector(".imagery-toast");
           const snapshotCount = 5;
           let selectedSnapshotIndex = snapshotCount - 1;
           let previewClickTimer;
+          let previewFeedbackTimer;
+          let imageryToastTimer;
           const updateStepper = () => {
             if (imageryPosition) {
               imageryPosition.textContent = (selectedSnapshotIndex + 1) + " / " + snapshotCount;
             }
-            if (imageryPrev instanceof HTMLButtonElement) {
-              imageryPrev.disabled = selectedSnapshotIndex <= 0;
-            }
-            if (imageryNext instanceof HTMLButtonElement) {
-              imageryNext.disabled = selectedSnapshotIndex >= snapshotCount - 1;
-            }
           };
           const stepSnapshot = (direction) => {
-            selectedSnapshotIndex = Math.max(0, Math.min(snapshotCount - 1, selectedSnapshotIndex + direction));
+            const nextIndex = selectedSnapshotIndex + direction;
+            if (nextIndex < 0 || nextIndex >= snapshotCount) return false;
+            selectedSnapshotIndex = nextIndex;
             updateStepper();
+            return true;
           };
           const clearPreviewClickTimer = () => {
             if (previewClickTimer === undefined) return;
             window.clearTimeout(previewClickTimer);
             previewClickTimer = undefined;
           };
+          const clearImageryStepFeedback = () => {
+            if (previewFeedbackTimer !== undefined) {
+              window.clearTimeout(previewFeedbackTimer);
+              previewFeedbackTimer = undefined;
+            }
+            imageryPreview?.classList.remove("is-stepping-left", "is-stepping-right");
+          };
+          const showImageryStepFeedback = (direction) => {
+            clearImageryStepFeedback();
+            imageryPreview?.classList.add(direction < 0 ? "is-stepping-left" : "is-stepping-right");
+            previewFeedbackTimer = window.setTimeout(clearImageryStepFeedback, 360);
+          };
           const renderImageryExpandButton = () => {
             if (imageryExpand) {
               imageryExpand.textContent = imageryCard?.classList.contains("is-expanded") ? "縮小" : "放大";
             }
           };
-          const toggleImageryExpanded = () => {
+          const hideImageryToast = () => {
+            if (imageryToastTimer !== undefined) {
+              window.clearTimeout(imageryToastTimer);
+              imageryToastTimer = undefined;
+            }
+            if (imageryToast instanceof HTMLElement) {
+              imageryToast.hidden = true;
+            }
+          };
+          const showImageryToast = () => {
+            if (!(imageryToast instanceof HTMLElement)) return;
+            if (imageryToastTimer !== undefined) {
+              window.clearTimeout(imageryToastTimer);
+              imageryToastTimer = undefined;
+            }
+            imageryToast.textContent = "連按圖像放大";
+            imageryToast.hidden = false;
+            imageryToastTimer = window.setTimeout(hideImageryToast, 1600);
+          };
+          const toggleImageryExpanded = (options = {}) => {
+            const wasExpanded = Boolean(imageryCard?.classList.contains("is-expanded"));
             imageryCard?.classList.toggle("is-expanded");
             renderImageryExpandButton();
+            if (!wasExpanded && imageryCard?.classList.contains("is-expanded") && options.showToast) {
+              showImageryToast();
+            } else {
+              hideImageryToast();
+            }
           };
           const shouldIgnorePreviewAction = (target) => {
             return target instanceof Element && Boolean(target.closest(".imagery-stepper, button"));
           };
-          imageryPrev?.addEventListener("click", (event) => {
-            event.stopPropagation();
-            stepSnapshot(-1);
-          });
-          imageryNext?.addEventListener("click", (event) => {
-            event.stopPropagation();
-            stepSnapshot(1);
-          });
           updateStepper();
           const title = document.querySelector(".legacy-weather-title");
           const special = document.querySelector(".special-weather-card");
@@ -754,23 +897,46 @@ async function fixtureHtml({
             clearPreviewClickTimer();
             previewClickTimer = window.setTimeout(() => {
               previewClickTimer = undefined;
-              stepSnapshot(direction);
+              if (stepSnapshot(direction)) {
+                showImageryStepFeedback(direction);
+              }
             }, 220);
           });
           imageryPreview?.addEventListener("dblclick", (event) => {
             if (shouldIgnorePreviewAction(event.target)) return;
             clearPreviewClickTimer();
+            clearImageryStepFeedback();
             event.preventDefault();
             toggleImageryExpanded();
           });
+          imageryPreview?.addEventListener("keydown", (event) => {
+            if (shouldIgnorePreviewAction(event.target)) return;
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+              event.preventDefault();
+              clearPreviewClickTimer();
+              const direction = event.key === "ArrowLeft" ? -1 : 1;
+              if (stepSnapshot(direction)) {
+                showImageryStepFeedback(direction);
+              }
+              return;
+            }
+
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              clearPreviewClickTimer();
+              clearImageryStepFeedback();
+              toggleImageryExpanded();
+            }
+          });
           imageryExpand?.addEventListener("click", (event) => {
             event.stopPropagation();
-            toggleImageryExpanded();
+            toggleImageryExpanded({ showToast: true });
           });
           document.addEventListener("click", (event) => {
             if (!imageryCard?.classList.contains("is-expanded")) return;
             if (event.target instanceof Node && imageryCard.contains(event.target)) return;
             imageryCard.classList.remove("is-expanded");
+            hideImageryToast();
           }, { capture: true });
         </script>
       </body>

@@ -70,6 +70,8 @@ const RADAR_RANGE_LABELS: Record<RadarRangeId, string> = {
 const VISIBLE_RADAR_RANGE_IDS: RadarRangeId[] = ["range0", "range1", "range2"];
 const WEATHER_TITLE_MAX_FONT_SIZE = 40;
 const WEATHER_TITLE_MIN_FONT_SIZE = 24;
+const IMAGERY_STEP_FEEDBACK_MS = 360;
+const IMAGERY_TOAST_MS = 1600;
 const IMAGERY: Record<ImageryType, ImageryItem> = {
   radar: {
     fallbackUrl: `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_radar_tc.gif`,
@@ -167,6 +169,8 @@ const COPY: Record<
     fallbackWeather: string;
     forecastEmpty: string;
     humidity: string;
+    imageryExpandHint: string;
+    imageryPreviewAction: string;
     lastUpdated: string;
     loadingFailed: string;
     noWarningSignals: string;
@@ -174,8 +178,6 @@ const COPY: Record<
     imageryTimePrefix: string;
     radarRangeSuffix: string;
     radarSnapshot: string;
-    snapshotNext: string;
-    snapshotPrevious: string;
     settings: string;
     specialWeather: string;
     temperatureUnit: string;
@@ -194,6 +196,8 @@ const COPY: Record<
     fallbackWeather: "香港天氣",
     forecastEmpty: "沒有九天天氣預報資料。",
     humidity: "相對濕度",
+    imageryExpandHint: "連按圖像放大",
+    imageryPreviewAction: "天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小",
     lastUpdated: "更新",
     loadingFailed: "未能載入",
     noWarningSignals: "沒有警告信號",
@@ -201,8 +205,6 @@ const COPY: Record<
     imageryTimePrefix: "時間",
     radarRangeSuffix: "公里",
     radarSnapshot: "雷達圖",
-    snapshotNext: "下一張",
-    snapshotPrevious: "上一張",
     settings: "設定",
     specialWeather: "特別天氣提示",
     temperatureUnit: "度",
@@ -220,6 +222,8 @@ const COPY: Record<
     fallbackWeather: "香港天气",
     forecastEmpty: "没有九天天气预报资料。",
     humidity: "相对湿度",
+    imageryExpandHint: "连按图像放大",
+    imageryPreviewAction: "天气图像预览，按左右方向键转图，按 Enter 放大或缩小",
     lastUpdated: "更新",
     loadingFailed: "未能载入",
     noWarningSignals: "没有警告信号",
@@ -227,8 +231,6 @@ const COPY: Record<
     imageryTimePrefix: "时间",
     radarRangeSuffix: "公里",
     radarSnapshot: "雷达图",
-    snapshotNext: "下一张",
-    snapshotPrevious: "上一张",
     settings: "设定",
     specialWeather: "特别天气提示",
     temperatureUnit: "度",
@@ -246,6 +248,9 @@ const COPY: Record<
     fallbackWeather: "Hong Kong Weather",
     forecastEmpty: "No forecast data available.",
     humidity: "Humidity",
+    imageryExpandHint: "Double-click image to expand",
+    imageryPreviewAction:
+      "Weather imagery preview. Press Left or Right Arrow to change image, Enter to expand or collapse.",
     lastUpdated: "Updated",
     loadingFailed: "Unable to load",
     noWarningSignals: "No warning signals",
@@ -253,8 +258,6 @@ const COPY: Record<
     imageryTimePrefix: "Time",
     radarRangeSuffix: "km",
     radarSnapshot: "Radar snapshot",
-    snapshotNext: "Next image",
-    snapshotPrevious: "Previous image",
     settings: "Settings",
     specialWeather: "Special Weather Tips",
     temperatureUnit: "°C",
@@ -310,11 +313,10 @@ const els = {
   imageryImage: query<HTMLImageElement>("#imagery-image"),
   imageryExpand: query<HTMLButtonElement>("#imagery-expand"),
   imageryFallback: query<HTMLElement>("#imagery-fallback"),
-  imageryNext: query<HTMLButtonElement>("#imagery-next"),
   imageryPosition: query<HTMLElement>("#imagery-position"),
-  imageryPrev: query<HTMLButtonElement>("#imagery-prev"),
   imageryStepper: query<HTMLElement>("#imagery-stepper"),
   imageryTitle: query<HTMLElement>("#imagery-title"),
+  imageryToast: query<HTMLElement>("#imagery-toast"),
   imageryTime: query<HTMLElement>("#imagery-time"),
   specialWeatherTitle: query<HTMLElement>("#special-weather-title")
 };
@@ -333,6 +335,8 @@ els.specialWeatherOpen.addEventListener("click", () => {
   void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "sweather_tips.html") });
 });
 let previewClickTimer: number | undefined;
+let previewFeedbackTimer: number | undefined;
+let imageryToastTimer: number | undefined;
 
 els.imageryOpen.addEventListener("click", (event) => {
   if (shouldIgnorePreviewAction(event.target)) return;
@@ -341,26 +345,40 @@ els.imageryOpen.addEventListener("click", (event) => {
   clearPreviewClickTimer();
   previewClickTimer = window.setTimeout(() => {
     previewClickTimer = undefined;
-    stepImagerySnapshot(direction);
+    if (stepImagerySnapshot(direction)) {
+      showImageryStepFeedback(direction);
+    }
   }, 220);
 });
 els.imageryOpen.addEventListener("dblclick", (event) => {
   if (shouldIgnorePreviewAction(event.target)) return;
   clearPreviewClickTimer();
+  clearImageryStepFeedback();
   event.preventDefault();
   toggleImageryExpanded();
 });
+els.imageryOpen.addEventListener("keydown", (event) => {
+  if (shouldIgnorePreviewAction(event.target)) return;
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    event.preventDefault();
+    clearPreviewClickTimer();
+    const direction = event.key === "ArrowLeft" ? -1 : 1;
+    if (stepImagerySnapshot(direction)) {
+      showImageryStepFeedback(direction);
+    }
+    return;
+  }
+
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    clearPreviewClickTimer();
+    clearImageryStepFeedback();
+    toggleImageryExpanded();
+  }
+});
 els.imageryExpand.addEventListener("click", (event) => {
   event.stopPropagation();
-  toggleImageryExpanded();
-});
-els.imageryPrev.addEventListener("click", (event) => {
-  event.stopPropagation();
-  stepImagerySnapshot(-1);
-});
-els.imageryNext.addEventListener("click", (event) => {
-  event.stopPropagation();
-  stepImagerySnapshot(1);
+  toggleImageryExpanded({ showToast: true });
 });
 document.addEventListener(
   "click",
@@ -598,14 +616,21 @@ function selectImagery(type: ImageryType = "radar"): void {
   renderRadarRanges(type);
 }
 
-function toggleImageryExpanded(): void {
+function toggleImageryExpanded({ showToast = false }: { showToast?: boolean } = {}): void {
+  const wasExpanded = els.imageryCard.classList.contains("is-expanded");
   els.imageryCard.classList.toggle("is-expanded");
   renderImageryExpandButton();
+  if (!wasExpanded && els.imageryCard.classList.contains("is-expanded") && showToast) {
+    showImageryToast();
+  } else {
+    hideImageryToast();
+  }
 }
 
 function collapseImageryExpanded(): void {
   els.imageryCard.classList.remove("is-expanded");
   renderImageryExpandButton();
+  hideImageryToast();
 }
 
 function renderRadarRanges(type: ImageryType): void {
@@ -649,10 +674,10 @@ function selectImagerySnapshot(type: ImageryType, index: number): void {
   selectImagery(type);
 }
 
-function stepImagerySnapshot(direction: -1 | 1): void {
+function stepImagerySnapshot(direction: -1 | 1): boolean {
   const type = toImageryType(els.imageryOpen.dataset.imagery);
   const snapshots = latestImagerySnapshotUrls(type);
-  if (!snapshots.length) return;
+  if (!snapshots.length) return false;
 
   const selectedIndex = IMAGERY[type].selectedIndex ?? snapshots.at(-1)?.originalIndex ?? 0;
   const currentDisplayIndex = Math.max(
@@ -661,9 +686,10 @@ function stepImagerySnapshot(direction: -1 | 1): void {
   );
   const nextDisplayIndex = currentDisplayIndex + direction;
   const next = snapshots[nextDisplayIndex];
-  if (!next) return;
+  if (!next) return false;
 
   selectImagerySnapshot(type, next.originalIndex);
+  return true;
 }
 
 function renderImageryStepper(type: ImageryType): void {
@@ -674,18 +700,10 @@ function renderImageryStepper(type: ImageryType): void {
   const hasSnapshots = usesSnapshotControls(type) && snapshots.length > 0;
 
   els.imageryStepper.hidden = !hasSnapshots;
-  els.imageryPrev.hidden = !hasSnapshots;
-  els.imageryNext.hidden = !hasSnapshots;
   els.imageryPosition.hidden = !hasSnapshots;
   els.imageryPosition.textContent = hasSnapshots
     ? `${safeDisplayIndex + 1} / ${snapshots.length}`
     : "-- / --";
-  els.imageryPrev.disabled = !hasSnapshots || safeDisplayIndex <= 0;
-  els.imageryNext.disabled = !hasSnapshots || safeDisplayIndex >= snapshots.length - 1;
-  els.imageryPrev.title = copy().snapshotPrevious;
-  els.imageryNext.title = copy().snapshotNext;
-  els.imageryPrev.setAttribute("aria-label", copy().snapshotPrevious);
-  els.imageryNext.setAttribute("aria-label", copy().snapshotNext);
 }
 
 function selectedImageryRange(type: ImageryType): ImageryRangeImages | undefined {
@@ -895,6 +913,7 @@ function applyLanguage(language: Language): void {
   els.labelUv.textContent = localized.uvIndex;
   els.specialWeatherTitle.textContent = localized.specialWeather;
   els.updating.textContent = localized.updating;
+  els.imageryOpen.setAttribute("aria-label", localized.imageryPreviewAction);
   renderImageryExpandButton(language);
   query<HTMLButtonElement>("#settings").title = localized.settings;
   query<HTMLButtonElement>("#settings").setAttribute("aria-label", localized.settings);
@@ -922,6 +941,40 @@ function clearPreviewClickTimer(): void {
   if (previewClickTimer === undefined) return;
   window.clearTimeout(previewClickTimer);
   previewClickTimer = undefined;
+}
+
+function showImageryStepFeedback(direction: -1 | 1): void {
+  clearImageryStepFeedback();
+  const className = direction < 0 ? "is-stepping-left" : "is-stepping-right";
+  void els.imageryOpen.offsetWidth;
+  els.imageryOpen.classList.add(className);
+  previewFeedbackTimer = window.setTimeout(clearImageryStepFeedback, IMAGERY_STEP_FEEDBACK_MS);
+}
+
+function clearImageryStepFeedback(): void {
+  if (previewFeedbackTimer !== undefined) {
+    window.clearTimeout(previewFeedbackTimer);
+    previewFeedbackTimer = undefined;
+  }
+  els.imageryOpen.classList.remove("is-stepping-left", "is-stepping-right");
+}
+
+function showImageryToast(): void {
+  if (imageryToastTimer !== undefined) {
+    window.clearTimeout(imageryToastTimer);
+    imageryToastTimer = undefined;
+  }
+  els.imageryToast.textContent = copy().imageryExpandHint;
+  els.imageryToast.hidden = false;
+  imageryToastTimer = window.setTimeout(hideImageryToast, IMAGERY_TOAST_MS);
+}
+
+function hideImageryToast(): void {
+  if (imageryToastTimer !== undefined) {
+    window.clearTimeout(imageryToastTimer);
+    imageryToastTimer = undefined;
+  }
+  els.imageryToast.hidden = true;
 }
 
 function shouldIgnorePreviewAction(target: EventTarget | null): boolean {

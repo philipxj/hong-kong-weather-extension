@@ -12,6 +12,7 @@ import type { Language, Settings } from "../shared/types";
 
 const form = query<HTMLFormElement>("#options-form");
 const status = query<HTMLElement>("#save-status");
+const testNotificationRow = query<HTMLElement>("#notification-test-row");
 const testNotificationButton = query<HTMLButtonElement>("#test-notification");
 const appVersion = query<HTMLElement>("#app-version");
 
@@ -19,6 +20,7 @@ const settings = await getSettings();
 hydrate(settings);
 applyOptionsLanguage(settings.language);
 renderAppVersion();
+renderDevDebugControls();
 
 type TestNotificationResponse =
   | {
@@ -134,6 +136,15 @@ function applyOptionsLanguage(language: Language): void {
 function renderAppVersion(): void {
   const version = browserApi.runtime.getManifest().version;
   appVersion.textContent = version ? `v${version}` : "";
+}
+
+function renderDevDebugControls(): void {
+  if (import.meta.env.DEV) {
+    testNotificationRow.hidden = false;
+    return;
+  }
+
+  testNotificationRow.remove();
 }
 
 function clampNumber(value: string, min: number, max: number, fallback: number): number {

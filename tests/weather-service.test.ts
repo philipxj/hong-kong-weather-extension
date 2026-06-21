@@ -14,7 +14,7 @@ import {
   sendTestNotification,
   updateBadge
 } from "../src/shared/weather-service";
-import type { WeatherWarning, WarningType } from "../src/shared/types";
+import type { CurrentWeather, WeatherData, WeatherWarning, WarningType } from "../src/shared/types";
 
 describe("weather service normalization", () => {
   test("accepts missing overnight UV index from HKO current data", () => {
@@ -317,12 +317,14 @@ describe("weather service normalization", () => {
 
   test("updates toolbar badge without fetching remote weather icons", async () => {
     const fetchMock = vi.fn();
+    const setIcon = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     vi.stubGlobal("chrome", {
       action: {
         setBadgeBackgroundColor: vi.fn(),
         setBadgeText: vi.fn(),
         setBadgeTextColor: vi.fn(),
+        setIcon,
         setTitle: vi.fn()
       },
       runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) },
@@ -333,8 +335,39 @@ describe("weather service normalization", () => {
     });
 
     try {
-      await updateBadge(cachedWeatherForBadge(), DEFAULT_SETTINGS);
+      await updateBadge(cachedWeatherForBadge({ icon: 51 }), DEFAULT_SETTINGS);
+      expect(setIcon).toHaveBeenCalledWith({ path: "assets/hko/weather-icons/pic51.png" });
       expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("keeps toolbar icon synced when badge text is disabled", async () => {
+    const setBadgeText = vi.fn();
+    const setIcon = vi.fn();
+    vi.stubGlobal("chrome", {
+      action: {
+        setBadgeBackgroundColor: vi.fn(),
+        setBadgeText,
+        setBadgeTextColor: vi.fn(),
+        setIcon,
+        setTitle: vi.fn()
+      },
+      runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) },
+      storage: {
+        local: { get: vi.fn(), set: vi.fn() },
+        sync: { get: vi.fn(), set: vi.fn() }
+      }
+    });
+
+    try {
+      await updateBadge(cachedWeatherForBadge({ icon: 51 }), {
+        ...DEFAULT_SETTINGS,
+        badgeMode: "off"
+      });
+      expect(setIcon).toHaveBeenCalledWith({ path: "assets/hko/weather-icons/pic51.png" });
+      expect(setBadgeText).toHaveBeenCalledWith({ text: "" });
     } finally {
       vi.unstubAllGlobals();
     }
@@ -486,7 +519,7 @@ function warning(type: WarningType, badge: string, priority: number): WeatherWar
   };
 }
 
-function cachedWeatherForBadge() {
+function cachedWeatherForBadge(currentOverrides: Partial<CurrentWeather> = {}): WeatherData {
   return {
     current: {
       forecast: "多雲",
@@ -499,7 +532,8 @@ function cachedWeatherForBadge() {
       uvDesc: "低",
       uvIndex: 0.4,
       warningMessages: [],
-      warningSummary: ""
+      warningSummary: "",
+      ...currentOverrides
     },
     error: null,
     fetchedAt: "2026-06-18T04:00:00.000Z",

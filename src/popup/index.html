@@ -103,26 +103,12 @@
             <div
               id="imagery-open"
               class="imagery-preview"
+              role="button"
+              tabindex="0"
             >
               <img id="imagery-image" alt="" />
               <div id="imagery-stepper" class="imagery-stepper" aria-label="Image snapshots">
-                <button
-                  id="imagery-prev"
-                  class="imagery-stepper-button"
-                  type="button"
-                  aria-label="Previous image"
-                >
-                  ‹
-                </button>
                 <span id="imagery-position" class="imagery-position">-- / --</span>
-                <button
-                  id="imagery-next"
-                  class="imagery-stepper-button"
-                  type="button"
-                  aria-label="Next image"
-                >
-                  ›
-                </button>
               </div>
               <button id="imagery-expand" class="imagery-expand" type="button">放大</button>
               <span id="imagery-fallback" class="imagery-fallback" hidden>Loading</span>
@@ -132,6 +118,13 @@
               <span id="imagery-time">--</span>
             </div>
             <div id="radar-ranges" class="radar-ranges" aria-label="Radar range"></div>
+            <div
+              id="imagery-toast"
+              class="imagery-toast"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></div>
           </div>
 
           <button id="typhoon-map" class="typhoon-map-button" type="button">
