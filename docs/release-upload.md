@@ -2,7 +2,8 @@
 
 The manual `Release Upload` GitHub Actions workflow builds, tests, packages, and
 optionally uploads a draft package to Chrome Web Store and Microsoft Edge
-Add-ons. It does not submit either store listing for review.
+Add-ons. It can also submit the uploaded Chrome draft for review when explicitly
+requested. It does not submit the Edge listing for review.
 
 This repository is safe to publish publicly. By default, the workflow only
 creates a downloadable package artifact. Store uploads happen only when the
@@ -70,8 +71,10 @@ source repository.
 - Leave both upload inputs disabled to build and download the package artifact
   only. This is the default and is safe for forks.
 - Enable `upload_chrome` only in a repository configured with that maintainer's
-  own Chrome Web Store credentials. The run uploads a new draft package, then
-  stops before review submission.
+  own Chrome Web Store credentials. The run uploads a new draft package.
+- Enable `submit_chrome` only when `upload_chrome` is also enabled and you want
+  the uploaded Chrome draft submitted for review through the Chrome Web Store
+  publish endpoint.
 - Enable `upload_edge` only in a repository configured with that maintainer's
   own Microsoft Edge Add-ons credentials. The run uploads a new draft package,
   checks the package upload status, then stops before review submission.
@@ -85,19 +88,21 @@ For store upload runs:
    package.
 3. Configure that repository's own variables and secrets.
 4. Run Release Upload with the matching upload input enabled.
-5. Review the draft in the store dashboard.
-6. Submit the draft for review manually when ready.
+5. For Chrome, enable `submit_chrome` in the same run when the uploaded draft
+   should be submitted for review immediately.
+6. Review store dashboard status after the workflow finishes.
 
 ## Store Behavior
 
 - Chrome uses the Chrome Web Store API upload endpoint for an existing item.
-  The publish endpoint is not called.
+  When `submit_chrome` is enabled, it also calls the publish endpoint, which
+  submits the item for review.
 - Edge uses the Microsoft Edge Add-ons v1.1 API key flow to upload the package
   to the product's draft submission, then polls the package upload operation.
   The publish submission endpoint is not called.
 
-After upload, submit the draft for review manually in the Chrome Developer
-Dashboard or Microsoft Partner Center.
+After Edge upload, submit the draft for review manually in Microsoft Partner
+Center.
 
 Store dashboard descriptions and release notes should be recorded in
 `docs/store-listing.md` before or alongside submitting a new public version.
