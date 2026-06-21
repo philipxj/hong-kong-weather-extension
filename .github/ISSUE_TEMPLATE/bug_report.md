@@ -22,7 +22,7 @@ Chrome / Edge / Firefox / Other:
 
 ## Extension version
 
-0.1.1
+0.1.2
 
 ## Screenshots or logs
 
