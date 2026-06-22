@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { WeatherData } from "../src/shared/types";
+import type { WeatherData, WeatherWarning } from "../src/shared/types";
 
 const mockState = vi.hoisted<{
   local: Record<string, unknown>;
@@ -126,6 +126,91 @@ describe("weather refresh API usage", () => {
     expect(data.current.warningSummary).toBe("雷暴警告");
   });
 
+  test("localizes issued and cancelled warning notification titles in traditional Chinese", async () => {
+    mockState.local.weatherCache = cachedWeather();
+
+    await refreshWeatherWarnings(DEFAULT_SETTINGS);
+
+    expect(notificationAt(0)).toMatchObject({
+      title: "天氣警告發出",
+      message: "雷暴警告"
+    });
+    expect(notificationAt(1)).toMatchObject({
+      title: "天氣警告取消",
+      message: "暴雨警告信號"
+    });
+  });
+
+  test("localizes extended warning notification titles in traditional Chinese", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeather(),
+      warnings: [
+        thunderstormWarning({
+          expireTime: "2026-06-18T02:30:00+08:00",
+          updateTime: "2026-06-18T02:00:00+08:00"
+        })
+      ]
+    };
+
+    await refreshWeatherWarnings({
+      ...DEFAULT_SETTINGS,
+      notifyCancelled: false,
+      notifyIssued: false,
+      notifyUpdated: true
+    });
+
+    expect(mockState.notifications).toHaveLength(1);
+    expect(notificationAt(0)).toMatchObject({
+      title: "天氣警告延長",
+      message: "雷暴警告"
+    });
+  });
+
+  test("localizes updated warning notification titles in traditional Chinese", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeather(),
+      warnings: [
+        thunderstormWarning({
+          expireTime: "2026-06-18T03:30:00+08:00",
+          updateTime: "2026-06-18T01:45:00+08:00"
+        })
+      ]
+    };
+
+    await refreshWeatherWarnings({
+      ...DEFAULT_SETTINGS,
+      notifyCancelled: false,
+      notifyExtended: true,
+      notifyIssued: false,
+      notifyUpdated: true
+    });
+
+    expect(mockState.notifications).toHaveLength(1);
+    expect(notificationAt(0)).toMatchObject({
+      title: "天氣警告更新",
+      message: "雷暴警告"
+    });
+  });
+
+  test("localizes issued warning notification titles in simplified Chinese", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeather(),
+      language: "sc",
+      warnings: []
+    };
+
+    await refreshWeatherWarnings({
+      ...DEFAULT_SETTINGS,
+      language: "sc",
+      notifyCancelled: false
+    });
+
+    expect(notificationAt(0)).toMatchObject({
+      title: "天气警告发出",
+      message: "雷暴警告"
+    });
+  });
+
   test("partial refresh falls back to full refresh when there is no cached weather", async () => {
     await refreshWeatherWarnings(DEFAULT_SETTINGS);
 
@@ -197,8 +282,10 @@ function hkoPayload(dataType: string | null): unknown {
     return {
       WTS: {
         code: "WTS",
+        expireTime: "2026-06-18T03:30:00+08:00",
         issueTime: "2026-06-18T01:30:00+08:00",
-        name: "雷暴警告"
+        name: "雷暴警告",
+        updateTime: "2026-06-18T02:00:00+08:00"
       }
     };
   }
@@ -208,8 +295,10 @@ function hkoPayload(dataType: string | null): unknown {
       details: [
         {
           contents: ["雷暴警告現正生效。"],
+          expireTime: "2026-06-18T03:30:00+08:00",
           issueTime: "2026-06-18T01:30:00+08:00",
           subtype: "雷暴警告",
+          updateTime: "2026-06-18T02:00:00+08:00",
           warningStatementCode: "WTS"
         }
       ]
@@ -264,5 +353,24 @@ function cachedWeather(): WeatherData {
         updateTime: ""
       }
     ]
+  };
+}
+
+function notificationAt(index: number): { message?: string; title?: string } {
+  return mockState.notifications[index] as { message?: string; title?: string };
+}
+
+function thunderstormWarning(overrides: Partial<WeatherWarning> = {}): WeatherWarning {
+  return {
+    badge: "雷",
+    code: "WTS",
+    contents: "",
+    expireTime: "2026-06-18T03:30:00+08:00",
+    issueTime: "2026-06-18T01:30:00+08:00",
+    name: "雷暴警告",
+    priority: 30,
+    type: "thunderstorm",
+    updateTime: "2026-06-18T02:00:00+08:00",
+    ...overrides
   };
 }

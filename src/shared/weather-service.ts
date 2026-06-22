@@ -518,13 +518,14 @@ async function reconcileWarningNotifications(
   next: WeatherData,
   settings: Settings
 ): Promise<void> {
+  const copy = notificationCopy(settings.language);
   const previousCodes = new Set(previous?.warnings.map((item) => item.code) ?? []);
   const nextCodes = new Set(next.warnings.map((item) => item.code));
 
   if (settings.notifyIssued) {
     for (const warning of next.warnings) {
       if (!previousCodes.has(warning.code)) {
-        await notify("Weather warning issued", warning.name);
+        await notify(copy.warningIssuedTitle, warning.name);
       }
     }
   }
@@ -532,7 +533,7 @@ async function reconcileWarningNotifications(
   if (settings.notifyCancelled && previous?.warnings.length) {
     for (const warning of previous.warnings) {
       if (!nextCodes.has(warning.code)) {
-        await notify("Weather warning cancelled", warning.name);
+        await notify(copy.warningCancelledTitle, warning.name);
       }
     }
   }
@@ -548,14 +549,14 @@ async function reconcileWarningNotifications(
       old.expireTime &&
       warning.expireTime !== old.expireTime
     ) {
-      await notify("Weather warning extended", warning.name);
+      await notify(copy.warningExtendedTitle, warning.name);
     } else if (
       settings.notifyUpdated &&
       warning.updateTime &&
       old.updateTime &&
       warning.updateTime !== old.updateTime
     ) {
-      await notify("Weather warning updated", warning.name);
+      await notify(copy.warningUpdatedTitle, warning.name);
     }
   }
 }
@@ -826,25 +827,44 @@ function text(en: string, tc: string, language: Language): string {
   return language === "en" ? en : tc;
 }
 
-function notificationCopy(language: Language): { testMessage: string; testTitle: string } {
+function notificationCopy(language: Language): {
+  testMessage: string;
+  testTitle: string;
+  warningCancelledTitle: string;
+  warningExtendedTitle: string;
+  warningIssuedTitle: string;
+  warningUpdatedTitle: string;
+} {
   if (language === "en") {
     return {
       testTitle: "Weather notification test",
       testMessage:
-        "Notifications are working. Real alerts are only sent when warning status changes."
+        "Notifications are working. Real alerts are only sent when warning status changes.",
+      warningCancelledTitle: "Weather warning cancelled",
+      warningExtendedTitle: "Weather warning extended",
+      warningIssuedTitle: "Weather warning issued",
+      warningUpdatedTitle: "Weather warning updated"
     };
   }
 
   if (language === "sc") {
     return {
       testTitle: "天气通知测试",
-      testMessage: "通知功能正常。真正提示只会在天气警告状态有变化时发出。"
+      testMessage: "通知功能正常。真正提示只会在天气警告状态有变化时发出。",
+      warningCancelledTitle: "天气警告取消",
+      warningExtendedTitle: "天气警告延长",
+      warningIssuedTitle: "天气警告发出",
+      warningUpdatedTitle: "天气警告更新"
     };
   }
 
   return {
     testTitle: "天氣通知測試",
-    testMessage: "通知功能正常。真正提示只會在天氣警告狀態有變化時發出。"
+    testMessage: "通知功能正常。真正提示只會在天氣警告狀態有變化時發出。",
+    warningCancelledTitle: "天氣警告取消",
+    warningExtendedTitle: "天氣警告延長",
+    warningIssuedTitle: "天氣警告發出",
+    warningUpdatedTitle: "天氣警告更新"
   };
 }
 
