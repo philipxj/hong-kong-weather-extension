@@ -90,6 +90,14 @@ export async function getImageryUrlsWithCache(
   }
 }
 
+export async function getStoredImageryUrls(type: CachedImageryType): Promise<string[]> {
+  try {
+    return (await readImageryCache())[type]?.urls ?? [];
+  } catch {
+    return [];
+  }
+}
+
 async function readImageryCache(): Promise<ImageryUrlCache> {
   const stored = await browserApi.storage.local.get<ImageryUrlCache>(STORAGE_KEY);
   return stored[STORAGE_KEY] ?? {};

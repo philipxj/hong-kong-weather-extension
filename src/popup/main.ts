@@ -1,7 +1,7 @@
 import { browserApi } from "../shared/browser-api";
 import { hkoPageUrl } from "../shared/hko-links";
 import { createInFlightTaskRunner } from "../shared/in-flight-task";
-import { getImageryUrlsWithCache } from "../shared/imagery-cache";
+import { getImageryUrlsWithCache, getStoredImageryUrls } from "../shared/imagery-cache";
 import {
   warningSignalIconAssetPath,
   warningSignalText,
@@ -24,6 +24,7 @@ import type {
   WeatherWarning
 } from "../shared/types";
 import { formatSpecialWeatherTips } from "./special-weather";
+import { loadImageryProgressively } from "./imagery-loader";
 
 type WarningSignalClass = WeatherWarning["type"];
 
@@ -68,6 +69,7 @@ const RADAR_RANGE_LABELS: Record<RadarRangeId, string> = {
   range2: "64km"
 };
 const VISIBLE_RADAR_RANGE_IDS: RadarRangeId[] = ["range0", "range1", "range2"];
+const IMAGERY_TYPES: ImageryType[] = ["radar", "lightning"];
 const WEATHER_TITLE_MAX_FONT_SIZE = 40;
 const WEATHER_TITLE_MIN_FONT_SIZE = 24;
 const IMAGERY_STEP_FEEDBACK_MS = 360;
@@ -488,6 +490,7 @@ function render(): void {
   renderTyphoonMap(data.warnings);
   renderWarningSignals(data.warnings);
   renderForecast(data.forecast);
+  selectImagery(toImageryType(els.imageryOpen.dataset.imagery));
   void runImageryLoad("popup-imagery", loadImagery);
 }
 
@@ -569,29 +572,14 @@ function renderTyphoonMap(warnings: WeatherWarning[]): void {
 
 async function loadImagery(): Promise<void> {
   const currentType = toImageryType(els.imageryOpen.dataset.imagery);
-  const [radarRanges, lightningRanges] = await Promise.all([
-    getRadarRanges().catch(() => []),
-    getLightningRanges().catch(() => [])
-  ]);
-
-  IMAGERY.radar.ranges = radarRanges;
-  IMAGERY.radar.selectedRangeId = IMAGERY.radar.selectedRangeId ?? "range2";
-  if (!selectedImageryRange("radar"))
-    IMAGERY.radar.selectedRangeId = radarRanges[0]?.id ?? "range2";
-  const radarUrls = currentImageryUrls("radar");
-  IMAGERY.radar.selectedIndex = Math.max(0, radarUrls.length - 1);
-  IMAGERY.radar.imageUrl = radarUrls.at(-1) || IMAGERY.radar.fallbackUrl;
-
-  IMAGERY.lightning.ranges = lightningRanges;
-  IMAGERY.lightning.selectedRangeId = IMAGERY.lightning.selectedRangeId ?? "range2";
-  if (!selectedImageryRange("lightning")) {
-    IMAGERY.lightning.selectedRangeId = lightningRanges[0]?.id ?? "range2";
-  }
-  const lightningUrls = currentImageryUrls("lightning");
-  IMAGERY.lightning.selectedIndex = Math.max(0, lightningUrls.length - 1);
-  IMAGERY.lightning.imageUrl = lightningUrls.at(-1) || IMAGERY.lightning.fallbackUrl;
-
-  selectImagery(currentType);
+  await loadImageryProgressively({
+    currentType,
+    otherTypes: IMAGERY_TYPES.filter((type) => type !== currentType),
+    hydrateFromStored: hydrateStoredImagery,
+    refresh: refreshImagery,
+    getCurrentType: () => toImageryType(els.imageryOpen.dataset.imagery),
+    renderType: selectImagery
+  });
 }
 
 function selectImagery(type: ImageryType = "radar"): void {
@@ -734,6 +722,39 @@ async function getRadarRanges(): Promise<ImageryRangeImages[]> {
   }
 
   return parseRadarRangePaths(rangeEntries);
+}
+
+async function hydrateStoredImagery(type: ImageryType): Promise<void> {
+  const ranges = parseImageryRangePaths(type, await getStoredImageryUrls(type));
+  if (ranges.length) applyImageryRanges(type, ranges);
+}
+
+async function refreshImagery(type: ImageryType): Promise<void> {
+  applyImageryRanges(type, await getImageryRanges(type));
+}
+
+async function getImageryRanges(type: ImageryType): Promise<ImageryRangeImages[]> {
+  return type === "lightning" ? getLightningRanges() : getRadarRanges();
+}
+
+function parseImageryRangePaths(type: ImageryType, ranges: string[]): ImageryRangeImages[] {
+  const rangeEntries = ranges.filter(isCachedRadarRangePath);
+  return type === "lightning"
+    ? parseLightningRangePaths(rangeEntries)
+    : parseRadarRangePaths(rangeEntries);
+}
+
+function applyImageryRanges(type: ImageryType, ranges: ImageryRangeImages[]): void {
+  const item = IMAGERY[type];
+  item.ranges = ranges;
+  item.selectedRangeId = item.selectedRangeId ?? "range2";
+  if (!selectedImageryRange(type)) {
+    item.selectedRangeId = ranges[0]?.id ?? "range2";
+  }
+
+  const urls = currentImageryUrls(type);
+  item.selectedIndex = Math.max(0, urls.length - 1);
+  item.imageUrl = urls.at(-1) || item.fallbackUrl;
 }
 
 function parseRadarRangePaths(ranges: string[]): ImageryRangeImages[] {
