@@ -25,7 +25,7 @@ on:
         type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   draft-upload:
@@ -72,6 +72,12 @@ jobs:
           path: ${{ steps.package.outputs.zip_path }}
           if-no-files-found: error
           retention-days: 14
+
+      - name: Sync GitHub Release
+        if: ${{ inputs.upload_chrome || inputs.upload_edge }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/sync-github-release.mjs "${{ steps.package.outputs.zip_path }}"
 
       - name: Upload Chrome Web Store draft
         if: ${{ inputs.upload_chrome && env.CHROME_EXTENSION_ID != '' && env.CHROME_PUBLISHER_ID != '' && env.CHROME_CLIENT_ID != '' && env.CHROME_CLIENT_SECRET != '' && env.CHROME_REFRESH_TOKEN != '' }}

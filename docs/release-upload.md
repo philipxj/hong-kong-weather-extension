@@ -1,9 +1,9 @@
 # Release Uploads
 
 The manual `Release Upload` GitHub Actions workflow builds, tests, packages, and
-optionally uploads a draft package to Chrome Web Store and Microsoft Edge
-Add-ons. It can also submit uploaded Chrome and Edge drafts for review when
-explicitly requested.
+optionally syncs the matching GitHub Release, and optionally uploads a draft
+package to Chrome Web Store and Microsoft Edge Add-ons. It can also submit
+uploaded Chrome and Edge drafts for review when explicitly requested.
 
 This repository is safe to publish publicly. By default, the workflow only
 creates a downloadable package artifact. Store uploads happen only when the
@@ -62,6 +62,10 @@ listings manually, then add their own repository variables or secrets:
 If a store's credentials are incomplete, the workflow skips that upload and
 still keeps the generated zip as a GitHub Actions artifact.
 
+When either store upload input is enabled, the workflow also creates or updates
+the GitHub Release for the package version, marks it as latest, and replaces the
+Chromium zip asset for that version.
+
 Do not commit store IDs, OAuth tokens, API keys, or generated upload packages.
 `release/` is ignored so local packages are not accidentally published with the
 source repository.
@@ -89,17 +93,22 @@ For store upload runs:
 1. Create or update the first store listing manually in the relevant dashboard.
 2. Increase the extension version in the manifest before uploading a new store
    package.
-3. Configure that repository's own variables and secrets.
-4. Run Release Upload with the matching upload input enabled.
-5. Enable `submit_chrome` or `submit_edge` in the same run when the uploaded
+3. Add release notes for that version to `docs/store-listing.md`.
+4. Configure that repository's own variables and secrets.
+5. Run Release Upload with the matching upload input enabled.
+6. Confirm the `Sync GitHub Release` step created or updated `v{version}` and
+   uploaded `hong-kong-weather-extension-{version}-chromium.zip`.
+7. Enable `submit_chrome` or `submit_edge` in the same run when the uploaded
    draft should be submitted for review immediately.
-6. Review store dashboard status after the workflow finishes.
+8. Review store dashboard status after the workflow finishes.
 
 ## Store Behavior
 
 - Chrome uses the Chrome Web Store API upload endpoint for an existing item.
   When `submit_chrome` is enabled, it also calls the publish endpoint, which
   submits the item for review.
+- GitHub Releases are synced before store upload steps when `upload_chrome` or
+  `upload_edge` is enabled. Artifact-only runs do not create releases.
 - Edge uses the Microsoft Edge Add-ons v1.1 API key flow to upload the package
   to the product's draft submission, then polls the package upload operation.
   When `submit_edge` is enabled, it also calls the publish submission endpoint
