@@ -18,6 +18,22 @@ interface OptionsCopy {
   githubRepository: string;
   language: string;
   notificationChangesOnlyDescription: string;
+  notificationWarningCategories: string;
+  notificationWarningCategoriesDescription: string;
+  notificationWarningCategoryCold: string;
+  notificationWarningCategoryFire: string;
+  notificationWarningCategoryFlooding: string;
+  notificationWarningCategoryFrost: string;
+  notificationWarningCategoryHeat: string;
+  notificationWarningCategoryLandslip: string;
+  notificationWarningCategoryMonsoon: string;
+  notificationWarningCategoryOther: string;
+  notificationWarningCategoryRainAmber: string;
+  notificationWarningCategoryRainBlack: string;
+  notificationWarningCategoryRainRed: string;
+  notificationWarningCategoryThunderstorm: string;
+  notificationWarningCategoryTsunami: string;
+  notificationWarningCategoryTyphoon: string;
   notifications: string;
   off: string;
   options: string;
@@ -68,6 +84,23 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     language: "語言",
     notificationChangesOnlyDescription:
       "通知只會在警告狀態有變化時發出；已經生效中的警告不會每次更新都彈出。",
+    notificationWarningCategories: "通知警告種類",
+    notificationWarningCategoriesDescription:
+      "只為已選種類發出通知；彈出視窗及徽章仍會顯示所有生效警告。",
+    notificationWarningCategoryCold: "寒冷",
+    notificationWarningCategoryFire: "火災危險",
+    notificationWarningCategoryFlooding: "水浸",
+    notificationWarningCategoryFrost: "霜凍",
+    notificationWarningCategoryHeat: "酷熱",
+    notificationWarningCategoryLandslip: "山泥傾瀉",
+    notificationWarningCategoryMonsoon: "季候風",
+    notificationWarningCategoryOther: "其他警告",
+    notificationWarningCategoryRainAmber: "黃雨",
+    notificationWarningCategoryRainBlack: "黑雨",
+    notificationWarningCategoryRainRed: "紅雨",
+    notificationWarningCategoryThunderstorm: "雷暴",
+    notificationWarningCategoryTsunami: "海嘯",
+    notificationWarningCategoryTyphoon: "熱帶氣旋",
     notifications: "通知",
     off: "關閉",
     options: "設定",
@@ -117,6 +150,23 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     language: "语言",
     notificationChangesOnlyDescription:
       "通知只会在警告状态有变化时发出；已经生效中的警告不会每次更新都弹出。",
+    notificationWarningCategories: "通知警告种类",
+    notificationWarningCategoriesDescription:
+      "只为已选种类发出通知；弹出窗口及徽章仍会显示所有生效警告。",
+    notificationWarningCategoryCold: "寒冷",
+    notificationWarningCategoryFire: "火灾危险",
+    notificationWarningCategoryFlooding: "水浸",
+    notificationWarningCategoryFrost: "霜冻",
+    notificationWarningCategoryHeat: "酷热",
+    notificationWarningCategoryLandslip: "山泥倾泻",
+    notificationWarningCategoryMonsoon: "季候风",
+    notificationWarningCategoryOther: "其他警告",
+    notificationWarningCategoryRainAmber: "黄雨",
+    notificationWarningCategoryRainBlack: "黑雨",
+    notificationWarningCategoryRainRed: "红雨",
+    notificationWarningCategoryThunderstorm: "雷暴",
+    notificationWarningCategoryTsunami: "海啸",
+    notificationWarningCategoryTyphoon: "热带气旋",
     notifications: "通知",
     off: "关闭",
     options: "设置",
@@ -168,6 +218,23 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     language: "Language",
     notificationChangesOnlyDescription:
       "Notifications are sent only when warning status changes. Existing active warnings do not notify on every refresh.",
+    notificationWarningCategories: "Warning types",
+    notificationWarningCategoriesDescription:
+      "Only selected types send notifications. The popup and badge still show every active warning.",
+    notificationWarningCategoryCold: "Cold",
+    notificationWarningCategoryFire: "Fire danger",
+    notificationWarningCategoryFlooding: "Flooding",
+    notificationWarningCategoryFrost: "Frost",
+    notificationWarningCategoryHeat: "Very hot",
+    notificationWarningCategoryLandslip: "Landslip",
+    notificationWarningCategoryMonsoon: "Monsoon",
+    notificationWarningCategoryOther: "Other warnings",
+    notificationWarningCategoryRainAmber: "Amber rainstorm",
+    notificationWarningCategoryRainBlack: "Black rainstorm",
+    notificationWarningCategoryRainRed: "Red rainstorm",
+    notificationWarningCategoryThunderstorm: "Thunderstorm",
+    notificationWarningCategoryTsunami: "Tsunami",
+    notificationWarningCategoryTyphoon: "Tropical cyclone",
     notifications: "Notifications",
     off: "Off",
     options: "Options",

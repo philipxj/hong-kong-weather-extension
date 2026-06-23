@@ -83,6 +83,22 @@ function settings(): Settings {
     notifyExtended: true,
     notifyIssued: true,
     notifyUpdated: false,
+    notifyWarningCategories: [
+      "rain-amber",
+      "rain-red",
+      "rain-black",
+      "typhoon",
+      "thunderstorm",
+      "heat",
+      "cold",
+      "landslip",
+      "flooding",
+      "monsoon",
+      "frost",
+      "fire",
+      "tsunami",
+      "other"
+    ],
     warningCheckMinutes: 5
   };
 }

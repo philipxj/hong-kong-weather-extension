@@ -1,5 +1,6 @@
 import { optionsCopy } from "./options-copy";
 import {
+  ALL_NOTIFICATION_WARNING_CATEGORIES,
   getCachedWeather,
   getSettings,
   refreshWeather,
@@ -8,7 +9,7 @@ import {
 } from "../shared/weather-service";
 import { optionsSaveAction } from "./save-action";
 import { browserApi } from "../shared/browser-api";
-import type { Language, Settings } from "../shared/types";
+import type { Language, NotificationWarningCategory, Settings } from "../shared/types";
 
 const form = query<HTMLFormElement>("#options-form");
 const status = query<HTMLElement>("#save-status");
@@ -50,6 +51,10 @@ function hydrate(values: Settings): void {
   query<HTMLInputElement>("#notifyCancelled", form).checked = values.notifyCancelled;
   query<HTMLInputElement>("#notifyExtended", form).checked = values.notifyExtended;
   query<HTMLInputElement>("#notifyUpdated", form).checked = values.notifyUpdated;
+  const selectedCategories = new Set(values.notifyWarningCategories);
+  for (const input of queryAll<HTMLInputElement>('input[name="notifyWarningCategories"]', form)) {
+    input.checked = selectedCategories.has(input.value as NotificationWarningCategory);
+  }
   query<HTMLSelectElement>("#badgeMode", form).value = values.badgeMode;
   query<HTMLInputElement>("#currentRefreshMinutes", form).value = String(
     values.currentRefreshMinutes
@@ -65,6 +70,7 @@ function readForm(): Settings {
     notifyCancelled: query<HTMLInputElement>("#notifyCancelled", form).checked,
     notifyExtended: query<HTMLInputElement>("#notifyExtended", form).checked,
     notifyUpdated: query<HTMLInputElement>("#notifyUpdated", form).checked,
+    notifyWarningCategories: readNotificationWarningCategories(),
     badgeMode: query<HTMLSelectElement>("#badgeMode", form).value as Settings["badgeMode"],
     currentRefreshMinutes: clampNumber(
       query<HTMLInputElement>("#currentRefreshMinutes", form).value,
@@ -79,6 +85,15 @@ function readForm(): Settings {
       5
     )
   };
+}
+
+function readNotificationWarningCategories(): NotificationWarningCategory[] {
+  const selected = queryAll<HTMLInputElement>('input[name="notifyWarningCategories"]:checked', form)
+    .map((input) => input.value)
+    .filter((value): value is NotificationWarningCategory =>
+      ALL_NOTIFICATION_WARNING_CATEGORIES.includes(value as NotificationWarningCategory)
+    );
+  return selected;
 }
 
 async function save(): Promise<void> {
@@ -157,4 +172,8 @@ function query<T extends Element>(selector: string, root: ParentNode = document)
   const element = root.querySelector<T>(selector);
   if (!element) throw new Error(`Missing required element: ${selector}`);
   return element;
+}
+
+function queryAll<T extends Element>(selector: string, root: ParentNode = document): T[] {
+  return Array.from(root.querySelectorAll<T>(selector));
 }

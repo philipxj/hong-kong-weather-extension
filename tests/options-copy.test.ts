@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "vitest";
 import { optionsCopy } from "../src/options/options-copy";
+import { ALL_NOTIFICATION_WARNING_CATEGORIES } from "../src/shared/weather-service";
 
 describe("options copy", () => {
   test("uses Chinese labels for Chinese language choices", () => {
@@ -51,6 +52,43 @@ describe("options copy", () => {
     expect(optionsCopy("en").currentRefreshMinutesDescription).toContain("UV index");
     expect(optionsCopy("en").currentRefreshMinutesDescription).not.toContain("forecast");
     expect(optionsCopy("en").warningCheckMinutesDescription).toContain("background service");
+  });
+
+  test("localizes notification warning category labels", () => {
+    expect(optionsCopy("tc").notificationWarningCategories).toBe("通知警告種類");
+    expect(optionsCopy("tc").notificationWarningCategoriesDescription).toContain("彈出視窗");
+    expect(optionsCopy("tc").notificationWarningCategoriesDescription).not.toContain("popup");
+    expect(optionsCopy("tc").notificationWarningCategoryRainAmber).toBe("黃雨");
+    expect(optionsCopy("tc").notificationWarningCategoryRainRed).toBe("紅雨");
+    expect(optionsCopy("tc").notificationWarningCategoryRainBlack).toBe("黑雨");
+    expect(optionsCopy("tc").notificationWarningCategoryThunderstorm).toBe("雷暴");
+    expect(optionsCopy("tc").notificationWarningCategoryOther).toBe("其他警告");
+    expect(optionsCopy("sc").notificationWarningCategoriesDescription).toContain("弹出窗口");
+    expect(optionsCopy("sc").notificationWarningCategoriesDescription).not.toContain("popup");
+    expect(optionsCopy("sc").notificationWarningCategoryHeat).toBe("酷热");
+    expect(optionsCopy("sc").notificationWarningCategoryFire).toBe("火灾危险");
+    expect(optionsCopy("en").notificationWarningCategories).toBe("Warning types");
+    expect(optionsCopy("en").notificationWarningCategoriesDescription).toContain("popup");
+    expect(optionsCopy("en").notificationWarningCategoryRainAmber).toBe("Amber rainstorm");
+    expect(optionsCopy("en").notificationWarningCategoryRainRed).toBe("Red rainstorm");
+    expect(optionsCopy("en").notificationWarningCategoryRainBlack).toBe("Black rainstorm");
+    expect(optionsCopy("en").notificationWarningCategoryTyphoon).toBe("Tropical cyclone");
+    expect(optionsCopy("en").notificationWarningCategoryTsunami).toBe("Tsunami");
+  });
+
+  test("adds warning category checkboxes to the options form", async () => {
+    const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
+    for (const category of ALL_NOTIFICATION_WARNING_CATEGORIES) {
+      expect(html).toContain('name="notifyWarningCategories"');
+      expect(html).toContain(`value="${category}"`);
+    }
+  });
+
+  test("wires warning category checkboxes into options form persistence", async () => {
+    const script = await readFile(new URL("../src/options/main.ts", import.meta.url), "utf8");
+
+    expect(script).toContain('input[name="notifyWarningCategories"]');
+    expect(script).toContain("notifyWarningCategories");
   });
 
   test("marks the test notification button for localization", async () => {

@@ -1,5 +1,20 @@
 export type Language = "tc" | "en" | "sc";
 export type BadgeMode = "auto" | "temperature" | "warning" | "off";
+export type NotificationWarningCategory =
+  | "rain-amber"
+  | "rain-red"
+  | "rain-black"
+  | "typhoon"
+  | "thunderstorm"
+  | "heat"
+  | "cold"
+  | "landslip"
+  | "flooding"
+  | "monsoon"
+  | "frost"
+  | "fire"
+  | "tsunami"
+  | "other";
 
 export interface Settings {
   language: Language;
@@ -7,6 +22,7 @@ export interface Settings {
   notifyCancelled: boolean;
   notifyExtended: boolean;
   notifyUpdated: boolean;
+  notifyWarningCategories: NotificationWarningCategory[];
   badgeMode: BadgeMode;
   currentRefreshMinutes: number;
   warningCheckMinutes: number;
