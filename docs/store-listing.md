@@ -8,7 +8,7 @@ future releases can review changes in pull requests.
 ## Chrome Web Store
 
 - Store: Chrome Web Store
-- Version recorded: `0.1.2`
+- Version recorded: `0.1.4`
 - Extension ID: `chmlbbhplbepjboepkcngfnmbellhfge`
 - Listing URL:
   https://chromewebstore.google.com/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/chmlbbhplbepjboepkcngfnmbellhfge
@@ -18,6 +18,13 @@ future releases can review changes in pull requests.
 快速查看香港現時天氣、天氣警告、雷達圖、閃電位置及 7 天天氣預報。
 
 ### Release Notes
+
+#### 0.1.4
+
+- Localize weather warning notification titles for Traditional Chinese and
+  Simplified Chinese users.
+- Add notification category filters, including separate amber, red, and black
+  rainstorm controls.
 
 #### 0.1.2
 
