@@ -76,15 +76,128 @@ export async function uploadEdgeDraft({
     return { uploadOperationId, uploadPayload };
   }
 
+  const publishResult = await publishSubmissionWithRetry({
+    endpointRoot,
+    edgeProductId,
+    fetchImpl,
+    headers,
+    notes: env.EDGE_SUBMISSION_NOTES ?? "Submitted by release workflow.",
+    pollDelayMs: Number.parseInt(env.EDGE_PUBLISH_POLL_DELAY_MS ?? "5000", 10),
+    pollLimit: Number.parseInt(env.EDGE_PUBLISH_POLL_ATTEMPTS ?? "10", 10),
+    retryDelayMs: Number.parseInt(env.EDGE_PUBLISH_RETRY_DELAY_MS ?? "60000", 10),
+    retryLimit: Number.parseInt(env.EDGE_PUBLISH_RETRY_ATTEMPTS ?? "3", 10),
+    setTimeoutImpl,
+    submitReviewPath: "submissions"
+  });
+
+  return {
+    publishOperationId: publishResult.publishOperationId,
+    publishPayload: publishResult.publishPayload,
+    uploadOperationId,
+    uploadPayload
+  };
+}
+
+/**
+ * @param {{
+ *   edgeProductId: string;
+ *   endpointRoot: string;
+ *   fetchImpl: typeof fetch;
+ *   headers: Record<string, string>;
+ *   operationId: string;
+ *   operationPath: string;
+ *   retryDelayMs: number;
+ *   retryLimit: number;
+ *   setTimeoutImpl: (delay: number) => Promise<void>;
+ *   statusLabel: string;
+ * }} options
+ * @returns {Promise<Record<string, unknown>>}
+ */
+async function publishSubmissionWithRetry({
+  edgeProductId,
+  endpointRoot,
+  fetchImpl,
+  headers,
+  notes,
+  pollDelayMs,
+  pollLimit,
+  retryDelayMs,
+  retryLimit,
+  setTimeoutImpl,
+  submitReviewPath
+}) {
+  for (let attempt = 1; attempt <= retryLimit; attempt += 1) {
+    const publishResult = await publishSubmission({
+      edgeProductId,
+      endpointRoot,
+      fetchImpl,
+      headers,
+      notes,
+      submitReviewPath
+    });
+
+    try {
+      await pollOperation({
+        endpointRoot,
+        edgeProductId,
+        fetchImpl,
+        headers,
+        operationId: publishResult.publishOperationId,
+        operationPath: "submissions/operations",
+        retryDelayMs: pollDelayMs,
+        retryLimit: pollLimit,
+        setTimeoutImpl,
+        statusLabel: "Edge publish"
+      });
+
+      return publishResult;
+    } catch (error) {
+      if (
+        !(error instanceof EdgeOperationFailedError) ||
+        error.errorCode !== "InProgressSubmission" ||
+        attempt === retryLimit
+      ) {
+        throw error;
+      }
+
+      await setTimeoutImpl(retryDelayMs);
+    }
+  }
+
+  throw new Error(`Edge publish operation did not finish after ${retryLimit} retry attempts`);
+}
+
+/**
+ * @param {{
+ *   edgeProductId: string;
+ *   endpointRoot: string;
+ *   fetchImpl: typeof fetch;
+ *   headers: Record<string, string>;
+ *   notes: string;
+ *   submitReviewPath: string;
+ * }} options
+ * @returns {Promise<{
+ *   publishOperationId: string;
+ *   publishPayload: Record<string, unknown>;
+ * }>}
+ */
+async function publishSubmission({
+  edgeProductId,
+  endpointRoot,
+  fetchImpl,
+  headers,
+  notes,
+  submitReviewPath
+}) {
   const publishResponse = await fetchImpl(
-    `${endpointRoot}/v1/products/${edgeProductId}/submissions`,
+    `${endpointRoot}/v1/products/${edgeProductId}/${submitReviewPath}`,
     {
       method: "POST",
       headers: {
         ...headers,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ notes: env.EDGE_SUBMISSION_NOTES ?? "Submitted by release workflow." })
+      body: JSON.stringify({ notes })
     }
   );
   const publishPayload = await readResponse(publishResponse);
@@ -101,20 +214,7 @@ export async function uploadEdgeDraft({
     throw new Error("Edge review submission did not return an operation ID in the Location header");
   }
 
-  await pollOperation({
-    endpointRoot,
-    edgeProductId,
-    fetchImpl,
-    headers,
-    operationId: publishOperationId,
-    operationPath: "submissions/operations",
-    retryDelayMs: Number.parseInt(env.EDGE_PUBLISH_POLL_DELAY_MS ?? "5000", 10),
-    retryLimit: Number.parseInt(env.EDGE_PUBLISH_POLL_ATTEMPTS ?? "10", 10),
-    setTimeoutImpl,
-    statusLabel: "Edge publish"
-  });
-
-  return { publishOperationId, publishPayload, uploadOperationId, uploadPayload };
+  return { publishOperationId, publishPayload };
 }
 
 /**
@@ -165,7 +265,7 @@ async function pollOperation({
     }
 
     if (statusPayload.status === "Failed") {
-      throw new Error(`${statusLabel} operation failed: ${formatPayload(statusPayload)}`);
+      throw new EdgeOperationFailedError(statusLabel, statusPayload);
     }
   }
 
@@ -220,6 +320,18 @@ function getEnv(env, name) {
  */
 function defaultSetTimeout(delay) {
   return sleep(delay);
+}
+
+class EdgeOperationFailedError extends Error {
+  /**
+   * @param {string} statusLabel
+   * @param {Record<string, unknown>} payload
+   */
+  constructor(statusLabel, payload) {
+    super(`${statusLabel} operation failed: ${formatPayload(payload)}`);
+    this.errorCode = typeof payload.errorCode === "string" ? payload.errorCode : undefined;
+    this.payload = payload;
+  }
 }
 
 /**
