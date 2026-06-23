@@ -1,11 +1,13 @@
 import { describe, expect, test, vi } from "vitest";
 import { hkoCurrentSchema } from "../src/shared/hko-schemas";
 import {
+  ALL_NOTIFICATION_WARNING_CATEGORIES,
   badgeBackgroundColor,
   badgeTextColor,
   DEFAULT_SETTINGS,
   formatActionBadgeText,
   formatWarningBadgeForLanguage,
+  getSettings,
   getActionBadgeWarnings,
   getSignalWarnings,
   normalizeWeather,
@@ -17,6 +19,64 @@ import {
 import type { CurrentWeather, WeatherData, WeatherWarning, WarningType } from "../src/shared/types";
 
 describe("weather service normalization", () => {
+  test("enables every warning notification category by default", () => {
+    expect(DEFAULT_SETTINGS.notifyWarningCategories).toEqual(ALL_NOTIFICATION_WARNING_CATEGORIES);
+  });
+
+  test("fills all warning notification categories for older stored settings", async () => {
+    vi.stubGlobal("chrome", {
+      storage: {
+        sync: {
+          get: vi.fn().mockResolvedValue({
+            settings: {
+              language: "tc",
+              notifyIssued: true,
+              notifyCancelled: true,
+              notifyExtended: true,
+              notifyUpdated: false,
+              badgeMode: "auto",
+              currentRefreshMinutes: 15,
+              warningCheckMinutes: 5
+            }
+          }),
+          set: vi.fn()
+        }
+      }
+    });
+
+    try {
+      await expect(getSettings()).resolves.toMatchObject({
+        notifyWarningCategories: ALL_NOTIFICATION_WARNING_CATEGORIES
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("migrates the old rain notification category to amber red and black rainstorms", async () => {
+    vi.stubGlobal("chrome", {
+      storage: {
+        sync: {
+          get: vi.fn().mockResolvedValue({
+            settings: {
+              ...DEFAULT_SETTINGS,
+              notifyWarningCategories: ["rain"]
+            }
+          }),
+          set: vi.fn()
+        }
+      }
+    });
+
+    try {
+      await expect(getSettings()).resolves.toMatchObject({
+        notifyWarningCategories: ["rain-amber", "rain-red", "rain-black"]
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test("accepts missing overnight UV index from HKO current data", () => {
     const current = hkoCurrentSchema.parse({
       icon: [64],

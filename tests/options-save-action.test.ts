@@ -12,6 +12,15 @@ describe("options save action", () => {
     ).toBe("save-only");
   });
 
+  test("does not refresh weather for notification category changes", () => {
+    expect(
+      optionsSaveAction(DEFAULT_SETTINGS, {
+        ...DEFAULT_SETTINGS,
+        notifyWarningCategories: ["rain-black"]
+      })
+    ).toBe("save-only");
+  });
+
   test("updates the badge from cache for badge-only changes", () => {
     expect(
       optionsSaveAction(DEFAULT_SETTINGS, {

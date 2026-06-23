@@ -211,6 +211,122 @@ describe("weather refresh API usage", () => {
     });
   });
 
+  test("sends warning notifications only for selected categories", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeather(),
+      warnings: []
+    };
+
+    await refreshWeatherWarnings({
+      ...DEFAULT_SETTINGS,
+      notifyCancelled: false,
+      notifyWarningCategories: ["thunderstorm"]
+    });
+
+    expect(mockState.notifications).toHaveLength(1);
+    expect(notificationAt(0)).toMatchObject({
+      title: "天氣警告發出",
+      message: "雷暴警告"
+    });
+  });
+
+  test("suppresses issued warning notifications for unselected categories", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeather(),
+      warnings: []
+    };
+
+    await refreshWeatherWarnings({
+      ...DEFAULT_SETTINGS,
+      notifyWarningCategories: ["rain-amber"]
+    });
+
+    expect(mockState.notifications).toHaveLength(0);
+  });
+
+  test("suppresses cancelled extended and updated notifications for unselected categories", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeather(),
+      warnings: [
+        thunderstormWarning({
+          expireTime: "2026-06-18T02:30:00+08:00",
+          updateTime: "2026-06-18T01:45:00+08:00"
+        }),
+        {
+          ...rainWarning("WRAINR"),
+          name: "紅色暴雨警告信號"
+        }
+      ]
+    };
+
+    await refreshWeatherWarnings({
+      ...DEFAULT_SETTINGS,
+      notifyUpdated: true,
+      notifyWarningCategories: ["rain-red"]
+    });
+
+    expect(mockState.notifications).toHaveLength(1);
+    expect(notificationAt(0)).toMatchObject({
+      title: "天氣警告取消",
+      message: "紅色暴雨警告信號"
+    });
+  });
+
+  test("filters amber red and black rainstorm warning notifications independently", async () => {
+    const cases = [
+      { code: "WRAINA", selected: "rain-amber", blocked: "rain-red" },
+      { code: "WRAINR", selected: "rain-red", blocked: "rain-black" },
+      { code: "WRAINB", selected: "rain-black", blocked: "rain-amber" }
+    ] as const;
+
+    for (const { code, selected, blocked } of cases) {
+      mockState.local.weatherCache = {
+        ...cachedWeather(),
+        warnings: []
+      };
+      mockState.notifications = [];
+      vi.mocked(fetch).mockImplementation((input) => {
+        const url = new URL(inputToUrl(input));
+        if (url.searchParams.get("dataType") === "warnsum") {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                WRAIN: {
+                  code,
+                  issueTime: "2026-06-18T01:30:00+08:00",
+                  name: "暴雨警告信號"
+                }
+              })
+          } as Response);
+        }
+        return fetchHkoFixture(input);
+      });
+
+      await refreshWeatherWarnings({
+        ...DEFAULT_SETTINGS,
+        notifyWarningCategories: [blocked]
+      });
+
+      expect(mockState.notifications).toHaveLength(0);
+
+      mockState.local.weatherCache = {
+        ...cachedWeather(),
+        warnings: []
+      };
+      mockState.notifications = [];
+      await refreshWeatherWarnings({
+        ...DEFAULT_SETTINGS,
+        notifyWarningCategories: [selected]
+      });
+
+      expect(notificationAt(0)).toMatchObject({
+        title: "天氣警告發出",
+        message: "暴雨警告信號"
+      });
+    }
+  });
+
   test("partial refresh falls back to full refresh when there is no cached weather", async () => {
     await refreshWeatherWarnings(DEFAULT_SETTINGS);
 
@@ -372,5 +488,20 @@ function thunderstormWarning(overrides: Partial<WeatherWarning> = {}): WeatherWa
     type: "thunderstorm",
     updateTime: "2026-06-18T02:00:00+08:00",
     ...overrides
+  };
+}
+
+function rainWarning(code: "WRAINA" | "WRAINR" | "WRAINB"): WeatherWarning {
+  const badge = code === "WRAINB" ? "黑" : code === "WRAINR" ? "紅" : "黃";
+  return {
+    badge,
+    code,
+    contents: "",
+    expireTime: "",
+    issueTime: "2026-06-18T01:00:00+08:00",
+    name: "暴雨警告信號",
+    priority: 20,
+    type: code === "WRAINB" ? "rain-black" : code === "WRAINR" ? "rain-red" : "rain-amber",
+    updateTime: ""
   };
 }

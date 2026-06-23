@@ -14,6 +14,7 @@ import type {
   CurrentWeather,
   ForecastDay,
   Language,
+  NotificationWarningCategory,
   Settings,
   WarningInfo,
   WarningType,
@@ -22,12 +23,30 @@ import type {
   WeatherWarning
 } from "./types";
 
+export const ALL_NOTIFICATION_WARNING_CATEGORIES: NotificationWarningCategory[] = [
+  "rain-amber",
+  "rain-red",
+  "rain-black",
+  "typhoon",
+  "thunderstorm",
+  "heat",
+  "cold",
+  "landslip",
+  "flooding",
+  "monsoon",
+  "frost",
+  "fire",
+  "tsunami",
+  "other"
+];
+
 export const DEFAULT_SETTINGS: Settings = {
   language: "tc",
   notifyIssued: true,
   notifyCancelled: true,
   notifyExtended: true,
   notifyUpdated: false,
+  notifyWarningCategories: ALL_NOTIFICATION_WARNING_CATEGORIES,
   badgeMode: "auto",
   currentRefreshMinutes: 15,
   warningCheckMinutes: 5
@@ -72,13 +91,42 @@ export interface LatestUvIndex {
 
 export async function getSettings(): Promise<Settings> {
   const stored = await browserApi.storage.sync.get<Partial<Settings>>(STORAGE_KEYS.settings);
-  return { ...DEFAULT_SETTINGS, ...(stored[STORAGE_KEYS.settings] ?? {}) };
+  return normalizeSettings(stored[STORAGE_KEYS.settings]);
 }
 
 export async function saveSettings(settings: Partial<Settings>): Promise<void> {
   await browserApi.storage.sync.set({
-    [STORAGE_KEYS.settings]: { ...DEFAULT_SETTINGS, ...settings }
+    [STORAGE_KEYS.settings]: normalizeSettings(settings)
   });
+}
+
+function normalizeSettings(settings: Partial<Settings> | undefined): Settings {
+  const merged = { ...DEFAULT_SETTINGS, ...(settings ?? {}) };
+  return {
+    ...merged,
+    notifyWarningCategories: normalizeNotificationWarningCategories(
+      settings?.notifyWarningCategories
+    )
+  };
+}
+
+function normalizeNotificationWarningCategories(
+  categories: Partial<Settings>["notifyWarningCategories"] | undefined
+): NotificationWarningCategory[] {
+  if (!Array.isArray(categories)) return ALL_NOTIFICATION_WARNING_CATEGORIES;
+  const selected = new Set<NotificationWarningCategory>();
+  for (const category of categories as string[]) {
+    if (category === "rain") {
+      selected.add("rain-amber");
+      selected.add("rain-red");
+      selected.add("rain-black");
+    } else if (
+      ALL_NOTIFICATION_WARNING_CATEGORIES.includes(category as NotificationWarningCategory)
+    ) {
+      selected.add(category as NotificationWarningCategory);
+    }
+  }
+  return ALL_NOTIFICATION_WARNING_CATEGORIES.filter((category) => selected.has(category));
 }
 
 export async function getCachedWeather(): Promise<WeatherData | null> {
@@ -519,12 +567,13 @@ async function reconcileWarningNotifications(
   settings: Settings
 ): Promise<void> {
   const copy = notificationCopy(settings.language);
+  const selectedCategories = new Set(settings.notifyWarningCategories);
   const previousCodes = new Set(previous?.warnings.map((item) => item.code) ?? []);
   const nextCodes = new Set(next.warnings.map((item) => item.code));
 
   if (settings.notifyIssued) {
     for (const warning of next.warnings) {
-      if (!previousCodes.has(warning.code)) {
+      if (!previousCodes.has(warning.code) && shouldNotifyWarning(warning, selectedCategories)) {
         await notify(copy.warningIssuedTitle, warning.name);
       }
     }
@@ -532,7 +581,7 @@ async function reconcileWarningNotifications(
 
   if (settings.notifyCancelled && previous?.warnings.length) {
     for (const warning of previous.warnings) {
-      if (!nextCodes.has(warning.code)) {
+      if (!nextCodes.has(warning.code) && shouldNotifyWarning(warning, selectedCategories)) {
         await notify(copy.warningCancelledTitle, warning.name);
       }
     }
@@ -547,18 +596,32 @@ async function reconcileWarningNotifications(
       settings.notifyExtended &&
       warning.expireTime &&
       old.expireTime &&
-      warning.expireTime !== old.expireTime
+      warning.expireTime !== old.expireTime &&
+      shouldNotifyWarning(warning, selectedCategories)
     ) {
       await notify(copy.warningExtendedTitle, warning.name);
     } else if (
       settings.notifyUpdated &&
       warning.updateTime &&
       old.updateTime &&
-      warning.updateTime !== old.updateTime
+      warning.updateTime !== old.updateTime &&
+      shouldNotifyWarning(warning, selectedCategories)
     ) {
       await notify(copy.warningUpdatedTitle, warning.name);
     }
   }
+}
+
+function shouldNotifyWarning(
+  warning: WeatherWarning,
+  selectedCategories: Set<NotificationWarningCategory>
+): boolean {
+  return selectedCategories.has(notificationWarningCategory(warning.type));
+}
+
+function notificationWarningCategory(type: WarningType): NotificationWarningCategory {
+  if (type === "fire-yellow" || type === "fire-red") return "fire";
+  return type;
 }
 
 async function notify(title: string, message: string): Promise<void> {
