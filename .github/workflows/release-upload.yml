@@ -18,6 +18,11 @@ on:
         required: false
         default: false
         type: boolean
+      upload_firefox:
+        description: Upload the Firefox package and source to AMO and submit it for review.
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -36,6 +41,11 @@ jobs:
       EDGE_CLIENT_ID: ${{ vars.EDGE_CLIENT_ID || secrets.EDGE_CLIENT_ID }}
       EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
       EDGE_SUBMIT_REVIEW: ${{ inputs.upload_edge && 'true' || 'false' }}
+      FIREFOX_ADDON_ID: ${{ vars.FIREFOX_ADDON_ID || secrets.FIREFOX_ADDON_ID }}
+      FIREFOX_JWT_ISSUER: ${{ vars.FIREFOX_JWT_ISSUER || secrets.FIREFOX_JWT_ISSUER }}
+      FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+      FIREFOX_LICENSE: ${{ vars.FIREFOX_LICENSE || 'MIT' }}
+      FIREFOX_SUBMISSION_NOTES: ${{ vars.FIREFOX_SUBMISSION_NOTES || 'Submitted by release workflow. See docs/amo-source-build.md for reproducible build instructions.' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -68,8 +78,40 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Package Firefox extension
+        if: ${{ inputs.upload_firefox }}
+        id: package_firefox
+        run: |
+          npm run package:firefox | tee package-firefox.log
+          FIREFOX_ZIP_PATH="$(tail -n 1 package-firefox.log)"
+          test -f "$FIREFOX_ZIP_PATH"
+          echo "zip_path=${FIREFOX_ZIP_PATH}" >> "$GITHUB_OUTPUT"
+          unzip -Z1 "$FIREFOX_ZIP_PATH" | sed -n '1,40p'
+          unzip -Z1 "$FIREFOX_ZIP_PATH" | grep -qx 'manifest.json'
+
+      - name: Package source archive
+        if: ${{ inputs.upload_firefox }}
+        id: package_source
+        run: |
+          npm run package:source | tee package-source.log
+          SOURCE_ZIP_PATH="$(tail -n 1 package-source.log)"
+          test -f "$SOURCE_ZIP_PATH"
+          echo "zip_path=${SOURCE_ZIP_PATH}" >> "$GITHUB_OUTPUT"
+          unzip -Z1 "$SOURCE_ZIP_PATH" | sed -n '1,40p'
+          unzip -Z1 "$SOURCE_ZIP_PATH" | grep -qx 'package.json'
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ inputs.upload_firefox }}
+        with:
+          name: firefox-extension-package
+          path: |
+            ${{ steps.package_firefox.outputs.zip_path }}
+            ${{ steps.package_source.outputs.zip_path }}
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Sync GitHub Release
-        if: ${{ inputs.upload_chrome || inputs.upload_edge }}
+        if: ${{ inputs.upload_chrome || inputs.upload_edge || inputs.upload_firefox }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/sync-github-release.mjs "${{ steps.package.outputs.zip_path }}"
@@ -89,3 +131,11 @@ jobs:
       - name: Skip Microsoft Edge Add-ons draft upload
         if: ${{ !inputs.upload_edge || env.EDGE_PRODUCT_ID == '' || env.EDGE_CLIENT_ID == '' || env.EDGE_API_KEY == '' }}
         run: echo "Microsoft Edge Add-ons draft upload/submission was not requested or credentials are incomplete; uploaded the package artifact only."
+
+      - name: Upload Firefox Add-ons draft
+        if: ${{ inputs.upload_firefox && env.FIREFOX_ADDON_ID != '' && env.FIREFOX_JWT_ISSUER != '' && env.FIREFOX_JWT_SECRET != '' }}
+        run: node scripts/upload-firefox-draft.mjs "${{ steps.package_firefox.outputs.zip_path }}" "${{ steps.package_source.outputs.zip_path }}"
+
+      - name: Skip Firefox Add-ons draft upload
+        if: ${{ !inputs.upload_firefox || env.FIREFOX_ADDON_ID == '' || env.FIREFOX_JWT_ISSUER == '' || env.FIREFOX_JWT_SECRET == '' }}
+        run: echo "Firefox Add-ons upload/submission was not requested or credentials are incomplete; uploaded the package artifacts only."
