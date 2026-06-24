@@ -496,6 +496,133 @@ test.describe("popup layout", () => {
     await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
   });
 
+  test("shows first-use imagery step arrows inside the preview without overlapping controls", async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.evaluate(() => {
+      (window as unknown as { __imageryStepHintDismissed?: boolean }).__imageryStepHintDismissed =
+        false;
+    });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    const layout = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          height: box.height,
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          width: box.width
+        };
+      };
+
+      const leftArrow = document.querySelector(".imagery-step-hint-left");
+      const rightArrow = document.querySelector(".imagery-step-hint-right");
+      if (!leftArrow || !rightArrow) throw new Error("Missing imagery step hint arrows");
+
+      return {
+        caption: rect(".imagery-caption"),
+        expandButton: rect(".imagery-expand"),
+        forecast: rect(".legacy-forecast"),
+        hint: rect(".imagery-step-hint"),
+        leftArrow: rect(".imagery-step-hint-left"),
+        preview: rect(".imagery-preview"),
+        rangeWidget: rect(".radar-ranges"),
+        rightArrow: rect(".imagery-step-hint-right"),
+        stepper: rect(".imagery-stepper"),
+        leftOpacity: Number(getComputedStyle(leftArrow).opacity),
+        rightOpacity: Number(getComputedStyle(rightArrow).opacity)
+      };
+    });
+
+    await expect(page.locator(".imagery-step-hint")).toBeVisible();
+    expect(layout.hint.left).toBeGreaterThanOrEqual(layout.preview.left);
+    expect(layout.hint.right).toBeLessThanOrEqual(layout.preview.right);
+    expect(layout.hint.top).toBeGreaterThanOrEqual(layout.preview.top);
+    expect(layout.hint.bottom).toBeLessThanOrEqual(layout.preview.bottom);
+    expect(layout.leftArrow.left).toBeGreaterThanOrEqual(layout.preview.left);
+    expect(layout.rightArrow.right).toBeLessThanOrEqual(layout.preview.right);
+    expect(overlaps(layout.leftArrow, layout.stepper)).toBe(false);
+    expect(overlaps(layout.rightArrow, layout.stepper)).toBe(false);
+    expect(overlaps(layout.leftArrow, layout.expandButton)).toBe(false);
+    expect(overlaps(layout.rightArrow, layout.expandButton)).toBe(false);
+    expect(overlaps(layout.hint, layout.caption)).toBe(false);
+    expect(overlaps(layout.hint, layout.rangeWidget)).toBe(false);
+    expect(layout.hint.bottom).toBeLessThanOrEqual(layout.forecast.top);
+    expect(layout.leftOpacity).toBeGreaterThan(0.8);
+    expect(layout.rightOpacity).toBeLessThan(layout.leftOpacity);
+  });
+
+  test("keeps first-use imagery step arrows until a successful step then persists dismissal", async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.evaluate(() => {
+      (window as unknown as { __imageryStepHintDismissed?: boolean }).__imageryStepHintDismissed =
+        false;
+    });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+
+    const preview = page.locator(".imagery-preview");
+    const previewBox = await preview.boundingBox();
+    if (!previewBox) throw new Error("Missing imagery preview bounds");
+
+    await expect(page.locator(".imagery-step-hint")).toBeVisible();
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+
+    await preview.click({
+      position: {
+        x: previewBox.width * 0.75,
+        y: previewBox.height * 0.5
+      }
+    });
+    await page.waitForTimeout(260);
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+    await expect(page.locator(".imagery-step-hint")).toBeVisible();
+
+    await preview.click({
+      position: {
+        x: previewBox.width * 0.25,
+        y: previewBox.height * 0.5
+      }
+    });
+    await expect(page.locator(".imagery-position")).toHaveText("4 / 5");
+    await expect(page.locator(".imagery-step-hint")).toBeHidden();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as unknown as { __imageryStepHintDismissed?: boolean })
+              .__imageryStepHintDismissed === true
+        )
+      )
+      .toBe(true);
+
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      {
+        waitUntil: "domcontentloaded"
+      }
+    );
+    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
+    await expect(page.locator(".imagery-step-hint")).toBeHidden();
+  });
+
   test("plays imagery step feedback as a single pulse", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
@@ -788,7 +915,7 @@ async function fixtureHtml({
               <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             </section>
             <section class="legacy-side-panel">
-              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"><span>時間</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div><div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
+              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><div class="imagery-step-hint" aria-hidden="true" hidden><span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span><span class="imagery-step-hint-arrow imagery-step-hint-right">›</span></div><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"><span>時間</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div><div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
               <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
             </section>
             <section class="legacy-forecast">
@@ -803,23 +930,43 @@ async function fixtureHtml({
           const imageryCard = document.querySelector(".imagery-card");
           const imageryPreview = document.querySelector(".imagery-preview");
           const imageryPosition = document.querySelector(".imagery-position");
+          const imageryStepper = document.querySelector(".imagery-stepper");
           const imageryExpand = document.querySelector(".imagery-expand");
+          const imageryStepHint = document.querySelector(".imagery-step-hint");
+          const imageryStepHintLeft = document.querySelector(".imagery-step-hint-left");
+          const imageryStepHintRight = document.querySelector(".imagery-step-hint-right");
           const imageryToast = document.querySelector(".imagery-toast");
           const snapshotCount = 5;
           let selectedSnapshotIndex = snapshotCount - 1;
           let previewClickTimer;
           let previewFeedbackTimer;
           let imageryToastTimer;
+          let imageryStepHintDismissed = window.__imageryStepHintDismissed === true;
           const updateStepper = () => {
             if (imageryPosition) {
               imageryPosition.textContent = (selectedSnapshotIndex + 1) + " / " + snapshotCount;
             }
+          };
+          const renderImageryStepHint = () => {
+            if (!(imageryStepHint instanceof HTMLElement)) return;
+            const hasSnapshots = snapshotCount > 1;
+            const controlsHidden = imageryPosition?.hidden || imageryStepper?.hidden;
+            imageryStepHint.hidden = imageryStepHintDismissed || !hasSnapshots || Boolean(controlsHidden);
+            imageryStepHintLeft?.classList.toggle("is-disabled", selectedSnapshotIndex <= 0);
+            imageryStepHintRight?.classList.toggle("is-disabled", selectedSnapshotIndex >= snapshotCount - 1);
+          };
+          const dismissImageryStepHint = () => {
+            if (imageryStepHintDismissed) return;
+            imageryStepHintDismissed = true;
+            window.__imageryStepHintDismissed = true;
+            renderImageryStepHint();
           };
           const stepSnapshot = (direction) => {
             const nextIndex = selectedSnapshotIndex + direction;
             if (nextIndex < 0 || nextIndex >= snapshotCount) return false;
             selectedSnapshotIndex = nextIndex;
             updateStepper();
+            renderImageryStepHint();
             return true;
           };
           const clearPreviewClickTimer = () => {
@@ -877,6 +1024,7 @@ async function fixtureHtml({
             return target instanceof Element && Boolean(target.closest(".imagery-stepper, button"));
           };
           updateStepper();
+          renderImageryStepHint();
           const title = document.querySelector(".legacy-weather-title");
           const special = document.querySelector(".special-weather-card");
           if (title instanceof HTMLElement && special instanceof HTMLElement) {
@@ -898,6 +1046,7 @@ async function fixtureHtml({
             previewClickTimer = window.setTimeout(() => {
               previewClickTimer = undefined;
               if (stepSnapshot(direction)) {
+                dismissImageryStepHint();
                 showImageryStepFeedback(direction);
               }
             }, 220);
@@ -916,6 +1065,7 @@ async function fixtureHtml({
               clearPreviewClickTimer();
               const direction = event.key === "ArrowLeft" ? -1 : 1;
               if (stepSnapshot(direction)) {
+                dismissImageryStepHint();
                 showImageryStepFeedback(direction);
               }
               return;

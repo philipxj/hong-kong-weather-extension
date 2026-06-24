@@ -74,6 +74,7 @@ const WEATHER_TITLE_MAX_FONT_SIZE = 40;
 const WEATHER_TITLE_MIN_FONT_SIZE = 24;
 const IMAGERY_STEP_FEEDBACK_MS = 360;
 const IMAGERY_TOAST_MS = 1600;
+const IMAGERY_STEP_HINT_STORAGE_KEY = "imageryStepHintDismissed";
 const IMAGERY: Record<ImageryType, ImageryItem> = {
   radar: {
     fallbackUrl: `${HKO_ROOT}/wxinfo/intersat/misc_images/icon_radar_tc.gif`,
@@ -317,6 +318,9 @@ const els = {
   imageryFallback: query<HTMLElement>("#imagery-fallback"),
   imageryPosition: query<HTMLElement>("#imagery-position"),
   imageryStepper: query<HTMLElement>("#imagery-stepper"),
+  imageryStepHint: query<HTMLElement>("#imagery-step-hint"),
+  imageryStepHintLeft: query<HTMLElement>(".imagery-step-hint-left"),
+  imageryStepHintRight: query<HTMLElement>(".imagery-step-hint-right"),
   imageryTitle: query<HTMLElement>("#imagery-title"),
   imageryToast: query<HTMLElement>("#imagery-toast"),
   imageryTime: query<HTMLElement>("#imagery-time"),
@@ -339,6 +343,7 @@ els.specialWeatherOpen.addEventListener("click", () => {
 let previewClickTimer: number | undefined;
 let previewFeedbackTimer: number | undefined;
 let imageryToastTimer: number | undefined;
+let imageryStepHintDismissed = true;
 
 els.imageryOpen.addEventListener("click", (event) => {
   if (shouldIgnorePreviewAction(event.target)) return;
@@ -348,6 +353,7 @@ els.imageryOpen.addEventListener("click", (event) => {
   previewClickTimer = window.setTimeout(() => {
     previewClickTimer = undefined;
     if (stepImagerySnapshot(direction)) {
+      dismissImageryStepHint();
       showImageryStepFeedback(direction);
     }
   }, 220);
@@ -366,6 +372,7 @@ els.imageryOpen.addEventListener("keydown", (event) => {
     clearPreviewClickTimer();
     const direction = event.key === "ArrowLeft" ? -1 : 1;
     if (stepImagerySnapshot(direction)) {
+      dismissImageryStepHint();
       showImageryStepFeedback(direction);
     }
     return;
@@ -407,6 +414,7 @@ els.imageryTabs.forEach((tab) => {
 });
 
 els.loading.textContent = "Loading weather data...";
+await loadImageryStepHintPreference();
 await load();
 
 async function load({ force = false }: { force?: boolean } = {}): Promise<void> {
@@ -602,6 +610,7 @@ function selectImagery(type: ImageryType = "radar"): void {
   els.imageryImage.alt = title;
   renderImageryStepper(type);
   renderRadarRanges(type);
+  renderImageryStepHint(type);
 }
 
 function toggleImageryExpanded({ showToast = false }: { showToast?: boolean } = {}): void {
@@ -692,6 +701,33 @@ function renderImageryStepper(type: ImageryType): void {
   els.imageryPosition.textContent = hasSnapshots
     ? `${safeDisplayIndex + 1} / ${snapshots.length}`
     : "-- / --";
+}
+
+async function loadImageryStepHintPreference(): Promise<void> {
+  const stored = await browserApi.storage.local.get<boolean>(IMAGERY_STEP_HINT_STORAGE_KEY);
+  imageryStepHintDismissed = stored[IMAGERY_STEP_HINT_STORAGE_KEY] === true;
+}
+
+function dismissImageryStepHint(): void {
+  if (imageryStepHintDismissed) return;
+  imageryStepHintDismissed = true;
+  renderImageryStepHint(toImageryType(els.imageryOpen.dataset.imagery));
+  void browserApi.storage.local.set({ [IMAGERY_STEP_HINT_STORAGE_KEY]: true });
+}
+
+function renderImageryStepHint(type: ImageryType): void {
+  const snapshots = latestImagerySnapshotUrls(type);
+  const selectedIndex = IMAGERY[type].selectedIndex ?? snapshots.at(-1)?.originalIndex ?? 0;
+  const currentDisplayIndex = snapshots.findIndex((item) => item.originalIndex === selectedIndex);
+  const safeDisplayIndex = currentDisplayIndex >= 0 ? currentDisplayIndex : snapshots.length - 1;
+  const hasStepHint = usesSnapshotControls(type) && snapshots.length > 1;
+
+  els.imageryStepHint.hidden = imageryStepHintDismissed || !hasStepHint || els.imageryStepper.hidden;
+  els.imageryStepHintLeft.classList.toggle("is-disabled", safeDisplayIndex <= 0);
+  els.imageryStepHintRight.classList.toggle(
+    "is-disabled",
+    safeDisplayIndex >= snapshots.length - 1
+  );
 }
 
 function selectedImageryRange(type: ImageryType): ImageryRangeImages | undefined {
