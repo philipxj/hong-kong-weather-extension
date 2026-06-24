@@ -19,7 +19,7 @@ Hong Kong Weather keeps current weather, active warning signals, special weather
 
 - Chrome Web Store: submitted for review: https://chromewebstore.google.com/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/chmlbbhplbepjboepkcngfnmbellhfge
 - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/koemdfkhpkadjclicmmjoaglaapcdlco
-- Firefox Add-ons: submitted for review
+- Firefox Add-ons: https://addons.mozilla.org/zh-TW/firefox/addon/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E9%A0%90%E5%A0%B1-hong-kong-weather/
 
 ## Privacy
 
