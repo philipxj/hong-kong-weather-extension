@@ -1080,6 +1080,45 @@ html[lang="en"] .legacy-weather-title {
   outline-offset: 2px;
 }
 
+.imagery-step-hint {
+  position: absolute;
+  top: 76px;
+  right: 9px;
+  bottom: 56px;
+  left: 9px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.imagery-step-hint[hidden] {
+  display: none;
+}
+
+.imagery-step-hint-arrow {
+  display: grid;
+  width: 32px;
+  height: 54px;
+  place-items: center;
+  color: #fff;
+  background: rgba(9, 23, 37, 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(12, 25, 40, 0.2);
+  font-size: 33px;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.94;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.imagery-step-hint-arrow.is-disabled {
+  opacity: 0.34;
+}
+
 .imagery-card.is-expanded .imagery-stepper {
   grid-template-columns: minmax(42px, auto);
   top: 4px;
