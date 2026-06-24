@@ -14,7 +14,9 @@ describe("Release Upload workflow", () => {
     expect(workflow.indexOf("name: Sync GitHub Release")).toBeLessThan(
       workflow.indexOf("name: Upload Chrome Web Store draft")
     );
-    expect(workflow).toContain("inputs.upload_chrome || inputs.upload_edge");
+    expect(workflow).toContain(
+      "inputs.upload_chrome || inputs.upload_edge || inputs.upload_firefox"
+    );
   });
 
   test("Edge uploads are submitted for review automatically", async () => {
@@ -33,6 +35,53 @@ describe("Release Upload workflow", () => {
     );
     expect(workflow).toContain(
       "if: ${{ inputs.upload_edge && env.EDGE_PRODUCT_ID != '' && env.EDGE_CLIENT_ID != '' && env.EDGE_API_KEY != '' }}"
+    );
+  });
+
+  test("Firefox uploads build package and source before submitting to AMO", async () => {
+    const workflow = await readFile(
+      new URL("../.github/workflows/release-upload.yml", import.meta.url),
+      "utf8"
+    );
+
+    expect(workflow).toContain("upload_firefox:");
+    expect(workflow).toContain(
+      "description: Upload the Firefox package and source to AMO and submit it for review."
+    );
+    expect(workflow).toContain("FIREFOX_ADDON_ID:");
+    expect(workflow).toContain("FIREFOX_JWT_ISSUER:");
+    expect(workflow).toContain("FIREFOX_JWT_SECRET:");
+    expect(workflow).toContain("FIREFOX_LICENSE: ${{ vars.FIREFOX_LICENSE || 'MIT' }}");
+    expect(workflow).toContain("FIREFOX_SUBMISSION_NOTES:");
+    expect(workflow.indexOf("name: Package Firefox extension")).toBeGreaterThan(
+      workflow.indexOf("run: npm test")
+    );
+    expect(workflow.indexOf("name: Package source archive")).toBeGreaterThan(
+      workflow.indexOf("name: Package Firefox extension")
+    );
+    expect(workflow.indexOf("name: Upload Firefox Add-ons draft")).toBeGreaterThan(
+      workflow.indexOf("name: Package source archive")
+    );
+    expect(workflow).toContain("npm run package:firefox");
+    expect(workflow).toContain("npm run package:source");
+    expect(workflow).toContain("node scripts/upload-firefox-draft.mjs");
+  });
+
+  test("Firefox upload auto-submits when requested and skips when credentials are missing", async () => {
+    const workflow = await readFile(
+      new URL("../.github/workflows/release-upload.yml", import.meta.url),
+      "utf8"
+    );
+
+    expect(workflow).not.toContain("submit_firefox");
+    expect(workflow).toContain(
+      "if: ${{ inputs.upload_firefox && env.FIREFOX_ADDON_ID != '' && env.FIREFOX_JWT_ISSUER != '' && env.FIREFOX_JWT_SECRET != '' }}"
+    );
+    expect(workflow).toContain(
+      "if: ${{ !inputs.upload_firefox || env.FIREFOX_ADDON_ID == '' || env.FIREFOX_JWT_ISSUER == '' || env.FIREFOX_JWT_SECRET == '' }}"
+    );
+    expect(workflow).toContain(
+      'run: echo "Firefox Add-ons upload/submission was not requested or credentials are incomplete; uploaded the package artifacts only."'
     );
   });
 });

@@ -5,7 +5,7 @@ import { argv } from "node:process";
 import path from "node:path";
 
 const target = argv[2] ?? "chromium";
-const supportedTargets = new Set(["chromium"]);
+const supportedTargets = new Set(["chromium", "firefox"]);
 
 if (!supportedTargets.has(target)) {
   throw new Error(`Unsupported package target: ${target}`);

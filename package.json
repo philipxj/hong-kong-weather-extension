@@ -14,6 +14,8 @@
     "format": "prettier --check .",
     "lint": "eslint .",
     "package:chromium": "npm run build && node scripts/package-extension.mjs chromium",
+    "package:firefox": "npm run build:firefox && node scripts/package-extension.mjs firefox",
+    "package:source": "node scripts/package-source.mjs",
     "test": "npm run typecheck && npm run lint && npm run test:unit && npm run test:layout && npm run build",
     "test:unit": "vitest run",
     "test:layout": "playwright test",
