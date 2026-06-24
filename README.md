@@ -17,7 +17,7 @@ Hong Kong Weather keeps current weather, active warning signals, special weather
 
 ## Install
 
-- Chrome Web Store: submitted for review: https://chromewebstore.google.com/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/chmlbbhplbepjboepkcngfnmbellhfge
+- Chrome Web Store: https://chromewebstore.google.com/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/chmlbbhplbepjboepkcngfnmbellhfge
 - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/koemdfkhpkadjclicmmjoaglaapcdlco
 - Firefox Add-ons: https://addons.mozilla.org/zh-TW/firefox/addon/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E9%A0%90%E5%A0%B1-hong-kong-weather/
 
@@ -49,7 +49,7 @@ Do not bundle the Hong Kong Observatory logo, government logos, DATA.GOV.HK mark
 
 - [API and external resources](docs/api.md): HKO Open Data API usage, imagery URLs, related official documentation, and host permissions.
 - [AMO source build instructions](docs/amo-source-build.md): Firefox Add-ons reviewer build and source package notes.
-- [Release uploads](docs/release-upload.md): packaging and manual Chrome/Edge draft upload workflow.
+- [Release uploads](docs/release-upload.md): packaging and Chrome, Edge, Firefox store upload workflow.
 - [Store listing metadata](docs/store-listing.md): versioned Chrome Web Store copy and release notes.
 - DATA.GOV.HK weather dataset search: https://data.gov.hk/tc-datasets/search/%E5%A4%A9%E6%B0%A3
 
@@ -69,7 +69,7 @@ Build the unpacked extension:
 npm run build
 ```
 
-Build the store upload package:
+Build the Chromium store upload package:
 
 ```bash
 npm run package:chromium
@@ -81,13 +81,19 @@ Load this folder in Chrome or Edge:
 dist/chromium
 ```
 
-Build the Firefox package source:
+Build the Firefox store upload package:
 
 ```bash
-npm run build:firefox
+npm run package:firefox
 ```
 
-Use `dist/firefox` when creating the Firefox/AMO zip. Do not upload the Chromium zip to AMO because Firefox needs its own Gecko manifest metadata.
+Build the AMO source archive:
+
+```bash
+npm run package:source
+```
+
+Do not upload the Chromium zip to AMO because Firefox needs its own Gecko manifest metadata and a matching source archive.
 
 Do not load the repository root. The root folder contains TypeScript source files and does not contain the runtime `manifest.json`.
 
