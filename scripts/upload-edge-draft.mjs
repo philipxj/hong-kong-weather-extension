@@ -23,7 +23,9 @@ console.log(`Edge upload operation: ${result.uploadOperationId}`);
 console.log(`Edge upload response: ${formatPayload(result.uploadPayload)}`);
 
 if (result.publishOperationId) {
-  console.log(`Submitted Edge draft for review. Publish operation: ${result.publishOperationId}`);
+  console.log(
+    `Submitted Edge draft for review. Edge Add-ons will publish automatically after certification passes. Publish operation: ${result.publishOperationId}`
+  );
   console.log(`Edge publish response: ${formatPayload(result.publishPayload ?? {})}`);
 } else {
   console.log("Edge publish endpoint was not called; submit review manually in Partner Center.");

@@ -3,7 +3,9 @@
 The manual `Release Upload` GitHub Actions workflow builds, tests, packages, and
 optionally syncs the matching GitHub Release, and optionally uploads a draft
 package to Chrome Web Store and Microsoft Edge Add-ons. It can also submit
-uploaded Chrome and Edge drafts for review when explicitly requested.
+uploaded Chrome drafts for review when explicitly requested. Edge uploads are
+submitted for review automatically and are published by Microsoft Edge Add-ons
+after certification passes.
 
 This repository is safe to publish publicly. By default, the workflow only
 creates a downloadable package artifact. Store uploads happen only when the
@@ -80,11 +82,10 @@ source repository.
   the uploaded Chrome draft submitted for review through the Chrome Web Store
   publish endpoint.
 - Enable `upload_edge` only in a repository configured with that maintainer's
-  own Microsoft Edge Add-ons credentials. The run uploads a new draft package
-  and checks the package upload status.
-- Enable `submit_edge` only when `upload_edge` is also enabled and you want the
-  uploaded Edge draft submitted for review through the Microsoft Edge Add-ons
-  publish submission endpoint.
+  own Microsoft Edge Add-ons credentials. The run uploads a new draft package,
+  submits it for review through the Microsoft Edge Add-ons publish submission
+  endpoint, and checks that the submission operation was accepted. Microsoft
+  Edge Add-ons publishes the update automatically after certification passes.
 - Forks can use the same workflow with their own store listings and credentials;
   they do not inherit upstream repository secrets.
 
@@ -98,9 +99,12 @@ For store upload runs:
 5. Run Release Upload with the matching upload input enabled.
 6. Confirm the `Sync GitHub Release` step created or updated `v{version}` and
    uploaded `hong-kong-weather-extension-{version}-chromium.zip`.
-7. Enable `submit_chrome` or `submit_edge` in the same run when the uploaded
-   draft should be submitted for review immediately.
-8. Review store dashboard status after the workflow finishes.
+7. Enable `submit_chrome` in the same run when the uploaded Chrome draft should
+   be submitted for review immediately. Edge drafts are submitted for review
+   automatically when `upload_edge` is enabled.
+8. Review store dashboard status after the workflow finishes. The workflow does
+   not wait for Edge certification, which can take up to seven business days;
+   Partner Center remains the source of truth after submission.
 
 ## Store Behavior
 
@@ -111,8 +115,9 @@ For store upload runs:
   `upload_edge` is enabled. Artifact-only runs do not create releases.
 - Edge uses the Microsoft Edge Add-ons v1.1 API key flow to upload the package
   to the product's draft submission, then polls the package upload operation.
-  When `submit_edge` is enabled, it also calls the publish submission endpoint
-  and polls the publish operation.
+  When `upload_edge` is enabled, it also calls the publish submission endpoint
+  and polls the publish operation. After certification passes, Microsoft Edge
+  Add-ons publishes the submitted update automatically.
 
 Store dashboard descriptions and release notes should be recorded in
 `docs/store-listing.md` before or alongside submitting a new public version.

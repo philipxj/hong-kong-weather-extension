@@ -14,12 +14,7 @@ on:
         default: false
         type: boolean
       upload_edge:
-        description: Upload the package to the configured Microsoft Edge Add-ons draft.
-        required: false
-        default: false
-        type: boolean
-      submit_edge:
-        description: Submit the uploaded Microsoft Edge Add-ons draft for review.
+        description: Upload the package to Microsoft Edge Add-ons, submit it for review, and publish automatically after certification.
         required: false
         default: false
         type: boolean
@@ -40,7 +35,7 @@ jobs:
       EDGE_PRODUCT_ID: ${{ vars.EDGE_PRODUCT_ID || secrets.EDGE_PRODUCT_ID }}
       EDGE_CLIENT_ID: ${{ vars.EDGE_CLIENT_ID || secrets.EDGE_CLIENT_ID }}
       EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
-      EDGE_SUBMIT_REVIEW: ${{ inputs.submit_edge && 'true' || 'false' }}
+      EDGE_SUBMIT_REVIEW: ${{ inputs.upload_edge && 'true' || 'false' }}
 
     steps:
       - uses: actions/checkout@v7
