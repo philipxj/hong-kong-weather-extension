@@ -30,6 +30,15 @@ describe("options save action", () => {
     ).toBe("update-badge");
   });
 
+  test("updates the badge from cache for toolbar badge warning category changes", () => {
+    expect(
+      optionsSaveAction(DEFAULT_SETTINGS, {
+        ...DEFAULT_SETTINGS,
+        badgeWarningCategories: ["thunderstorm"]
+      })
+    ).toBe("update-badge");
+  });
+
   test("refreshes weather when language changes", () => {
     expect(
       optionsSaveAction(DEFAULT_SETTINGS, {

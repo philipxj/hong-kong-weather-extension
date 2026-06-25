@@ -16,6 +16,8 @@ export type NotificationWarningCategory =
   | "tsunami"
   | "other";
 
+export type BadgeWarningCategory = Exclude<NotificationWarningCategory, "other">;
+
 export interface Settings {
   language: Language;
   notifyIssued: boolean;
@@ -23,6 +25,7 @@ export interface Settings {
   notifyExtended: boolean;
   notifyUpdated: boolean;
   notifyWarningCategories: NotificationWarningCategory[];
+  badgeWarningCategories: BadgeWarningCategory[];
   badgeMode: BadgeMode;
   currentRefreshMinutes: number;
   warningCheckMinutes: number;
