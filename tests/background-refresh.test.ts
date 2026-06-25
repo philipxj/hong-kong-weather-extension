@@ -99,6 +99,13 @@ function settings(): Settings {
       "tsunami",
       "other"
     ],
+    badgeWarningCategories: [
+      "rain-amber",
+      "rain-red",
+      "rain-black",
+      "typhoon",
+      "thunderstorm"
+    ],
     warningCheckMinutes: 5
   };
 }

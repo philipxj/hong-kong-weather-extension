@@ -3,6 +3,22 @@ import { describe, expect, test } from "vitest";
 import { optionsCopy } from "../src/options/options-copy";
 import { ALL_NOTIFICATION_WARNING_CATEGORIES } from "../src/shared/weather-service";
 
+const EXPECTED_BADGE_WARNING_CATEGORIES = [
+  "rain-amber",
+  "rain-red",
+  "rain-black",
+  "typhoon",
+  "thunderstorm",
+  "heat",
+  "cold",
+  "landslip",
+  "flooding",
+  "monsoon",
+  "frost",
+  "fire",
+  "tsunami"
+];
+
 describe("options copy", () => {
   test("uses Chinese labels for Chinese language choices", () => {
     expect(optionsCopy("tc").traditionalChinese).toBe("繁體中文");
@@ -76,6 +92,19 @@ describe("options copy", () => {
     expect(optionsCopy("en").notificationWarningCategoryTsunami).toBe("Tsunami");
   });
 
+  test("localizes toolbar badge warning category copy", () => {
+    expect(optionsCopy("tc").badgeWarningCategories).toBe("徽章警告種類");
+    expect(optionsCopy("tc").badgeWarningCategoriesDescription).toContain("工具列徽章");
+    expect(optionsCopy("tc").badgeWarningCategoriesDescription).toContain("彈出視窗");
+    expect(optionsCopy("tc").badgeWarningCategoryRainAmber).toBe("黃雨");
+    expect(optionsCopy("tc").badgeWarningCategoryFire).toBe("火災危險");
+    expect(optionsCopy("sc").badgeWarningCategoriesDescription).toContain("工具列徽章");
+    expect(optionsCopy("sc").badgeWarningCategoryTsunami).toBe("海啸");
+    expect(optionsCopy("en").badgeWarningCategories).toBe("Toolbar badge warning types");
+    expect(optionsCopy("en").badgeWarningCategoriesDescription).toContain("toolbar badge");
+    expect(optionsCopy("en").badgeWarningCategoryTyphoon).toBe("Tropical cyclone");
+  });
+
   test("adds warning category checkboxes to the options form", async () => {
     const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
     for (const category of ALL_NOTIFICATION_WARNING_CATEGORIES) {
@@ -84,11 +113,27 @@ describe("options copy", () => {
     }
   });
 
+  test("adds toolbar badge warning category checkboxes to the display form", async () => {
+    const html = await readFile(new URL("../src/options/index.html", import.meta.url), "utf8");
+    for (const category of EXPECTED_BADGE_WARNING_CATEGORIES) {
+      expect(html).toContain('name="badgeWarningCategories"');
+      expect(html).toContain(`value="${category}"`);
+    }
+    expect(html).not.toContain('name="badgeWarningCategories" value="other"');
+  });
+
   test("wires warning category checkboxes into options form persistence", async () => {
     const script = await readFile(new URL("../src/options/main.ts", import.meta.url), "utf8");
 
     expect(script).toContain('input[name="notifyWarningCategories"]');
     expect(script).toContain("notifyWarningCategories");
+  });
+
+  test("wires toolbar badge warning category checkboxes into options form persistence", async () => {
+    const script = await readFile(new URL("../src/options/main.ts", import.meta.url), "utf8");
+
+    expect(script).toContain('input[name="badgeWarningCategories"]');
+    expect(script).toContain("badgeWarningCategories");
   });
 
   test("marks the test notification button for localization", async () => {
