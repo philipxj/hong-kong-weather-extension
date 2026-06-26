@@ -215,6 +215,44 @@ describe("weather service normalization", () => {
     expect(weather.current.uvDesc).toBe("低");
   });
 
+  test("does not treat cancelled warnsum entries as active warnings", () => {
+    const weather = normalizeWeather({
+      settings: { language: "tc" },
+      fetchedAt: "2026-06-26T06:30:00.000Z",
+      stale: false,
+      error: null,
+      current: {
+        icon: [62],
+        temperature: { data: [{ place: "香港天文台", value: 27 }] },
+        humidity: { data: [{ place: "香港天文台", value: 87 }] }
+      },
+      forecast: { weatherForecast: [] },
+      warnsum: {
+        WRAIN: {
+          name: "暴雨警告信號",
+          code: "WRAINA",
+          type: "黃色",
+          actionCode: "CANCEL",
+          issueTime: "2026-06-26T13:20:00+08:00",
+          updateTime: "2026-06-26T14:00:00+08:00"
+        }
+      },
+      warningInfo: {
+        details: [
+          {
+            contents: ["天文台在下午2時正取消黃色暴雨警告信號。"],
+            subtype: "WRAINA",
+            warningStatementCode: "WRAIN",
+            updateTime: "2026-06-26T14:00:00+08:00"
+          }
+        ]
+      }
+    });
+
+    expect(weather.warnings).toEqual([]);
+    expect(weather.current.warningSummary).toBe("");
+  });
+
   test("shows northern New Territories flooding report without classifying it as thunderstorm", () => {
     const weather = normalizeWeather({
       settings: { language: "tc" },

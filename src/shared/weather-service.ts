@@ -570,6 +570,7 @@ function normalizeWarnings(
   );
 
   return Object.entries(warnsum)
+    .filter(([, item]) => !isCancelledWarning(item))
     .map<WeatherWarning>(([code, item]) => {
       const warningCode = item.code || code;
       const info = infoByCode.get(code);
@@ -588,6 +589,10 @@ function normalizeWarnings(
       };
     })
     .sort((a, b) => b.priority - a.priority);
+}
+
+function isCancelledWarning(item: HkoWarnsum[keyof HkoWarnsum]): boolean {
+  return item.actionCode?.toUpperCase() === "CANCEL";
 }
 
 async function cacheRefreshError(
