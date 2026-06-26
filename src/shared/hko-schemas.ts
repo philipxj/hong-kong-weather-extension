@@ -41,6 +41,7 @@ export interface HkoForecast {
 }
 
 export interface HkoWarnsumItem {
+  actionCode?: string;
   code?: string;
   expireTime?: string;
   issueTime?: string;
@@ -119,6 +120,7 @@ export const hkoWarnsumSchema: ParseSchema<HkoWarnsum> = {
           key,
           {
             ...warning,
+            actionCode: optionalString(warning.actionCode),
             code: optionalString(warning.code),
             expireTime: optionalString(warning.expireTime),
             issueTime: optionalString(warning.issueTime),
