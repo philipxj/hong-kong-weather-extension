@@ -23,6 +23,7 @@ import {
 } from "../src/shared/weather-service";
 import type {
   CurrentWeather,
+  Settings,
   TropicalCyclone,
   WeatherData,
   WeatherWarning,
@@ -32,6 +33,18 @@ import type {
 describe("weather service normalization", () => {
   test("enables every warning notification category by default", () => {
     expect(DEFAULT_SETTINGS.notifyWarningCategories).toEqual(ALL_NOTIFICATION_WARNING_CATEGORIES);
+  });
+
+  test("shows the current toolbar badge warning categories by default", () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({
+      badgeWarningCategories: [
+        "rain-amber",
+        "rain-red",
+        "rain-black",
+        "typhoon",
+        "thunderstorm"
+      ]
+    });
   });
 
   test("fills all warning notification categories for older stored settings", async () => {
@@ -58,6 +71,43 @@ describe("weather service normalization", () => {
     try {
       await expect(getSettings()).resolves.toMatchObject({
         notifyWarningCategories: ALL_NOTIFICATION_WARNING_CATEGORIES
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("fills default toolbar badge warning categories for older stored settings", async () => {
+    vi.stubGlobal("chrome", {
+      storage: {
+        sync: {
+          get: vi.fn().mockResolvedValue({
+            settings: {
+              language: "tc",
+              notifyIssued: true,
+              notifyCancelled: true,
+              notifyExtended: true,
+              notifyUpdated: false,
+              notifyWarningCategories: ALL_NOTIFICATION_WARNING_CATEGORIES,
+              badgeMode: "auto",
+              currentRefreshMinutes: 15,
+              warningCheckMinutes: 5
+            }
+          }),
+          set: vi.fn()
+        }
+      }
+    });
+
+    try {
+      await expect(getSettings()).resolves.toMatchObject({
+        badgeWarningCategories: [
+          "rain-amber",
+          "rain-red",
+          "rain-black",
+          "typhoon",
+          "thunderstorm"
+        ]
       });
     } finally {
       vi.unstubAllGlobals();
@@ -351,6 +401,44 @@ describe("weather service normalization", () => {
     expect(weather.current.uvDesc).toBe("低");
   });
 
+  test("does not treat cancelled warnsum entries as active warnings", () => {
+    const weather = normalizeWeather({
+      settings: { language: "tc" },
+      fetchedAt: "2026-06-26T06:30:00.000Z",
+      stale: false,
+      error: null,
+      current: {
+        icon: [62],
+        temperature: { data: [{ place: "香港天文台", value: 27 }] },
+        humidity: { data: [{ place: "香港天文台", value: 87 }] }
+      },
+      forecast: { weatherForecast: [] },
+      warnsum: {
+        WRAIN: {
+          name: "暴雨警告信號",
+          code: "WRAINA",
+          type: "黃色",
+          actionCode: "CANCEL",
+          issueTime: "2026-06-26T13:20:00+08:00",
+          updateTime: "2026-06-26T14:00:00+08:00"
+        }
+      },
+      warningInfo: {
+        details: [
+          {
+            contents: ["天文台在下午2時正取消黃色暴雨警告信號。"],
+            subtype: "WRAINA",
+            warningStatementCode: "WRAIN",
+            updateTime: "2026-06-26T14:00:00+08:00"
+          }
+        ]
+      }
+    });
+
+    expect(weather.warnings).toEqual([]);
+    expect(weather.current.warningSummary).toBe("");
+  });
+
   test("shows northern New Territories flooding report without classifying it as thunderstorm", () => {
     const weather = normalizeWeather({
       settings: { language: "tc" },
@@ -463,6 +551,20 @@ describe("weather service normalization", () => {
     expect(getActionBadgeWarnings(warnings).map((item) => item.badge)).toEqual(["黃", "雷", "T3"]);
   });
 
+  test("filters toolbar badge warnings by selected categories", () => {
+    const warnings = [
+      warning("rain-red", "紅", 82),
+      warning("typhoon", "T3", 70),
+      warning("thunderstorm", "雷", 60),
+      warning("heat", "熱", 50),
+      warning("fire-red", "火", 53),
+      warning("other", "OTH", 20)
+    ];
+    expect(
+      getActionBadgeWarnings(warnings, ["thunderstorm", "heat", "fire"]).map((item) => item.badge)
+    ).toEqual(["雷", "熱", "火"]);
+  });
+
   test("normalizes less common official HKO warning signal types", () => {
     const weather = normalizeWeather({
       settings: { language: "en" },
@@ -553,17 +655,25 @@ describe("weather service normalization", () => {
     expect(formatActionBadgeText("temperature", "黑", "28°")).toBe("28°");
   });
 
-  test("uses rainstorm-specific badge background colors", () => {
-    expect(badgeBackgroundColor("黑")).toBe("#111111");
-    expect(badgeBackgroundColor("紅")).toBe("#df1d1d");
-    expect(badgeBackgroundColor("黃")).toBe("#ffd84d");
+  test("uses white badge backgrounds for active weather warnings", () => {
+    expect(badgeBackgroundColor("黑")).toBe("#ffffff");
+    expect(badgeBackgroundColor("紅")).toBe("#ffffff");
+    expect(badgeBackgroundColor("黃")).toBe("#ffffff");
     expect(badgeBackgroundColor("")).toBe("#2f5f98");
   });
 
-  test("uses readable toolbar badge text colors", () => {
-    expect(badgeTextColor("黃")).toBe("#5c4300");
-    expect(badgeTextColor("紅")).toBe("#ffffff");
-    expect(badgeTextColor("黑")).toBe("#ffffff");
+  test("uses yellow toolbar badge colors for thunderstorm warnings", () => {
+    expect(badgeBackgroundColor("雷")).toBe("#ffd84d");
+    expect(badgeTextColor("雷")).toBe("#111111");
+    expect(badgeBackgroundColor("TS")).toBe("#ffd84d");
+    expect(badgeTextColor("TS")).toBe("#111111");
+  });
+
+  test("uses warning-specific toolbar badge text colors", () => {
+    expect(badgeTextColor("紅")).toBe("#df1d1d");
+    expect(badgeTextColor("黃")).toBe("#a66300");
+    expect(badgeTextColor("黑")).toBe("#111111");
+    expect(badgeTextColor("")).toBe("#ffffff");
   });
 
   test("updates toolbar badge without fetching remote weather icons", async () => {
@@ -619,6 +729,47 @@ describe("weather service normalization", () => {
       });
       expect(setIcon).toHaveBeenCalledWith({ path: "assets/hko/weather-icons/pic51.png" });
       expect(setBadgeText).toHaveBeenCalledWith({ text: "" });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("uses selected toolbar warning categories when updating the badge", async () => {
+    const setBadgeText = vi.fn();
+    const setTitle = vi.fn();
+    vi.stubGlobal("chrome", {
+      action: {
+        setBadgeBackgroundColor: vi.fn(),
+        setBadgeText,
+        setBadgeTextColor: vi.fn(),
+        setIcon: vi.fn(),
+        setTitle
+      },
+      runtime: { getURL: vi.fn((path: string) => `chrome-extension://test/${path}`) },
+      storage: {
+        local: { get: vi.fn(), set: vi.fn() },
+        sync: { get: vi.fn(), set: vi.fn() }
+      }
+    });
+
+    try {
+      const data = {
+        ...cachedWeatherForBadge({ icon: 51 }),
+        warnings: [
+          { ...warning("typhoon", "T3", 70), name: "強風信號" },
+          { ...warning("thunderstorm", "雷", 60), name: "雷暴警告" }
+        ]
+      };
+      const settings: Settings = {
+        ...DEFAULT_SETTINGS,
+        badgeWarningCategories: ["thunderstorm"]
+      };
+
+      await updateBadge(data, settings);
+
+      expect(setBadgeText).toHaveBeenCalledWith({ text: "雷" });
+      const titleDetails = setTitle.mock.calls[0]?.[0] as { title?: string } | undefined;
+      expect(titleDetails?.title).toContain("警告 雷暴警告");
     } finally {
       vi.unstubAllGlobals();
     }

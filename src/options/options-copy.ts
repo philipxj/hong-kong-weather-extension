@@ -4,6 +4,21 @@ interface OptionsCopy {
   about: string;
   appVersionLabel: string;
   auto: string;
+  badgeWarningCategories: string;
+  badgeWarningCategoriesDescription: string;
+  badgeWarningCategoryCold: string;
+  badgeWarningCategoryFire: string;
+  badgeWarningCategoryFlooding: string;
+  badgeWarningCategoryFrost: string;
+  badgeWarningCategoryHeat: string;
+  badgeWarningCategoryLandslip: string;
+  badgeWarningCategoryMonsoon: string;
+  badgeWarningCategoryRainAmber: string;
+  badgeWarningCategoryRainBlack: string;
+  badgeWarningCategoryRainRed: string;
+  badgeWarningCategoryThunderstorm: string;
+  badgeWarningCategoryTsunami: string;
+  badgeWarningCategoryTyphoon: string;
   badgeMode: string;
   badgeModeDescription: string;
   currentRefreshMinutes: string;
@@ -68,6 +83,22 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     about: "關於",
     appVersionLabel: "版本",
     auto: "自動",
+    badgeWarningCategories: "徽章警告種類",
+    badgeWarningCategoriesDescription:
+      "只有已選種類會顯示在工具列徽章；彈出視窗仍會顯示所有生效警告。",
+    badgeWarningCategoryCold: "寒冷",
+    badgeWarningCategoryFire: "火災危險",
+    badgeWarningCategoryFlooding: "水浸",
+    badgeWarningCategoryFrost: "霜凍",
+    badgeWarningCategoryHeat: "酷熱",
+    badgeWarningCategoryLandslip: "山泥傾瀉",
+    badgeWarningCategoryMonsoon: "季候風",
+    badgeWarningCategoryRainAmber: "黃雨",
+    badgeWarningCategoryRainBlack: "黑雨",
+    badgeWarningCategoryRainRed: "紅雨",
+    badgeWarningCategoryThunderstorm: "雷暴",
+    badgeWarningCategoryTsunami: "海嘯",
+    badgeWarningCategoryTyphoon: "熱帶氣旋",
     badgeMode: "徽章模式",
     badgeModeDescription:
       "自動會優先顯示警告；沒有警告時顯示溫度。也可改為只顯示溫度、只顯示警告，或關閉徽章。",
@@ -134,6 +165,22 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     about: "关于",
     appVersionLabel: "版本",
     auto: "自动",
+    badgeWarningCategories: "徽章警告种类",
+    badgeWarningCategoriesDescription:
+      "只有已选种类会显示在工具列徽章；弹出窗口仍会显示所有生效警告。",
+    badgeWarningCategoryCold: "寒冷",
+    badgeWarningCategoryFire: "火灾危险",
+    badgeWarningCategoryFlooding: "水浸",
+    badgeWarningCategoryFrost: "霜冻",
+    badgeWarningCategoryHeat: "酷热",
+    badgeWarningCategoryLandslip: "山泥倾泻",
+    badgeWarningCategoryMonsoon: "季候风",
+    badgeWarningCategoryRainAmber: "黄雨",
+    badgeWarningCategoryRainBlack: "黑雨",
+    badgeWarningCategoryRainRed: "红雨",
+    badgeWarningCategoryThunderstorm: "雷暴",
+    badgeWarningCategoryTsunami: "海啸",
+    badgeWarningCategoryTyphoon: "热带气旋",
     badgeMode: "徽章模式",
     badgeModeDescription:
       "自动会优先显示警告；没有警告时显示温度。也可改为只显示温度、只显示警告，或关闭徽章。",
@@ -200,6 +247,22 @@ export const OPTIONS_COPY: Record<Language, OptionsCopy> = {
     about: "About",
     appVersionLabel: "Version",
     auto: "Auto",
+    badgeWarningCategories: "Toolbar badge warning types",
+    badgeWarningCategoriesDescription:
+      "Only selected types can appear on the toolbar badge. The popup still shows every active warning.",
+    badgeWarningCategoryCold: "Cold",
+    badgeWarningCategoryFire: "Fire danger",
+    badgeWarningCategoryFlooding: "Flooding",
+    badgeWarningCategoryFrost: "Frost",
+    badgeWarningCategoryHeat: "Very hot",
+    badgeWarningCategoryLandslip: "Landslip",
+    badgeWarningCategoryMonsoon: "Monsoon",
+    badgeWarningCategoryRainAmber: "Amber rainstorm",
+    badgeWarningCategoryRainBlack: "Black rainstorm",
+    badgeWarningCategoryRainRed: "Red rainstorm",
+    badgeWarningCategoryThunderstorm: "Thunderstorm",
+    badgeWarningCategoryTsunami: "Tsunami",
+    badgeWarningCategoryTyphoon: "Tropical cyclone",
     badgeMode: "Badge mode",
     badgeModeDescription:
       "Auto shows the highest warning first, then temperature when no warning is active. You can also force temperature, warning only, or hide the badge.",

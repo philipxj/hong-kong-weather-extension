@@ -1,5 +1,6 @@
 import { optionsCopy } from "./options-copy";
 import {
+  ALL_BADGE_WARNING_CATEGORIES,
   ALL_NOTIFICATION_WARNING_CATEGORIES,
   getCachedWeather,
   getSettings,
@@ -9,7 +10,12 @@ import {
 } from "../shared/weather-service";
 import { optionsSaveAction } from "./save-action";
 import { browserApi } from "../shared/browser-api";
-import type { Language, NotificationWarningCategory, Settings } from "../shared/types";
+import type {
+  BadgeWarningCategory,
+  Language,
+  NotificationWarningCategory,
+  Settings
+} from "../shared/types";
 
 const form = query<HTMLFormElement>("#options-form");
 const status = query<HTMLElement>("#save-status");
@@ -55,6 +61,10 @@ function hydrate(values: Settings): void {
   for (const input of queryAll<HTMLInputElement>('input[name="notifyWarningCategories"]', form)) {
     input.checked = selectedCategories.has(input.value as NotificationWarningCategory);
   }
+  const selectedBadgeCategories = new Set(values.badgeWarningCategories);
+  for (const input of queryAll<HTMLInputElement>('input[name="badgeWarningCategories"]', form)) {
+    input.checked = selectedBadgeCategories.has(input.value as BadgeWarningCategory);
+  }
   query<HTMLSelectElement>("#badgeMode", form).value = values.badgeMode;
   query<HTMLInputElement>("#currentRefreshMinutes", form).value = String(
     values.currentRefreshMinutes
@@ -71,6 +81,7 @@ function readForm(): Settings {
     notifyExtended: query<HTMLInputElement>("#notifyExtended", form).checked,
     notifyUpdated: query<HTMLInputElement>("#notifyUpdated", form).checked,
     notifyWarningCategories: readNotificationWarningCategories(),
+    badgeWarningCategories: readBadgeWarningCategories(),
     badgeMode: query<HTMLSelectElement>("#badgeMode", form).value as Settings["badgeMode"],
     currentRefreshMinutes: clampNumber(
       query<HTMLInputElement>("#currentRefreshMinutes", form).value,
@@ -92,6 +103,15 @@ function readNotificationWarningCategories(): NotificationWarningCategory[] {
     .map((input) => input.value)
     .filter((value): value is NotificationWarningCategory =>
       ALL_NOTIFICATION_WARNING_CATEGORIES.includes(value as NotificationWarningCategory)
+    );
+  return selected;
+}
+
+function readBadgeWarningCategories(): BadgeWarningCategory[] {
+  const selected = queryAll<HTMLInputElement>('input[name="badgeWarningCategories"]:checked', form)
+    .map((input) => input.value)
+    .filter((value): value is BadgeWarningCategory =>
+      ALL_BADGE_WARNING_CATEGORIES.includes(value as BadgeWarningCategory)
     );
   return selected;
 }

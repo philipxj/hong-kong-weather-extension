@@ -12,6 +12,7 @@ import {
 } from "./hko-schemas";
 import { weatherIconAssetPath } from "./local-weather-assets";
 import type {
+  BadgeWarningCategory,
   CurrentWeather,
   ForecastDay,
   Language,
@@ -42,6 +43,30 @@ export const ALL_NOTIFICATION_WARNING_CATEGORIES: NotificationWarningCategory[] 
   "other"
 ];
 
+export const ALL_BADGE_WARNING_CATEGORIES: BadgeWarningCategory[] = [
+  "rain-amber",
+  "rain-red",
+  "rain-black",
+  "typhoon",
+  "thunderstorm",
+  "heat",
+  "cold",
+  "landslip",
+  "flooding",
+  "monsoon",
+  "frost",
+  "fire",
+  "tsunami"
+];
+
+export const DEFAULT_BADGE_WARNING_CATEGORIES: BadgeWarningCategory[] = [
+  "rain-amber",
+  "rain-red",
+  "rain-black",
+  "typhoon",
+  "thunderstorm"
+];
+
 export const DEFAULT_SETTINGS: Settings = {
   language: "tc",
   notifyIssued: true,
@@ -49,6 +74,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyExtended: true,
   notifyUpdated: false,
   notifyWarningCategories: ALL_NOTIFICATION_WARNING_CATEGORIES,
+  badgeWarningCategories: DEFAULT_BADGE_WARNING_CATEGORIES,
   badgeMode: "auto",
   currentRefreshMinutes: 15,
   warningCheckMinutes: 5
@@ -113,7 +139,8 @@ function normalizeSettings(settings: Partial<Settings> | undefined): Settings {
     ...merged,
     notifyWarningCategories: normalizeNotificationWarningCategories(
       settings?.notifyWarningCategories
-    )
+    ),
+    badgeWarningCategories: normalizeBadgeWarningCategories(settings?.badgeWarningCategories)
   };
 }
 
@@ -134,6 +161,23 @@ function normalizeNotificationWarningCategories(
     }
   }
   return ALL_NOTIFICATION_WARNING_CATEGORIES.filter((category) => selected.has(category));
+}
+
+function normalizeBadgeWarningCategories(
+  categories: Partial<Settings>["badgeWarningCategories"] | undefined
+): BadgeWarningCategory[] {
+  if (!Array.isArray(categories)) return DEFAULT_BADGE_WARNING_CATEGORIES;
+  const selected = new Set<BadgeWarningCategory>();
+  for (const category of categories as string[]) {
+    if (category === "rain") {
+      selected.add("rain-amber");
+      selected.add("rain-red");
+      selected.add("rain-black");
+    } else if (ALL_BADGE_WARNING_CATEGORIES.includes(category as BadgeWarningCategory)) {
+      selected.add(category as BadgeWarningCategory);
+    }
+  }
+  return ALL_BADGE_WARNING_CATEGORIES.filter((category) => selected.has(category));
 }
 
 export async function getCachedWeather(): Promise<WeatherData | null> {
@@ -298,7 +342,9 @@ export async function updateBadge(
     return;
   }
 
-  const highestWarning = getHighestPriorityWarning(getActionBadgeWarnings(weather.warnings));
+  const highestWarning = getHighestPriorityWarning(
+    getActionBadgeWarnings(weather.warnings, activeSettings.badgeWarningCategories)
+  );
   const warningBadge = highestWarning
     ? formatWarningBadgeForLanguage(highestWarning, weather.language)
     : "";
@@ -315,7 +361,7 @@ export async function updateBadge(
     color: badgeTextColor(warningColorBadge)
   });
   await browserApi.action.setTitle({
-    title: formatActionTitle(weather, warningBadge, temperatureBadge)
+    title: formatActionTitle(weather, warningBadge, temperatureBadge, highestWarning?.name ?? "")
   });
 }
 
@@ -346,10 +392,15 @@ export function getSignalWarnings(warnings: WeatherWarning[] = []): WeatherWarni
   return warnings.filter((warning) => warning.type !== "other");
 }
 
-export function getActionBadgeWarnings(warnings: WeatherWarning[] = []): WeatherWarning[] {
-  return getSignalWarnings(warnings).filter((warning) =>
-    ["rain-amber", "rain-red", "rain-black", "typhoon", "thunderstorm"].includes(warning.type)
-  );
+export function getActionBadgeWarnings(
+  warnings: WeatherWarning[] = [],
+  selectedCategories: BadgeWarningCategory[] = DEFAULT_BADGE_WARNING_CATEGORIES
+): WeatherWarning[] {
+  const selected = new Set(selectedCategories);
+  return getSignalWarnings(warnings).filter((warning) => {
+    const category = badgeWarningCategory(warning.type);
+    return category != null && selected.has(category);
+  });
 }
 
 export function formatActionBadgeText(
@@ -363,16 +414,22 @@ export function formatActionBadgeText(
 }
 
 export function badgeBackgroundColor(warningBadge: string): string {
-  if (warningBadge === "黑") return "#111111";
-  if (warningBadge === "紅") return "#df1d1d";
-  if (warningBadge === "黃") return "#ffd84d";
-  if (warningBadge) return "#b42318";
+  if (isThunderstormBadge(warningBadge)) return "#ffd84d";
+  if (warningBadge) return "#ffffff";
   return "#2f5f98";
 }
 
 export function badgeTextColor(warningBadge: string): string {
-  if (warningBadge === "黃") return "#5c4300";
+  if (isThunderstormBadge(warningBadge)) return "#111111";
+  if (warningBadge === "紅") return "#df1d1d";
+  if (warningBadge === "黃") return "#a66300";
+  if (warningBadge === "黑") return "#111111";
+  if (warningBadge) return "#b42318";
   return "#ffffff";
+}
+
+function isThunderstormBadge(warningBadge: string): boolean {
+  return warningBadge === "雷" || warningBadge === "TS";
 }
 
 export function formatWarningBadgeForLanguage(
@@ -533,6 +590,7 @@ function normalizeWarnings(
   );
 
   return Object.entries(warnsum)
+    .filter(([, item]) => !isCancelledWarning(item))
     .map<WeatherWarning>(([code, item]) => {
       const warningCode = item.code || code;
       const info = infoByCode.get(code);
@@ -551,6 +609,10 @@ function normalizeWarnings(
       };
     })
     .sort((a, b) => b.priority - a.priority);
+}
+
+function isCancelledWarning(item: HkoWarnsum[keyof HkoWarnsum]): boolean {
+  return item.actionCode?.toUpperCase() === "CANCEL";
 }
 
 async function cacheRefreshError(
@@ -630,12 +692,17 @@ function shouldNotifyWarning(
   warning: WeatherWarning,
   selectedCategories: Set<NotificationWarningCategory>
 ): boolean {
-  return selectedCategories.has(notificationWarningCategory(warning.type));
+  return selectedCategories.has(warningCategory(warning.type));
 }
 
-function notificationWarningCategory(type: WarningType): NotificationWarningCategory {
+function warningCategory(type: WarningType): NotificationWarningCategory {
   if (type === "fire-yellow" || type === "fire-red") return "fire";
   return type;
+}
+
+function badgeWarningCategory(type: WarningType): BadgeWarningCategory | null {
+  const category = warningCategory(type);
+  return category === "other" ? null : category;
 }
 
 async function notify(title: string, message: string): Promise<void> {
@@ -1346,15 +1413,15 @@ function formatTemperatureBadge(value: number | null): string {
 function formatActionTitle(
   weather: WeatherData,
   warningBadge: string,
-  temperatureBadge: string
+  temperatureBadge: string,
+  warningName: string
 ): string {
-  const warning = getHighestPriorityWarning(getActionBadgeWarnings(weather.warnings))?.name ?? "";
   const temperatureLabel = text("Temperature", "現時氣溫", weather.language);
   const warningLabel = text("Warning", "警告", weather.language);
   const parts = [
     "香港天氣預報",
     weather.current.temperature != null ? `${temperatureLabel} ${temperatureBadge}` : "",
-    warningBadge && warning ? `${warningLabel} ${warning}` : ""
+    warningBadge && warningName ? `${warningLabel} ${warningName}` : ""
   ].filter(Boolean);
 
   return parts.join(" · ");
