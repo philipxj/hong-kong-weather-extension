@@ -96,6 +96,23 @@ export interface WarningInfo {
   expireTime: string;
 }
 
+export interface TropicalCyclone {
+  id: string;
+  name: string;
+  englishName?: string;
+  chineseName?: string;
+  classification: string | null;
+  observedAtHkt: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  maxWindKmh: number | null;
+  distanceKm: number | null;
+  directionFromHongKong: string | null;
+  description: string;
+  trackMapUrl: string;
+  trackUrl: string;
+}
+
 export interface WeatherData {
   language: Language;
   fetchedAt: string;
@@ -103,6 +120,7 @@ export interface WeatherData {
   error: WeatherError | null;
   current: CurrentWeather;
   forecast: ForecastDay[];
+  tropicalCyclones: TropicalCyclone[];
   warnings: WeatherWarning[];
   warningInfo: WarningInfo[];
 }

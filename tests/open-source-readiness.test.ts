@@ -19,6 +19,24 @@ describe("open source readiness", () => {
     }
   });
 
+  test("allows official HKO Open Data and required image hosts", async () => {
+    const [chromiumManifest, firefoxManifest] = await Promise.all([
+      readFile(new URL("../manifests/chromium.json", import.meta.url), "utf8"),
+      readFile(new URL("../manifests/firefox.json", import.meta.url), "utf8")
+    ]);
+
+    for (const manifestText of [chromiumManifest, firefoxManifest]) {
+      const manifest = JSON.parse(manifestText) as { host_permissions?: string[] };
+      expect(manifest.host_permissions).toEqual(
+        expect.arrayContaining([
+          "https://data.weather.gov.hk/*",
+          "https://www.weather.gov.hk/*",
+          "https://www.hko.gov.hk/*"
+        ])
+      );
+    }
+  });
+
   test("documents license, data attribution, and unofficial status", async () => {
     const [license, notice, readme, hkoNotice] = await Promise.all([
       readFile(new URL("../LICENSE", import.meta.url), "utf8"),

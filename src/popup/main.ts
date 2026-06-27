@@ -13,6 +13,8 @@ import {
   getSettings,
   getSignalWarnings,
   refreshWeather,
+  selectPrimaryTropicalCyclone,
+  tropicalCycloneDirectionLabel,
   updateBadge
 } from "../shared/weather-service";
 import type {
@@ -20,13 +22,18 @@ import type {
   ImageryType,
   Language,
   Settings,
+  TropicalCyclone,
   WeatherData,
   WeatherWarning
 } from "../shared/types";
 import { formatSpecialWeatherTips } from "./special-weather";
+import { formatHongKongTime, millisecondsUntilNextMinute } from "./hong-kong-time";
 import { loadImageryProgressively } from "./imagery-loader";
+import { selectImagerySnapshots } from "./imagery-snapshots";
+import { sidePanelFullTitle, sidePanelTabTitle } from "./imagery-tabs";
 
 type WarningSignalClass = WeatherWarning["type"];
+type SidePanelType = ImageryType | "typhoon";
 
 type RefreshWeatherResponse = { ok: true; data: WeatherData } | { ok: false; error: string };
 
@@ -184,6 +191,13 @@ const COPY: Record<
     settings: string;
     specialWeather: string;
     temperatureUnit: string;
+    tropicalCyclone: string;
+    tropicalCycloneTrack: string;
+    tropicalCycloneTrackMap: string;
+    tropicalCycloneTrackMapClose: string;
+    tropicalCycloneTrackMapFailed: string;
+    tropicalCycloneTrackMapLoading: string;
+    tropicalCycloneTrackMapRetry: string;
     unableToLoad: string;
     updateFailed: string;
     updating: string;
@@ -211,6 +225,13 @@ const COPY: Record<
     settings: "設定",
     specialWeather: "特別天氣提示",
     temperatureUnit: "度",
+    tropicalCyclone: "熱帶氣旋",
+    tropicalCycloneTrack: "詳情",
+    tropicalCycloneTrackMap: "路徑圖",
+    tropicalCycloneTrackMapClose: "關閉",
+    tropicalCycloneTrackMapFailed: "未能載入路徑圖",
+    tropicalCycloneTrackMapLoading: "載入路徑圖中...",
+    tropicalCycloneTrackMapRetry: "重新載入",
     unableToLoad: "未能載入天氣資料，亦沒有可用快取。",
     updateFailed: "更新失敗，正顯示快取資料。",
     updating: "更新中...",
@@ -237,6 +258,13 @@ const COPY: Record<
     settings: "设定",
     specialWeather: "特别天气提示",
     temperatureUnit: "度",
+    tropicalCyclone: "热带气旋",
+    tropicalCycloneTrack: "详情",
+    tropicalCycloneTrackMap: "路径图",
+    tropicalCycloneTrackMapClose: "关闭",
+    tropicalCycloneTrackMapFailed: "未能载入路径图",
+    tropicalCycloneTrackMapLoading: "载入路径图中...",
+    tropicalCycloneTrackMapRetry: "重新载入",
     unableToLoad: "未能载入天气资料，亦没有可用快取。",
     updateFailed: "更新失败，正显示快取资料。",
     updating: "更新中...",
@@ -264,26 +292,18 @@ const COPY: Record<
     settings: "Settings",
     specialWeather: "Special Weather Tips",
     temperatureUnit: "°C",
+    tropicalCyclone: "Tropical Cyclone",
+    tropicalCycloneTrack: "Detail",
+    tropicalCycloneTrackMap: "Track Map",
+    tropicalCycloneTrackMapClose: "Close",
+    tropicalCycloneTrackMapFailed: "Unable to load track map",
+    tropicalCycloneTrackMapLoading: "Loading track map...",
+    tropicalCycloneTrackMapRetry: "Retry",
     unableToLoad: "Unable to load weather data and no cache is available.",
     updateFailed: "Update failed. Showing cached data.",
     updating: "Updating...",
     uvIndex: "UV Index",
     warning: "Warning"
-  }
-};
-
-const IMAGERY_TITLES: Record<Language, Record<ImageryType, string>> = {
-  tc: {
-    radar: "等雨量線圖",
-    lightning: "閃電位置"
-  },
-  sc: {
-    radar: "等雨量线图",
-    lightning: "闪电位置"
-  },
-  en: {
-    radar: "Radar Image",
-    lightning: "Lightning"
   }
 };
 
@@ -294,6 +314,7 @@ const els = {
   updating: query<HTMLElement>("#updating"),
   error: query<HTMLElement>("#error"),
   cacheNote: query<HTMLElement>("#cache-note"),
+  hongKongTime: query<HTMLElement>("#hong-kong-time"),
   lastUpdated: query<HTMLElement>("#last-updated"),
   weatherIcon: query<HTMLImageElement>("#weather-icon"),
   topTemp: query<HTMLElement>("#top-temp"),
@@ -308,9 +329,30 @@ const els = {
   warningSignalRow: query<HTMLElement>("#warning-signal-row"),
   forecastList: query<HTMLElement>("#forecast-list"),
   imageryCard: query<HTMLElement>("#imagery-card"),
+  imageryCaption: query<HTMLElement>(".imagery-caption"),
   radarRanges: query<HTMLElement>("#radar-ranges"),
   specialWeatherOpen: query<HTMLButtonElement>("#special-weather-open"),
   typhoonMap: query<HTMLButtonElement>("#typhoon-map"),
+  typhoonMapLabel: query<HTMLElement>("#typhoon-map-label"),
+  typhoonTrackMap: query<HTMLButtonElement>("#typhoon-track-map"),
+  typhoonTrackMapClose: query<HTMLButtonElement>("#typhoon-track-map-close"),
+  typhoonTrackMapFallback: query<HTMLElement>("#typhoon-track-map-fallback"),
+  typhoonTrackMapImage: query<HTMLImageElement>("#typhoon-track-map-image"),
+  typhoonTrackMapMessage: query<HTMLElement>("#typhoon-track-map-message"),
+  typhoonTrackMapOverlay: query<HTMLElement>("#typhoon-track-map-overlay"),
+  typhoonTrackMapPanel: query<HTMLElement>(".typhoon-track-map-panel"),
+  typhoonTrackMapRetry: query<HTMLButtonElement>("#typhoon-track-map-retry"),
+  tropicalCycloneDistance: query<HTMLElement>("#tropical-cyclone-distance"),
+  tropicalCycloneDistanceLabel: query<HTMLElement>("#tropical-cyclone-distance-label"),
+  tropicalCycloneDescription: query<HTMLElement>("#tropical-cyclone-description"),
+  tropicalCycloneKicker: query<HTMLElement>("#tropical-cyclone-kicker"),
+  tropicalCycloneMeta: query<HTMLElement>("#tropical-cyclone-meta"),
+  tropicalCycloneSelect: query<HTMLSelectElement>("#tropical-cyclone-select"),
+  tropicalCycloneTab: query<HTMLButtonElement>("#tropical-cyclone-tab"),
+  tropicalCycloneTimeLabel: query<HTMLElement>("#tropical-cyclone-time-label"),
+  tropicalCycloneView: query<HTMLElement>("#tropical-cyclone-view"),
+  tropicalCycloneWindLabel: query<HTMLElement>("#tropical-cyclone-wind-label"),
+  tropicalCycloneWind: query<HTMLElement>("#tropical-cyclone-wind"),
   imageryTabs: document.querySelectorAll<HTMLButtonElement>(".imagery-tab"),
   imageryOpen: query<HTMLElement>("#imagery-open"),
   imageryImage: query<HTMLImageElement>("#imagery-image"),
@@ -335,7 +377,28 @@ query<HTMLButtonElement>("#hko-page").addEventListener("click", () => {
 });
 query<HTMLButtonElement>("#settings").addEventListener("click", openOptions);
 els.typhoonMap.addEventListener("click", () => {
-  void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "wxinfo/currwx/tc_pos.htm") });
+  const url =
+    els.typhoonMap.dataset.trackUrl || hkoPageUrl(activeLanguage(), "wxinfo/currwx/tc_pos.htm");
+  void browserApi.tabs.create({ url });
+});
+els.typhoonTrackMap.addEventListener("click", () => showTropicalCycloneTrackMap());
+els.typhoonTrackMapClose.addEventListener("click", hideTropicalCycloneTrackMap);
+els.typhoonTrackMapRetry.addEventListener("click", () => {
+  showTropicalCycloneTrackMap({ forceReload: true });
+});
+els.typhoonTrackMapOverlay.addEventListener("click", (event) => {
+  if (event.target === els.typhoonTrackMapOverlay) hideTropicalCycloneTrackMap();
+});
+els.typhoonTrackMapImage.addEventListener("load", () => {
+  els.typhoonTrackMapImage.hidden = false;
+  setTrackMapMessageState("hidden");
+});
+els.typhoonTrackMapImage.addEventListener("error", () => {
+  els.typhoonTrackMapImage.hidden = true;
+  setTrackMapMessageState("error");
+});
+els.tropicalCycloneSelect.addEventListener("change", () => {
+  selectTropicalCyclone(els.tropicalCycloneSelect.value);
 });
 els.specialWeatherOpen.addEventListener("click", () => {
   void browserApi.tabs.create({ url: hkoPageUrl(activeLanguage(), "sweather_tips.html") });
@@ -344,6 +407,9 @@ let previewClickTimer: number | undefined;
 let previewFeedbackTimer: number | undefined;
 let imageryToastTimer: number | undefined;
 let imageryStepHintDismissed = true;
+let selectedTropicalCycloneIndex = 0;
+let tropicalCycloneIdSignature = "";
+let hongKongTimeTimer: number | undefined;
 
 els.imageryOpen.addEventListener("click", (event) => {
   if (shouldIgnorePreviewAction(event.target)) return;
@@ -410,10 +476,11 @@ els.imageryImage.addEventListener("error", () => {
   }
 });
 els.imageryTabs.forEach((tab) => {
-  tab.addEventListener("click", () => selectImagery(toImageryType(tab.dataset.imagery)));
+  tab.addEventListener("click", () => selectSidePanel(toSidePanelType(tab.dataset.panel)));
 });
 
 els.loading.textContent = "Loading weather data...";
+startHongKongTimeClock();
 await loadImageryStepHintPreference();
 await load();
 
@@ -479,6 +546,7 @@ function render(): void {
   els.error.hidden = !data.error;
   els.error.textContent = data.error ? `${localized.updateFailed} ${data.error.message}` : "";
   els.cacheNote.textContent = data.stale ? localized.cacheNote : "";
+  renderHongKongTime();
   els.lastUpdated.textContent = `${formatUpdateTime(data.fetchedAt)} ${localized.lastUpdated}`;
 
   const caption = weatherCaption(data.current.icon, data.language);
@@ -495,10 +563,10 @@ function render(): void {
 
   renderSpecialWeather(data.current.tips);
   fitWeatherTitle();
-  renderTyphoonMap(data.warnings);
+  renderTropicalCyclonePanel(data.tropicalCyclones);
   renderWarningSignals(data.warnings);
   renderForecast(data.forecast);
-  selectImagery(toImageryType(els.imageryOpen.dataset.imagery));
+  selectSidePanel(defaultSidePanelType());
   void runImageryLoad("popup-imagery", loadImagery);
 }
 
@@ -557,25 +625,264 @@ function fitWeatherTitle(): void {
   }
 }
 
-function renderTyphoonMap(warnings: WeatherWarning[]): void {
-  const typhoonWarning = getSignalWarnings(warnings).find((warning) => warning.type === "typhoon");
-  els.typhoonMap.hidden = !typhoonWarning;
-  if (!typhoonWarning) {
-    els.typhoonMap.textContent = "";
+function renderTropicalCyclonePanel(cyclones: TropicalCyclone[] = []): void {
+  const activeCyclones = cyclones.filter(Boolean);
+  const idSignature = activeCyclones.map((cyclone) => cyclone.id).join("|");
+  if (idSignature !== tropicalCycloneIdSignature) {
+    tropicalCycloneIdSignature = idSignature;
+    selectedTropicalCycloneIndex = 0;
+  }
+  selectedTropicalCycloneIndex = clampIndex(selectedTropicalCycloneIndex, activeCyclones.length);
+  const cyclone =
+    activeCyclones[selectedTropicalCycloneIndex] ?? selectPrimaryTropicalCyclone(cyclones);
+  els.tropicalCycloneTab.hidden = !cyclone;
+  els.tropicalCycloneView.hidden = !cyclone;
+  renderSidePanelTabLabels();
+
+  if (!cyclone) {
+    els.typhoonMap.dataset.trackUrl = "";
+    els.typhoonTrackMap.dataset.trackMapUrl = "";
+    hideTropicalCycloneTrackMap();
+    els.tropicalCycloneKicker.textContent = copy().tropicalCyclone;
+    els.tropicalCycloneMeta.textContent = "";
+    els.tropicalCycloneDistance.textContent = "";
+    els.tropicalCycloneWind.textContent = "";
+    els.tropicalCycloneDescription.textContent = "";
+    els.tropicalCycloneDescription.hidden = true;
+    els.tropicalCycloneSelect.replaceChildren();
+    els.tropicalCycloneSelect.hidden = true;
+    els.typhoonTrackMap.textContent = copy().tropicalCycloneTrackMap;
+    els.typhoonTrackMap.removeAttribute("title");
+    els.typhoonTrackMap.removeAttribute("aria-label");
+    els.typhoonMapLabel.textContent = copy().tropicalCycloneTrack;
+    els.typhoonMap.removeAttribute("title");
+    els.typhoonMap.removeAttribute("aria-label");
     return;
   }
 
-  const fallback = localText({
-    tc: "熱帶氣旋",
-    sc: "热带气旋",
-    en: "Tropical Cyclone"
+  const localized = copy();
+  const name = formatTropicalCycloneName(cyclone);
+  const observedAt = formatTropicalCycloneObservedAt(cyclone.observedAtHkt);
+  const distance = formatTropicalCycloneDistance(cyclone);
+  const windValue = formatTropicalCycloneWindValue(cyclone);
+  const meta = formatTropicalCycloneMeta(cyclone);
+  const wind = formatTropicalCycloneWind(cyclone);
+  const position = formatTropicalCyclonePosition(
+    selectedTropicalCycloneIndex,
+    activeCyclones.length
+  );
+  const label = [localized.tropicalCyclone, position, name, meta, wind, cyclone.description]
+    .filter(Boolean)
+    .join("\n");
+
+  els.typhoonMap.dataset.trackUrl = cyclone.trackUrl;
+  els.typhoonTrackMap.dataset.trackMapUrl = cyclone.trackMapUrl;
+  els.tropicalCycloneKicker.textContent = localized.tropicalCyclone;
+  els.tropicalCycloneMeta.textContent = observedAt || "--";
+  els.tropicalCycloneDistance.textContent = distance || "--";
+  els.tropicalCycloneWind.textContent = windValue || "--";
+  els.tropicalCycloneDescription.textContent = cyclone.description;
+  els.tropicalCycloneDescription.hidden = !cyclone.description;
+  renderTropicalCycloneSelect(activeCyclones);
+  els.tropicalCycloneTimeLabel.textContent = localText({ tc: "時間", sc: "时间", en: "Time" });
+  els.tropicalCycloneDistanceLabel.textContent = localText({
+    tc: "位置",
+    sc: "位置",
+    en: "Position"
   });
-  const suffix = localText({
-    tc: "路徑圖",
-    sc: "路径图",
-    en: "Track"
+  els.tropicalCycloneWindLabel.textContent = localText({ tc: "風速", sc: "风速", en: "Wind" });
+  els.typhoonTrackMap.textContent = localized.tropicalCycloneTrackMap;
+  els.typhoonMapLabel.textContent = localized.tropicalCycloneTrack;
+  els.typhoonMap.title = label;
+  els.typhoonMap.setAttribute("aria-label", label);
+  els.typhoonTrackMap.title = localized.tropicalCycloneTrackMap;
+  els.typhoonTrackMap.setAttribute("aria-label", localized.tropicalCycloneTrackMap);
+}
+
+function formatTropicalCycloneName(cyclone: TropicalCyclone): string {
+  return [cyclone.classification, cyclone.name].filter(Boolean).join(" ") || copy().tropicalCyclone;
+}
+
+function showTropicalCycloneTrackMap({
+  forceReload = false
+}: { forceReload?: boolean } = {}): void {
+  const url = els.typhoonTrackMap.dataset.trackMapUrl;
+  if (!url) return;
+
+  els.typhoonTrackMapOverlay.hidden = false;
+  setTrackMapMessageState("loading");
+  els.typhoonTrackMapImage.alt = copy().tropicalCycloneTrackMap;
+
+  if (forceReload) {
+    els.typhoonTrackMapImage.hidden = true;
+    els.typhoonTrackMapImage.removeAttribute("src");
+    els.typhoonTrackMapImage.src = url;
+    return;
+  }
+
+  if (els.typhoonTrackMapImage.src !== url) {
+    els.typhoonTrackMapImage.hidden = true;
+    els.typhoonTrackMapImage.src = url;
+    return;
+  }
+
+  if (els.typhoonTrackMapImage.complete && els.typhoonTrackMapImage.naturalWidth > 0) {
+    els.typhoonTrackMapImage.hidden = false;
+    setTrackMapMessageState("hidden");
+  }
+}
+
+function hideTropicalCycloneTrackMap(): void {
+  els.typhoonTrackMapOverlay.hidden = true;
+}
+
+function setTrackMapMessageState(state: "hidden" | "loading" | "error"): void {
+  const visible = state !== "hidden";
+  els.typhoonTrackMapOverlay.classList.toggle("has-message", visible);
+  els.typhoonTrackMapPanel.classList.toggle("is-message", visible);
+  els.typhoonTrackMapMessage.hidden = !visible;
+  els.typhoonTrackMapRetry.hidden = state !== "error";
+  if (state === "loading") {
+    els.typhoonTrackMapFallback.textContent = copy().tropicalCycloneTrackMapLoading;
+  } else if (state === "error") {
+    els.typhoonTrackMapFallback.textContent = copy().tropicalCycloneTrackMapFailed;
+  }
+}
+
+function selectTropicalCyclone(value: string): void {
+  const cyclones = state.data?.tropicalCyclones ?? [];
+  if (!cyclones.length) return;
+  selectedTropicalCycloneIndex = clampIndex(Number(value), cyclones.length);
+  renderTropicalCyclonePanel(cyclones);
+  selectSidePanel("typhoon");
+}
+
+function renderTropicalCycloneSelect(cyclones: TropicalCyclone[]): void {
+  els.tropicalCycloneSelect.replaceChildren(
+    ...cyclones.map((cyclone, index) => {
+      const option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = formatTropicalCycloneName(cyclone);
+      return option;
+    })
+  );
+  els.tropicalCycloneSelect.value = String(selectedTropicalCycloneIndex);
+  els.tropicalCycloneSelect.hidden = cyclones.length <= 1;
+  els.tropicalCycloneSelect.title = localText({
+    tc: "選擇熱帶氣旋",
+    sc: "选择热带气旋",
+    en: "Select tropical cyclone"
   });
-  els.typhoonMap.textContent = `${typhoonWarning.name || fallback} ${suffix}`;
+}
+
+function formatTropicalCyclonePosition(index: number, count: number): string {
+  if (count <= 0) return "1/1";
+  return `${index + 1}/${count}`;
+}
+
+function clampIndex(index: number, count: number): number {
+  if (count <= 0) return 0;
+  return Math.min(Math.max(0, index), count - 1);
+}
+
+function formatTropicalCycloneMeta(cyclone: TropicalCyclone): string {
+  return [
+    formatTropicalCycloneObservedAt(cyclone.observedAtHkt),
+    formatTropicalCycloneDistance(cyclone)
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function formatTropicalCycloneObservedAt(value: string | null): string {
+  if (!value || !/^\d{10}$/.test(value)) return "";
+  const month = Number(value.slice(4, 6));
+  const day = Number(value.slice(6, 8));
+  const hour = value.slice(8, 10);
+
+  if (activeLanguage() === "en") {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ];
+    return `${hour}:00 HKT ${day} ${months[month - 1] ?? ""}`.trim();
+  }
+
+  return localText({
+    tc: `香港時間 ${month}月${day}日${hour}時`,
+    sc: `香港时间 ${month}月${day}日${hour}时`,
+    en: ""
+  });
+}
+
+function formatTropicalCycloneDistance(
+  cyclone: TropicalCyclone,
+  { compact = false }: { compact?: boolean } = {}
+): string {
+  if (cyclone.distanceKm == null) return "";
+  const language = activeLanguage();
+  const direction = tropicalCycloneDirectionLabel(cyclone.directionFromHongKong, language);
+  const distance = formatNumber(cyclone.distanceKm);
+  if (compact) {
+    if (language === "en") return `${distance} km ${direction ?? ""}`.trim();
+    return `${direction ?? ""}${distance}公里`;
+  }
+
+  if (language === "en") {
+    return direction
+      ? `about ${distance} km ${direction} of Hong Kong`
+      : `about ${distance} km from Hong Kong`;
+  }
+
+  const place = localText({ tc: "香港", sc: "香港", en: "Hong Kong" });
+  const about = localText({ tc: "約", sc: "约", en: "about" });
+  const unit = localText({ tc: "公里", sc: "公里", en: "km" });
+  return direction
+    ? `${place}以${direction}${about} ${distance} ${unit}`
+    : `${place}${about} ${distance} ${unit}`;
+}
+
+function formatTropicalCycloneWind(
+  cyclone: TropicalCyclone,
+  { compact = false }: { compact?: boolean } = {}
+): string {
+  if (cyclone.maxWindKmh == null) return "";
+  const speed = formatNumber(cyclone.maxWindKmh);
+  if (activeLanguage() === "en") {
+    return compact ? `${speed} km/h` : `Maximum sustained wind near centre ${speed} km/h`;
+  }
+  return compact
+    ? `${speed}公里/時`
+    : `${localText({
+        tc: "中心附近最高持續風速",
+        sc: "中心附近最高持续风速",
+        en: ""
+      })} ${localText({ tc: "每小時", sc: "每小时", en: "" })} ${speed} ${localText({
+        tc: "公里",
+        sc: "公里",
+        en: ""
+      })}`;
+}
+
+function formatTropicalCycloneWindValue(cyclone: TropicalCyclone): string {
+  if (cyclone.maxWindKmh == null) return "";
+  const speed = formatNumber(cyclone.maxWindKmh);
+  if (activeLanguage() === "en") return `${speed} km/h`;
+  return `${localText({ tc: "每小時", sc: "每小时", en: "" })} ${speed} ${localText({
+    tc: "公里",
+    sc: "公里",
+    en: ""
+  })}`;
 }
 
 async function loadImagery(): Promise<void> {
@@ -590,12 +897,38 @@ async function loadImagery(): Promise<void> {
   });
 }
 
-function selectImagery(type: ImageryType = "radar"): void {
-  const item = IMAGERY[type];
+function selectSidePanel(type: SidePanelType = "radar"): void {
+  const safeType = type === "typhoon" && els.tropicalCycloneTab.hidden ? "radar" : type;
+  els.imageryCard.dataset.panel = safeType;
   els.imageryTabs.forEach((tab) => {
-    tab.setAttribute("aria-selected", String(tab.dataset.imagery === type));
+    tab.setAttribute("aria-selected", String(toSidePanelType(tab.dataset.panel) === safeType));
   });
 
+  if (safeType === "typhoon") {
+    collapseImageryExpanded();
+    els.tropicalCycloneView.hidden = false;
+    els.imageryOpen.hidden = true;
+    els.imageryCaption.hidden = true;
+    els.radarRanges.hidden = true;
+    els.imageryStepHint.hidden = true;
+    hideImageryToast();
+    return;
+  }
+
+  els.tropicalCycloneView.hidden = true;
+  els.imageryOpen.hidden = false;
+  els.imageryCaption.hidden = false;
+  selectImagery(safeType);
+}
+
+function defaultSidePanelType(): SidePanelType {
+  const current = toSidePanelType(els.imageryCard.dataset.panel);
+  if (current === "typhoon" && els.tropicalCycloneTab.hidden) return "radar";
+  return current;
+}
+
+function selectImagery(type: ImageryType = "radar"): void {
+  const item = IMAGERY[type];
   els.imageryOpen.dataset.imagery = type;
   const canCropMap = usesSnapshotControls(type) && Boolean(currentImageryUrls(type).length);
   els.imageryImage.classList.toggle("imagery-image-crop-map", canCropMap);
@@ -611,6 +944,10 @@ function selectImagery(type: ImageryType = "radar"): void {
   renderImageryStepper(type);
   renderRadarRanges(type);
   renderImageryStepHint(type);
+  if (toSidePanelType(els.imageryCard.dataset.panel) === "typhoon") {
+    els.radarRanges.hidden = true;
+    els.imageryStepHint.hidden = true;
+  }
 }
 
 function toggleImageryExpanded({ showToast = false }: { showToast?: boolean } = {}): void {
@@ -659,7 +996,7 @@ function selectImageryRange(type: ImageryType, id: RadarRangeId): void {
   const urls = currentImageryUrls(type);
   IMAGERY[type].selectedIndex = Math.max(0, urls.length - 1);
   IMAGERY[type].imageUrl = urls.at(-1) || IMAGERY[type].fallbackUrl;
-  selectImagery(type);
+  selectSidePanel(type);
 }
 
 function selectImagerySnapshot(type: ImageryType, index: number): void {
@@ -668,7 +1005,7 @@ function selectImagerySnapshot(type: ImageryType, index: number): void {
   if (!url) return;
   IMAGERY[type].selectedIndex = index;
   IMAGERY[type].imageUrl = url;
-  selectImagery(type);
+  selectSidePanel(type);
 }
 
 function stepImagerySnapshot(direction: -1 | 1): boolean {
@@ -722,7 +1059,8 @@ function renderImageryStepHint(type: ImageryType): void {
   const safeDisplayIndex = currentDisplayIndex >= 0 ? currentDisplayIndex : snapshots.length - 1;
   const hasStepHint = usesSnapshotControls(type) && snapshots.length > 1;
 
-  els.imageryStepHint.hidden = imageryStepHintDismissed || !hasStepHint || els.imageryStepper.hidden;
+  els.imageryStepHint.hidden =
+    imageryStepHintDismissed || !hasStepHint || els.imageryStepper.hidden;
   els.imageryStepHintLeft.classList.toggle("is-disabled", safeDisplayIndex <= 0);
   els.imageryStepHintRight.classList.toggle(
     "is-disabled",
@@ -741,9 +1079,7 @@ function currentImageryUrls(type: ImageryType): string[] {
 function latestImagerySnapshotUrls(
   type: ImageryType
 ): Array<{ originalIndex: number; url: string }> {
-  return currentImageryUrls(type)
-    .map((url, originalIndex) => ({ originalIndex, url }))
-    .slice(-5);
+  return selectImagerySnapshots(type, currentImageryUrls(type));
 }
 
 function usesSnapshotControls(type: ImageryType): boolean {
@@ -957,6 +1293,25 @@ function setUpdating(value: boolean): void {
   els.updating.hidden = !value;
 }
 
+function startHongKongTimeClock(): void {
+  renderHongKongTime();
+  scheduleNextHongKongTimeTick();
+}
+
+function scheduleNextHongKongTimeTick(): void {
+  if (hongKongTimeTimer !== undefined) {
+    window.clearTimeout(hongKongTimeTimer);
+  }
+  hongKongTimeTimer = window.setTimeout(() => {
+    renderHongKongTime();
+    scheduleNextHongKongTimeTick();
+  }, millisecondsUntilNextMinute(new Date()));
+}
+
+function renderHongKongTime(): void {
+  els.hongKongTime.textContent = formatHongKongTime(new Date(), activeLanguage());
+}
+
 function openOptions(): void {
   void browserApi.runtime.openOptionsPage();
 }
@@ -970,13 +1325,20 @@ function applyLanguage(language: Language): void {
   els.labelUv.textContent = localized.uvIndex;
   els.specialWeatherTitle.textContent = localized.specialWeather;
   els.updating.textContent = localized.updating;
+  renderHongKongTime();
   els.imageryOpen.setAttribute("aria-label", localized.imageryPreviewAction);
+  els.typhoonMapLabel.textContent = localized.tropicalCycloneTrack;
+  els.typhoonTrackMap.textContent = localized.tropicalCycloneTrackMap;
+  els.typhoonTrackMapClose.textContent = localized.tropicalCycloneTrackMapClose;
+  els.typhoonTrackMapClose.setAttribute("aria-label", localized.tropicalCycloneTrackMapClose);
+  els.typhoonTrackMapOverlay.setAttribute("aria-label", localized.tropicalCycloneTrackMap);
+  els.typhoonTrackMapImage.alt = localized.tropicalCycloneTrackMap;
+  els.typhoonTrackMapRetry.textContent = localized.tropicalCycloneTrackMapRetry;
+  els.typhoonTrackMapRetry.setAttribute("aria-label", localized.tropicalCycloneTrackMapRetry);
   renderImageryExpandButton(language);
   query<HTMLButtonElement>("#settings").title = localized.settings;
   query<HTMLButtonElement>("#settings").setAttribute("aria-label", localized.settings);
-  els.imageryTabs.forEach((tab) => {
-    tab.textContent = imageryTitle(toImageryType(tab.dataset.imagery), language);
-  });
+  renderSidePanelTabLabels(language);
 }
 
 function activeLanguage(): Language {
@@ -1049,7 +1411,18 @@ function renderImageryExpandButton(language: Language = activeLanguage()): void 
 }
 
 function imageryTitle(type: ImageryType, language: Language = activeLanguage()): string {
-  return IMAGERY_TITLES[language]?.[type] ?? IMAGERY_TITLES.tc[type];
+  return sidePanelFullTitle(type, language, 0);
+}
+
+function renderSidePanelTabLabels(language: Language = activeLanguage()): void {
+  const cycloneCount = state.data?.tropicalCyclones.length ?? 0;
+  els.imageryTabs.forEach((tab) => {
+    const type = toSidePanelType(tab.dataset.panel);
+    const fullTitle = sidePanelFullTitle(type, language, cycloneCount);
+    tab.textContent = sidePanelTabTitle(type, language, cycloneCount);
+    tab.title = fullTitle;
+    tab.setAttribute("aria-label", fullTitle);
+  });
 }
 
 function empty(message: string): HTMLElement {
@@ -1148,6 +1521,11 @@ function weatherCaption(
 function toImageryType(value: string | undefined): ImageryType {
   if (value === "lightning") return value;
   return "radar";
+}
+
+function toSidePanelType(value: string | undefined): SidePanelType {
+  if (value === "typhoon") return "typhoon";
+  return toImageryType(value);
 }
 
 function isRadarRangeId(value: string | undefined): value is RadarRangeId {

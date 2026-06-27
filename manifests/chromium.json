@@ -4,7 +4,11 @@
   "description": "快速查看香港現時天氣、天氣警告、雷達圖、閃電位置及 7 天天氣預報。",
   "version": "0.1.5",
   "permissions": ["alarms", "notifications", "storage"],
-  "host_permissions": ["https://data.weather.gov.hk/*", "https://www.hko.gov.hk/*"],
+  "host_permissions": [
+    "https://data.weather.gov.hk/*",
+    "https://www.weather.gov.hk/*",
+    "https://www.hko.gov.hk/*"
+  ],
   "icons": {
     "16": "assets/generated/weather-mark-16.png",
     "32": "assets/generated/weather-mark-32.png",
