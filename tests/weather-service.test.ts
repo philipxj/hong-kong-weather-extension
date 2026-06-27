@@ -469,17 +469,25 @@ describe("weather service normalization", () => {
     expect(formatActionBadgeText("temperature", "黑", "28°")).toBe("28°");
   });
 
-  test("uses rainstorm-specific badge background colors", () => {
-    expect(badgeBackgroundColor("黑")).toBe("#111111");
-    expect(badgeBackgroundColor("紅")).toBe("#df1d1d");
-    expect(badgeBackgroundColor("黃")).toBe("#ffd84d");
+  test("uses white badge backgrounds for active weather warnings", () => {
+    expect(badgeBackgroundColor("黑")).toBe("#ffffff");
+    expect(badgeBackgroundColor("紅")).toBe("#ffffff");
+    expect(badgeBackgroundColor("黃")).toBe("#ffffff");
     expect(badgeBackgroundColor("")).toBe("#2f5f98");
   });
 
-  test("uses readable toolbar badge text colors", () => {
-    expect(badgeTextColor("黃")).toBe("#5c4300");
-    expect(badgeTextColor("紅")).toBe("#ffffff");
-    expect(badgeTextColor("黑")).toBe("#ffffff");
+  test("uses yellow toolbar badge colors for thunderstorm warnings", () => {
+    expect(badgeBackgroundColor("雷")).toBe("#ffd84d");
+    expect(badgeTextColor("雷")).toBe("#111111");
+    expect(badgeBackgroundColor("TS")).toBe("#ffd84d");
+    expect(badgeTextColor("TS")).toBe("#111111");
+  });
+
+  test("uses warning-specific toolbar badge text colors", () => {
+    expect(badgeTextColor("紅")).toBe("#df1d1d");
+    expect(badgeTextColor("黃")).toBe("#a66300");
+    expect(badgeTextColor("黑")).toBe("#111111");
+    expect(badgeTextColor("")).toBe("#ffffff");
   });
 
   test("updates toolbar badge without fetching remote weather icons", async () => {
