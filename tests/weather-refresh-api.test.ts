@@ -72,6 +72,51 @@ describe("weather refresh API usage", () => {
     expect(data.current.uvDesc).toBe("甚高");
   });
 
+  test("full refresh loads active tropical cyclone data best effort", async () => {
+    vi.mocked(fetch).mockImplementation(fetchHkoWithTropicalCycloneFixture);
+
+    const data = await refreshWeather(DEFAULT_SETTINGS);
+
+    expect(fetchUrls()).toContain("https://www.weather.gov.hk/wxinfo/currwx/tc_list.xml");
+    expect(fetchUrls()).toContain("https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2611.xml");
+    expect(fetchUrls().some((url) => url.includes("tc_gis"))).toBe(false);
+    expect(fetchUrls().some((url) => url.includes("tc_des"))).toBe(false);
+    expect(data.tropicalCyclones).toHaveLength(2);
+    expect(data.tropicalCyclones[0]).toMatchObject({
+      classification: "熱帶風暴",
+      description: "米克拉位於香港以東北偏東約 1860 公里。",
+      directionFromHongKong: "ENE",
+      distanceKm: 1860,
+      id: "2611",
+      latitude: 29.7,
+      longitude: 130.9,
+      maxWindKmh: 65,
+      name: "米克拉",
+      observedAtHkt: "2026062702",
+      trackMapUrl: "https://www.hko.gov.hk/wxinfo/currwx/nwp_2611.png",
+      trackUrl: "https://www.hko.gov.hk/tc/wxinfo/currwx/tc_pos.htm?tcid=2611"
+    });
+    expect(data.tropicalCyclones[1]).toMatchObject({
+      id: "2612",
+      name: "海高斯"
+    });
+  });
+
+  test("full refresh keeps weather data when tropical cyclone fetch fails", async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = inputToUrl(input);
+      if (url.endsWith("/wxinfo/currwx/tc_list.xml")) {
+        return Promise.resolve({ ok: false, text: () => Promise.resolve("") } as Response);
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const data = await refreshWeather(DEFAULT_SETTINGS);
+
+    expect(data.current.temperature).toBe(30);
+    expect(data.tropicalCyclones).toEqual([]);
+  });
+
   test("current weather refresh only calls current readings and latest UV CSV", async () => {
     mockState.local.weatherCache = cachedWeather();
 
@@ -424,6 +469,77 @@ function hkoPayload(dataType: string | null): unknown {
   throw new Error(`Unexpected dataType: ${dataType}`);
 }
 
+function fetchHkoWithTropicalCycloneFixture(input: string | URL | Request): Promise<Response> {
+  const url = inputToUrl(input);
+  if (url === "https://www.weather.gov.hk/wxinfo/currwx/tc_list.xml") {
+    return Promise.resolve({
+      ok: true,
+      text: () =>
+        Promise.resolve(`<?xml version="1.0" encoding="UTF-8"?>
+          <TropicalCycloneList>
+            <TropicalCyclone>
+              <TropicalCycloneID>2611</TropicalCycloneID>
+              <TropicalCycloneChineseName>米克拉</TropicalCycloneChineseName>
+              <TropicalCycloneEnglishName>MEKKHALA</TropicalCycloneEnglishName>
+              <TropicalCycloneURL>http://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2611.xml</TropicalCycloneURL>
+            </TropicalCyclone>
+            <TropicalCyclone>
+              <TropicalCycloneID>2612</TropicalCycloneID>
+              <TropicalCycloneChineseName>海高斯</TropicalCycloneChineseName>
+              <TropicalCycloneEnglishName>HIGOS</TropicalCycloneEnglishName>
+              <TropicalCycloneURL>https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2612.xml</TropicalCycloneURL>
+            </TropicalCyclone>
+          </TropicalCycloneList>`)
+    } as Response);
+  }
+
+  if (url === "https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2611.xml") {
+    return Promise.resolve({
+      ok: true,
+      text: () =>
+        Promise.resolve(
+          tropicalCycloneTrackXml("2611", "MEKKHALA", "Tropical Storm", 65, 29.7, 130.9)
+        )
+    } as Response);
+  }
+
+  if (url === "https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2612.xml") {
+    return Promise.resolve({
+      ok: true,
+      text: () =>
+        Promise.resolve(tropicalCycloneTrackXml("2612", "HIGOS", "Tropical Storm", 75, 17.5, 137.1))
+    } as Response);
+  }
+
+  return fetchHkoFixture(input);
+}
+
+function tropicalCycloneTrackXml(
+  id: string,
+  name: string,
+  intensity: string,
+  windKmh: number,
+  latitude: number,
+  longitude: number
+): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+    <TropicalCycloneTrack tcid="${id}">
+      <BulletinHeader>
+        <BulletinTime>2026-06-27T04:00:18+08:00</BulletinTime>
+      </BulletinHeader>
+      <WeatherReport>
+        <TropicalCycloneName>${name}</TropicalCycloneName>
+        <AnalysisInformation>
+          <Intensity>${intensity}</Intensity>
+          <MaximumWind>${windKmh}km/h</MaximumWind>
+          <Time>2026-06-26T18:00:00+00:00</Time>
+          <Latitude>${latitude.toFixed(2)}N</Latitude>
+          <Longitude>${longitude.toFixed(2)}E</Longitude>
+        </AnalysisInformation>
+      </WeatherReport>
+    </TropicalCycloneTrack>`;
+}
+
 function cachedWeather(): WeatherData {
   return {
     current: {
@@ -455,6 +571,7 @@ function cachedWeather(): WeatherData {
     ],
     language: "tc",
     stale: false,
+    tropicalCyclones: [],
     warningInfo: [],
     warnings: [
       {

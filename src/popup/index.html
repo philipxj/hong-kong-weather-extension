@@ -86,7 +86,7 @@
                 type="button"
                 role="tab"
                 aria-selected="true"
-                data-imagery="radar"
+                data-panel="radar"
               >
                 雷達
               </button>
@@ -95,17 +95,23 @@
                 type="button"
                 role="tab"
                 aria-selected="false"
-                data-imagery="lightning"
+                data-panel="lightning"
               >
                 閃電
               </button>
+              <button
+                id="tropical-cyclone-tab"
+                class="imagery-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-panel="typhoon"
+                hidden
+              >
+                颱風
+              </button>
             </div>
-            <div
-              id="imagery-open"
-              class="imagery-preview"
-              role="button"
-              tabindex="0"
-            >
+            <div id="imagery-open" class="imagery-preview" role="button" tabindex="0">
               <img id="imagery-image" alt="" />
               <div id="imagery-stepper" class="imagery-stepper" aria-label="Image snapshots">
                 <span id="imagery-position" class="imagery-position">-- / --</span>
@@ -129,11 +135,54 @@
               aria-live="polite"
               hidden
             ></div>
-          </div>
 
-          <button id="typhoon-map" class="typhoon-map-button" type="button">
-            颱風 尤特 路徑圖
-          </button>
+            <div id="tropical-cyclone-view" class="tropical-cyclone-view" role="tabpanel" hidden>
+              <div class="tropical-cyclone-header">
+                <span id="tropical-cyclone-kicker" class="tropical-cyclone-kicker">熱帶氣旋</span>
+                <select
+                  id="tropical-cyclone-select"
+                  class="tropical-cyclone-select"
+                  aria-label="選擇熱帶氣旋"
+                  hidden
+                ></select>
+              </div>
+              <dl class="tropical-cyclone-facts">
+                <div>
+                  <dt id="tropical-cyclone-time-label">時間</dt>
+                  <dd id="tropical-cyclone-meta" class="tropical-cyclone-meta"></dd>
+                </div>
+                <div>
+                  <dt id="tropical-cyclone-distance-label">位置</dt>
+                  <dd id="tropical-cyclone-distance" class="tropical-cyclone-distance"></dd>
+                </div>
+                <div>
+                  <dt id="tropical-cyclone-wind-label">風速</dt>
+                  <dd id="tropical-cyclone-wind" class="tropical-cyclone-wind"></dd>
+                </div>
+              </dl>
+              <p id="tropical-cyclone-description" class="tropical-cyclone-description"></p>
+              <div class="tropical-cyclone-actions">
+                <button id="typhoon-track-map" class="tropical-cyclone-track-map" type="button">
+                  路徑圖
+                </button>
+                <button id="typhoon-map" class="tropical-cyclone-track" type="button">
+                  <span id="typhoon-map-label">詳情</span>
+                  <svg
+                    class="external-link-icon"
+                    viewBox="0 0 16 16"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6 4H3.5A1.5 1.5 0 0 0 2 5.5v7A1.5 1.5 0 0 0 3.5 14h7A1.5 1.5 0 0 0 12 12.5V10"
+                    />
+                    <path d="M9 2h5v5" />
+                    <path d="m8 8 6-6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="legacy-forecast" aria-label="Weather forecast">
@@ -141,11 +190,45 @@
         </section>
 
         <div class="legacy-meta" aria-live="polite">
-          <span id="updating" class="updating" hidden>Updating...</span>
-          <span id="cache-note"></span>
+          <span class="legacy-meta-status">
+            <span id="updating" class="updating" hidden>Updating...</span>
+            <span id="cache-note"></span>
+          </span>
+          <span id="hong-kong-time" class="hong-kong-time">香港時間 --:--</span>
           <span id="last-updated" class="timestamp">Last updated: --</span>
         </div>
       </section>
+      <div
+        id="typhoon-track-map-overlay"
+        class="typhoon-track-map-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="熱帶氣旋路徑圖"
+        hidden
+      >
+        <div class="typhoon-track-map-panel">
+          <button
+            id="typhoon-track-map-close"
+            class="typhoon-track-map-close"
+            type="button"
+            aria-label="關閉路徑圖"
+          >
+            關閉
+          </button>
+          <img id="typhoon-track-map-image" class="typhoon-track-map-image" alt="熱帶氣旋路徑圖" />
+          <div id="typhoon-track-map-message" class="typhoon-track-map-message" hidden>
+            <span id="typhoon-track-map-fallback" class="typhoon-track-map-fallback"></span>
+            <button
+              id="typhoon-track-map-retry"
+              class="typhoon-track-map-retry"
+              type="button"
+              hidden
+            >
+              重新載入
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>

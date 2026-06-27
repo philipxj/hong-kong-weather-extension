@@ -1,6 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+
+import {
+  sidePanelFullTitle,
+  sidePanelTabTitle,
+  type ImageryPanelType
+} from "../src/popup/imagery-tabs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const CSS_PATH = path.join(ROOT, "src", "shared", "ui.css");
@@ -8,6 +14,8 @@ const ICON =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect width='50' height='50' fill='%2384d8ff'/%3E%3Ccircle cx='18' cy='20' r='13' fill='%23ff7c00'/%3E%3Cellipse cx='34' cy='29' rx='18' ry='11' fill='%238b7cff'/%3E%3Cpath d='M16 36l-5 12M27 36l-5 12M38 36l-5 12' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E";
 const RADAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='577' height='400'%3E%3Crect width='577' height='400' fill='%2359c7df'/%3E%3Cpath d='M0 70 C90 20 190 120 280 70 S470 10 577 85' stroke='%2327bf45' stroke-width='45' fill='none'/%3E%3Cpath d='M20 210 C130 130 235 250 330 180 S470 160 560 230' stroke='%23fff000' stroke-width='26' fill='none'/%3E%3Cpath d='M0 330 C110 270 210 370 330 300 S480 260 577 340' stroke='%23269bd8' stroke-width='55' fill='none'/%3E%3C/svg%3E";
+const TRACK_MAP =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='912'%3E%3Crect width='720' height='700' fill='%23097daf'/%3E%3Cpath d='M0 120h720M0 260h720M0 400h720M0 540h720M120 0v700M300 0v700M480 0v700M660 0v700' stroke='%23ffffff' stroke-opacity='.22' stroke-width='3'/%3E%3Cpath d='M610 0 540 80 485 150 390 220 330 310 315 430 260 540 250 700' stroke='%23ffffff' stroke-width='8' fill='none'/%3E%3Ccircle cx='540' cy='80' r='18' fill='%2314a04b' stroke='%23ffffff' stroke-width='5'/%3E%3Ccircle cx='220' cy='610' r='12' fill='%23ff4f72' stroke='%23ffffff' stroke-width='4'/%3E%3Crect y='700' width='720' height='212' fill='%23ffffff'/%3E%3Ctext x='48' y='770' font-family='Arial' font-size='34' fill='%23111'%3ETropical Depression%3C/text%3E%3Ctext x='48' y='835' font-family='Arial' font-size='34' fill='%23111'%3ETropical Storm%3C/text%3E%3Ctext x='390' y='770' font-family='Arial' font-size='34' fill='%23111'%3ETyphoon%3C/text%3E%3Ctext x='390' y='835' font-family='Arial' font-size='34' fill='%23111'%3EHong Kong%3C/text%3E%3C/svg%3E";
 
 interface Rect {
   bottom: number;
@@ -17,6 +25,7 @@ interface Rect {
 }
 
 interface LayoutScenario {
+  activePanel?: ImageryPanelType;
   days?: [string, string][];
   lang?: string;
   readings?: [string, string][];
@@ -25,6 +34,8 @@ interface LayoutScenario {
   special: string | null;
   specialTitle?: string;
   title?: string;
+  tropicalCycloneCount?: number;
+  tropicalCyclone?: string | null;
 }
 
 const scenarios: Array<LayoutScenario & { name: string }> = [
@@ -86,11 +97,111 @@ const scenarios: Array<LayoutScenario & { name: string }> = [
       ["6/24 Wed", "28-33 °C"],
       ["6/25 Thu", "28-32 °C"]
     ]
+  },
+  {
+    name: "active tropical cyclone without Hong Kong warning",
+    activePanel: "typhoon",
+    warnings: `<div class="warning-signal-empty">沒有警告信號</div>`,
+    special: null,
+    tropicalCyclone: tropicalCycloneView()
+  },
+  {
+    name: "active tropical cyclone and two warnings",
+    activePanel: "typhoon",
+    warnings: `
+      <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
+      <button class="warning-signal warning-signal-rain-amber"><img class="warning-signal-icon" src="${ICON}" alt="黃色暴雨警告信號"></button>
+    `,
+    special: "局部地區有大雨",
+    tropicalCyclone: tropicalCycloneView()
+  },
+  {
+    name: "active tropical cyclone and four warnings",
+    activePanel: "typhoon",
+    warnings: `
+      <button class="warning-signal warning-signal-rain-black"><img class="warning-signal-icon" src="${ICON}" alt="黑色暴雨警告信號"></button>
+      <button class="warning-signal warning-signal-landslip"><img class="warning-signal-icon" src="${ICON}" alt="山泥傾瀉警告"></button>
+      <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
+      <button class="warning-signal warning-signal-flooding"><img class="warning-signal-icon" src="${ICON}" alt="新界北部水浸特別報告"></button>
+    `,
+    special: "離岸及高地間中吹強風",
+    tropicalCyclone: tropicalCycloneView("米克拉會在今明兩日橫過琉球群島一帶。", 3),
+    tropicalCycloneCount: 3
+  },
+  {
+    name: "long tropical cyclone description",
+    activePanel: "typhoon",
+    warnings: `
+      <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>
+      <button class="warning-signal warning-signal-rain-amber"><img class="warning-signal-icon" src="${ICON}" alt="黃色暴雨警告信號"></button>
+    `,
+    special: "局部地區有大雨",
+    tropicalCyclone: tropicalCycloneView(
+      "米克拉會在今明兩日橫過琉球群島一帶，隨後靠近日本本州南部，相關雨帶可能間中為沿岸帶來狂風驟雨。"
+    )
   }
 ];
 
 function overlaps(a: Rect, b: Rect): boolean {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+function tropicalCycloneView(
+  description = "米克拉會在今明兩日橫過琉球群島一帶，隨後靠近日本本州南部。",
+  count = 1
+): string {
+  const cycloneOptions = [
+    {
+      description,
+      distance: "香港以東約 1150 公里",
+      meta: "香港時間 6月25日 08時",
+      name: "強烈熱帶風暴 米克拉",
+      wind: "每小時 105 公里"
+    },
+    {
+      description: "海高斯正移向華南沿岸以西海域。",
+      distance: "香港以西北約 2460 公里",
+      meta: "香港時間 6月25日 08時",
+      name: "熱帶風暴 海高斯",
+      wind: "每小時 85 公里"
+    },
+    {
+      description: "另一熱帶低氣壓位於西北太平洋。",
+      distance: "香港以東北約 3180 公里",
+      meta: "香港時間 6月25日 08時",
+      name: "熱帶低氣壓 無名",
+      wind: "每小時 55 公里"
+    }
+  ].slice(0, count);
+  const switcher =
+    count > 1
+      ? `<select class="tropical-cyclone-select" aria-label="選擇熱帶氣旋">
+          ${cycloneOptions.map((cyclone, index) => `<option value="${index}">${cyclone.name}</option>`).join("")}
+        </select>`
+      : `<select class="tropical-cyclone-select" hidden></select>`;
+  const hiddenOptions = cycloneOptions
+    .map(
+      (cyclone) =>
+        `<span class="tropical-cyclone-option" data-name="${cyclone.name}" data-meta="${cyclone.meta}" data-distance="${cyclone.distance}" data-wind="${cyclone.wind}" data-description="${cyclone.description}" hidden></span>`
+    )
+    .join("");
+  return `<div class="tropical-cyclone-view" role="tabpanel">
+    <div class="tropical-cyclone-header">
+      <span class="tropical-cyclone-kicker">熱帶氣旋</span>
+      ${switcher}
+    </div>
+    <dl class="tropical-cyclone-facts">
+      <div><dt>時間</dt><dd class="tropical-cyclone-meta">香港時間 6月25日 08時</dd></div>
+      <div><dt>位置</dt><dd class="tropical-cyclone-distance">香港以東約 1150 公里</dd></div>
+      <div><dt>風速</dt><dd class="tropical-cyclone-wind">每小時 105 公里</dd></div>
+    </dl>
+    <p class="tropical-cyclone-description">${description}</p>
+    <div class="tropical-cyclone-actions">
+      <button class="tropical-cyclone-track-map" type="button" data-track-map-url="https://www.hko.gov.hk/wxinfo/currwx/nwp_2611.png">路徑圖</button>
+      <button class="tropical-cyclone-track" type="button"><span class="typhoon-map-label">詳情</span><svg class="external-link-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4H3.5A1.5 1.5 0 0 0 2 5.5v7A1.5 1.5 0 0 0 3.5 14h7A1.5 1.5 0 0 0 12 12.5V10"></path><path d="M9 2h5v5"></path><path d="m8 8 6-6"></path></svg></button>
+    </div>
+    ${hiddenOptions}
+  </div>`;
 }
 
 test.describe("popup layout", () => {
@@ -120,6 +231,19 @@ test.describe("popup layout", () => {
             width: box.width
           };
         };
+        const optionalRect = (selector: string) => {
+          const element = document.querySelector(selector);
+          if (!element) return null;
+          const box = element.getBoundingClientRect();
+          return {
+            bottom: box.bottom,
+            height: box.height,
+            left: box.left,
+            right: box.right,
+            top: box.top,
+            width: box.width
+          };
+        };
         const allInside = (parentSelector: string, childSelector: string) => {
           const parent = rect(parentSelector);
           return [...document.querySelectorAll(childSelector)].every((node) => {
@@ -132,6 +256,9 @@ test.describe("popup layout", () => {
             );
           });
         };
+        const tcDescription = document.querySelector<HTMLElement>(".tropical-cyclone-description");
+        const tcTab = document.querySelector<HTMLElement>(".imagery-tab[data-panel='typhoon']");
+        const activeTab = document.querySelector<HTMLElement>(".imagery-tab[aria-selected='true']");
 
         return {
           current: rect(".legacy-current"),
@@ -198,7 +325,23 @@ test.describe("popup layout", () => {
             document.querySelector<HTMLElement>(".legacy-weather-title")!.scrollWidth,
           hasAppVersion: document.querySelector(".app-version") !== null,
           meta: rect(".legacy-meta"),
+          hongKongTime: rect(".hong-kong-time"),
+          hongKongTimeText:
+            document.querySelector<HTMLElement>(".hong-kong-time")?.textContent?.trim() ?? "",
           timestamp: rect(".timestamp"),
+          activeImageryTabText: activeTab?.textContent?.trim() ?? "",
+          imageryPreviewHidden: document.querySelector(".imagery-preview")?.hasAttribute("hidden"),
+          tropicalCyclone: optionalRect(".tropical-cyclone-view"),
+          tropicalCycloneDescriptionFits: tcDescription
+            ? tcDescription.scrollHeight <= tcDescription.clientHeight + 1
+            : true,
+          tropicalCycloneOptionTexts: [
+            ...document.querySelectorAll<HTMLOptionElement>(".tropical-cyclone-select option")
+          ].map((option) => option.textContent ?? ""),
+          tropicalCycloneSelect: optionalRect(".tropical-cyclone-select"),
+          tropicalCycloneTitleCount: document.querySelectorAll(".tropical-cyclone-name").length,
+          tropicalCycloneTabVisible: tcTab ? !tcTab.hasAttribute("hidden") : false,
+          tropicalCycloneTrack: optionalRect(".tropical-cyclone-track"),
           warning: rect(".warning-signal-row"),
           contentLeftPadding: Math.round(rect(".legacy-current").left - rect(".popup-shell").left),
           forecastItemsInside: allInside(".legacy-forecast", ".legacy-forecast-day"),
@@ -240,9 +383,43 @@ test.describe("popup layout", () => {
         expect(layout.specialContentLineHeight).toBeGreaterThan(layout.specialContentFontSize + 1);
         expect(layout.titleTextOverflow).not.toBe("ellipsis");
       }
+      if (scenario.tropicalCyclone === null || scenario.tropicalCyclone === undefined) {
+        expect(layout.tropicalCyclone).toBeNull();
+        expect(layout.tropicalCycloneTabVisible).toBe(false);
+      } else {
+        expect(layout.tropicalCyclone).not.toBeNull();
+        expect(layout.tropicalCycloneTabVisible).toBe(true);
+        expect(layout.activeImageryTabText).toContain("颱風");
+        expect(layout.imageryPreviewHidden).toBe(true);
+        if (!layout.tropicalCyclone) throw new Error("Missing tropical cyclone panel");
+        expect(layout.tropicalCyclone.left).toBeGreaterThanOrEqual(layout.imageryCard.left);
+        expect(layout.tropicalCyclone.right).toBeLessThanOrEqual(layout.imageryCard.right);
+        expect(layout.tropicalCyclone.bottom).toBeLessThanOrEqual(layout.imageryCard.bottom);
+        expect(layout.imageryCard.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
+        expect(layout.tropicalCycloneDescriptionFits).toBe(true);
+        expect(layout.tropicalCycloneTitleCount).toBe(0);
+        expect(layout.tropicalCycloneTrack).not.toBeNull();
+        if (!layout.tropicalCycloneTrack) throw new Error("Missing tropical cyclone track button");
+        expect(layout.tropicalCycloneTrack.right).toBeLessThanOrEqual(layout.imageryCard.right);
+        expect(layout.tropicalCycloneTrack.bottom).toBeLessThanOrEqual(layout.imageryCard.bottom);
+        if (scenario.tropicalCycloneCount && scenario.tropicalCycloneCount > 1) {
+          expect(layout.activeImageryTabText).toContain(String(scenario.tropicalCycloneCount));
+          expect(layout.tropicalCycloneSelect).not.toBeNull();
+          expect(layout.tropicalCycloneOptionTexts).toHaveLength(scenario.tropicalCycloneCount);
+          expect(layout.tropicalCycloneOptionTexts).toContain("強烈熱帶風暴 米克拉");
+        }
+      }
       expect(layout.meta.top).toBeGreaterThanOrEqual(layout.forecast.bottom);
       expect(layout.meta.right).toBeLessThanOrEqual(layout.shell.right - 12);
       expect(layout.meta.bottom).toBeLessThanOrEqual(layout.shell.bottom - 4);
+      expect(layout.hongKongTimeText).toMatch(/^(香港時間|香港时间|Hong Kong Time) \d{2}:\d{2}$/);
+      expect(
+        Math.abs(
+          (layout.hongKongTime.left + layout.hongKongTime.right) / 2 -
+            (layout.shell.left + layout.shell.right) / 2
+        )
+      ).toBeLessThanOrEqual(2);
+      expect(overlaps(layout.hongKongTime, layout.timestamp)).toBe(false);
       expect(layout.forecastItemsInside).toBe(true);
       expect(layout.forecastDayCount).toBe(7);
       expect(new Set(layout.forecastDayHeights).size).toBe(1);
@@ -260,6 +437,311 @@ test.describe("popup layout", () => {
       expect(layout.hasAppVersion).toBe(false);
     });
   }
+
+  test("selects every active tropical cyclone from the dropdown", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({
+        activePanel: "typhoon",
+        warnings: `<div class="warning-signal-empty">沒有警告信號</div>`,
+        special: null,
+        tropicalCyclone: tropicalCycloneView("米克拉會在今明兩日橫過琉球群島一帶。", 3),
+        tropicalCycloneCount: 3
+      }),
+      { waitUntil: "domcontentloaded" }
+    );
+
+    await expect(page.locator(".tropical-cyclone-select option")).toHaveText([
+      "強烈熱帶風暴 米克拉",
+      "熱帶風暴 海高斯",
+      "熱帶低氣壓 無名"
+    ]);
+    await expect(page.locator(".tropical-cyclone-select")).toHaveValue("0");
+    await page.locator(".tropical-cyclone-select").selectOption("1");
+    await expect(page.locator(".tropical-cyclone-select option:checked")).toHaveText(
+      "熱帶風暴 海高斯"
+    );
+    await expect(page.locator(".tropical-cyclone-distance")).toHaveText("香港以西北約 2460 公里");
+    await page.locator(".tropical-cyclone-select").selectOption("2");
+    await expect(page.locator(".tropical-cyclone-select option:checked")).toHaveText(
+      "熱帶低氣壓 無名"
+    );
+    await page.locator(".tropical-cyclone-select").selectOption("1");
+    await expect(page.locator(".tropical-cyclone-select option:checked")).toHaveText(
+      "熱帶風暴 海高斯"
+    );
+  });
+
+  test("defaults to radar while showing the tropical cyclone tab", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({
+        warnings: `<div class="warning-signal-empty">沒有警告信號</div>`,
+        special: null,
+        tropicalCycloneCount: 2,
+        tropicalCyclone: tropicalCycloneView("米克拉會在今明兩日橫過琉球群島一帶。")
+      }),
+      { waitUntil: "domcontentloaded" }
+    );
+
+    await expect(page.locator(".imagery-card")).toHaveAttribute("data-panel", "radar");
+    await expect(page.locator(".imagery-tab[data-panel='radar']")).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    await expect(page.locator(".imagery-tab[data-panel='typhoon']")).toHaveAttribute(
+      "aria-selected",
+      "false"
+    );
+    await expect(page.locator(".imagery-preview")).toBeVisible();
+    await expect(page.locator(".tropical-cyclone-view")).toBeHidden();
+
+    await page.locator(".imagery-tab[data-panel='typhoon']").click();
+    await expect(page.locator(".imagery-card")).toHaveAttribute("data-panel", "typhoon");
+    await expect(page.locator(".imagery-tab[data-panel='typhoon']")).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    await expect(page.locator(".imagery-preview")).toBeHidden();
+    await expect(page.locator(".tropical-cyclone-view")).toBeVisible();
+  });
+
+  test("opens the tropical cyclone track map inside the popup", async ({ page }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({
+        activePanel: "typhoon",
+        warnings: `<div class="warning-signal-empty">沒有警告信號</div>`,
+        special: null,
+        tropicalCyclone: tropicalCycloneView("米克拉會在今明兩日橫過琉球群島一帶。")
+      }),
+      { waitUntil: "domcontentloaded" }
+    );
+
+    const actions = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          left: box.left,
+          right: box.right,
+          top: box.top
+        };
+      };
+      return {
+        actions: rect(".tropical-cyclone-actions"),
+        card: rect(".imagery-card"),
+        externalIcon: rect(".external-link-icon"),
+        trackLabel: rect(".typhoon-map-label"),
+        trackLabelText:
+          document.querySelector<HTMLElement>(".typhoon-map-label")?.textContent?.trim() ?? "",
+        track: rect(".tropical-cyclone-track"),
+        trackMap: rect(".tropical-cyclone-track-map")
+      };
+    });
+
+    expect(actions.trackMap.right).toBeLessThanOrEqual(actions.track.left - 4);
+    expect(actions.trackLabelText).toBe("詳情");
+    expect(actions.externalIcon.left).toBeGreaterThan(actions.trackLabel.right);
+    expect(actions.externalIcon.right).toBeLessThanOrEqual(actions.track.right - 6);
+    expect(actions.actions.right).toBeLessThanOrEqual(actions.card.right);
+    expect(actions.actions.bottom).toBeLessThanOrEqual(actions.card.bottom);
+
+    await page.locator(".tropical-cyclone-track-map").evaluate((button, url) => {
+      if (button instanceof HTMLElement) button.dataset.trackMapUrl = url;
+    }, TRACK_MAP);
+    await page.locator(".tropical-cyclone-track-map").click();
+    await expect(page.locator(".typhoon-track-map-overlay")).toBeVisible();
+    await expect(page.locator(".typhoon-track-map-image")).toHaveAttribute("src", TRACK_MAP);
+    await expect
+      .poll(() =>
+        page.locator(".typhoon-track-map-image").evaluate((image) => {
+          return image instanceof HTMLImageElement ? image.naturalHeight : 0;
+        })
+      )
+      .toBeGreaterThan(0);
+    await expect(page.locator(".typhoon-track-map-image")).toBeVisible();
+    await expect(page.locator(".typhoon-track-map-message")).toBeHidden();
+
+    const overlay = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          height: box.height,
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          width: box.width
+        };
+      };
+      const panel = document.querySelector(".typhoon-track-map-panel");
+      const panelStyles = panel ? getComputedStyle(panel) : null;
+      const overlay = document.querySelector(".typhoon-track-map-overlay");
+      const overlayStyles = overlay ? getComputedStyle(overlay) : null;
+      return {
+        close: rect(".typhoon-track-map-close"),
+        image: rect(".typhoon-track-map-image"),
+        overlay: rect(".typhoon-track-map-overlay"),
+        overlayOverflowY: overlayStyles?.overflowY ?? "",
+        panel: rect(".typhoon-track-map-panel"),
+        panelOverflowY: panelStyles?.overflowY ?? "",
+        panelPaddingTop: panelStyles?.paddingTop ?? "",
+        shell: rect(".popup-shell")
+      };
+    });
+
+    expect(overlay.overlay.left).toBeGreaterThanOrEqual(overlay.shell.left);
+    expect(overlay.overlay.top).toBeGreaterThanOrEqual(overlay.shell.top);
+    expect(overlay.overlay.right).toBeLessThanOrEqual(overlay.shell.right);
+    expect(overlay.overlay.bottom).toBeLessThanOrEqual(overlay.shell.bottom);
+    expect(overlay.overlay.left).toBeLessThanOrEqual(overlay.shell.left + 2);
+    expect(overlay.overlay.top).toBeLessThanOrEqual(overlay.shell.top + 2);
+    expect(overlay.overlay.right).toBeGreaterThanOrEqual(overlay.shell.right - 2);
+    expect(overlay.overlay.bottom).toBeGreaterThanOrEqual(overlay.shell.bottom - 2);
+    expect(overlay.panelPaddingTop).toBe("0px");
+    expect(overlay.overlayOverflowY).toBe("auto");
+    expect(overlay.panelOverflowY).toBe("visible");
+    expect(overlay.panel.width).toBeLessThan(overlay.overlay.width - 80);
+    expect(Math.abs(overlay.panel.width - overlay.image.width)).toBeLessThanOrEqual(2);
+    expect(Math.abs(overlay.panel.height - overlay.image.height)).toBeLessThanOrEqual(2);
+    expect(overlay.image.top).toBeLessThanOrEqual(overlay.overlay.top + 2);
+    expect(overlay.image.right).toBeLessThanOrEqual(overlay.panel.right);
+    expect(overlay.image.bottom).toBeLessThanOrEqual(overlay.panel.bottom);
+    expect(overlay.close.bottom).toBeGreaterThan(overlay.image.top);
+
+    await page.locator(".typhoon-track-map-close").click();
+    await expect(page.locator(".typhoon-track-map-overlay")).toBeHidden();
+  });
+
+  test("keeps the tropical cyclone track map failure controls centered away from close", async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({
+        activePanel: "typhoon",
+        warnings: `<div class="warning-signal-empty">沒有警告信號</div>`,
+        special: null,
+        tropicalCyclone: tropicalCycloneView("米克拉會在今明兩日橫過琉球群島一帶。")
+      }),
+      { waitUntil: "domcontentloaded" }
+    );
+
+    await page.locator(".typhoon-track-map-overlay").evaluate((overlay) => {
+      if (overlay instanceof HTMLElement) {
+        overlay.hidden = false;
+        overlay.classList.add("has-message");
+      }
+    });
+    await page.locator(".typhoon-track-map-panel").evaluate((panel) => {
+      if (panel instanceof HTMLElement) panel.classList.add("is-message");
+    });
+    await page.locator(".typhoon-track-map-image").evaluate((image) => {
+      if (image instanceof HTMLImageElement) image.hidden = true;
+    });
+    await page.locator(".typhoon-track-map-message").evaluate((message) => {
+      if (message instanceof HTMLElement) message.hidden = false;
+    });
+    await page.locator(".typhoon-track-map-fallback").evaluate((fallback) => {
+      if (fallback instanceof HTMLElement) {
+        fallback.textContent = "未能載入路徑圖";
+      }
+    });
+    await page.locator(".typhoon-track-map-retry").evaluate((retry) => {
+      if (retry instanceof HTMLElement) retry.hidden = false;
+    });
+
+    const failure = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing fixture element: ${selector}`);
+        const box = element.getBoundingClientRect();
+        return {
+          bottom: box.bottom,
+          height: box.height,
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          width: box.width
+        };
+      };
+      return {
+        close: rect(".typhoon-track-map-close"),
+        fallback: rect(".typhoon-track-map-fallback"),
+        overlay: rect(".typhoon-track-map-overlay"),
+        panel: rect(".typhoon-track-map-panel"),
+        retry: rect(".typhoon-track-map-retry")
+      };
+    });
+
+    expect(overlaps(failure.fallback, failure.close)).toBe(false);
+    expect(overlaps(failure.retry, failure.close)).toBe(false);
+    expect(failure.fallback.top).toBeGreaterThan(failure.close.bottom + 12);
+    expect(
+      Math.abs(
+        (failure.panel.left + failure.panel.right) / 2 -
+          (failure.overlay.left + failure.overlay.right) / 2
+      )
+    ).toBeLessThanOrEqual(2);
+    expect(
+      Math.abs(
+        (failure.panel.top + failure.panel.bottom) / 2 -
+          (failure.overlay.top + failure.overlay.bottom) / 2
+      )
+    ).toBeLessThanOrEqual(2);
+    expect(
+      Math.abs(
+        (failure.retry.left + failure.retry.right) / 2 -
+          (failure.overlay.left + failure.overlay.right) / 2
+      )
+    ).toBeLessThanOrEqual(2);
+  });
+
+  test("keeps English imagery tabs clear of the snapshot stepper with tropical cyclones", async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({
+        activePanel: "radar",
+        lang: "en",
+        readings: [
+          ["Temperature", "28°"],
+          ["Humidity", "87%"],
+          ["UV Index", "0.4 <small>(low)</small>"]
+        ],
+        special: null,
+        title: "Heavy Rain",
+        tropicalCyclone: tropicalCycloneView("Mekkhala is moving across the Ryukyu Islands.", 2),
+        tropicalCycloneCount: 2,
+        warnings: `<div class="warning-signal-empty">No warning signals</div>`
+      }),
+      { waitUntil: "domcontentloaded" }
+    );
+
+    await expect(page.locator(".imagery-tab")).toHaveText(["Radar", "Lightning", "Cyclone 2"]);
+    await expect(page.locator(".imagery-tab[data-panel='typhoon']")).toHaveAttribute(
+      "title",
+      "Tropical Cyclone 2"
+    );
+
+    const compact = await measureImageryTabs(page);
+    expect(compact.tabs.right).toBeLessThanOrEqual(compact.stepper.left - 2);
+    expect(compact.tabTextFits).toBe(true);
+    expect(compact.scrollWidth).toBeLessThanOrEqual(compact.clientWidth);
+
+    await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
+
+    const expanded = await measureImageryTabs(page);
+    expect(expanded.tabs.right).toBeLessThanOrEqual(expanded.stepper.left - 2);
+    expect(expanded.tabTextFits).toBe(true);
+    expect(expanded.scrollWidth).toBeLessThanOrEqual(expanded.clientWidth);
+  });
 
   test("expands radar widget into a larger map view", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
@@ -319,9 +801,9 @@ test.describe("popup layout", () => {
     expect(compactControls.rangeWidget.left).toBeGreaterThanOrEqual(compactControls.preview.left);
     expect(Math.round(compactControls.preview.right - compactControls.rangeWidget.right)).toBe(16);
     expect(Math.round(compactControls.preview.bottom - compactControls.rangeWidget.bottom)).toBe(8);
-    expect(Math.abs(compactControls.caption.bottom - compactControls.rangeWidget.bottom)).toBeLessThanOrEqual(
-      1
-    );
+    expect(
+      Math.abs(compactControls.caption.bottom - compactControls.rangeWidget.bottom)
+    ).toBeLessThanOrEqual(1);
     expect(compactControls.rangeWidget.width).toBeLessThanOrEqual(115);
     expect(compactControls.rangeGap).toBe("0px");
     expect(Math.max(...compactControls.rangeWidths)).toBeLessThanOrEqual(38);
@@ -425,7 +907,9 @@ test.describe("popup layout", () => {
     expect(expandedControls.ranges).toBe(3);
   });
 
-  test("uses preview click zones and explicit controls for imagery navigation", async ({ page }) => {
+  test("uses preview click zones and explicit controls for imagery navigation", async ({
+    page
+  }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(
       await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
@@ -872,7 +1356,36 @@ test.describe("popup layout", () => {
   });
 });
 
+async function measureImageryTabs(page: Page) {
+  return page.evaluate(() => {
+    const rect = (selector: string) => {
+      const element = document.querySelector(selector);
+      if (!element) throw new Error(`Missing fixture element: ${selector}`);
+      const box = element.getBoundingClientRect();
+      return {
+        bottom: box.bottom,
+        height: box.height,
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        width: box.width
+      };
+    };
+
+    return {
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      stepper: rect(".imagery-stepper"),
+      tabTextFits: [...document.querySelectorAll<HTMLElement>(".imagery-tab")].every(
+        (tab) => tab.scrollWidth <= tab.clientWidth + 1
+      ),
+      tabs: rect(".imagery-tabs")
+    };
+  });
+}
+
 async function fixtureHtml({
+  activePanel: requestedActivePanel,
   days: scenarioDays,
   lang = "zh-Hant",
   readings: scenarioReadings,
@@ -880,9 +1393,21 @@ async function fixtureHtml({
   special,
   specialTitle = "特別天氣提示",
   title = "大雨",
+  tropicalCycloneCount = 0,
+  tropicalCyclone = null,
   warnings
 }: LayoutScenario) {
   const css = await readFile(CSS_PATH, "utf8");
+  const language = fixtureLanguage(lang);
+  const hasTropicalCyclone = tropicalCyclone !== null && tropicalCyclone !== undefined;
+  const activePanel = requestedActivePanel ?? "radar";
+  const showTropicalCyclonePanel = hasTropicalCyclone && activePanel === "typhoon";
+  const tropicalCyclonePanel = tropicalCyclone
+    ? tropicalCyclone.replace(
+        '<div class="tropical-cyclone-view"',
+        `<div class="tropical-cyclone-view"${showTropicalCyclonePanel ? "" : " hidden"}`
+      )
+    : "";
   const days = scenarioDays ?? [
     ["6/19 五", "27-31 度"],
     ["6/20 六", "28-32 度"],
@@ -915,20 +1440,33 @@ async function fixtureHtml({
               <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             </section>
             <section class="legacy-side-panel">
-              <div class="imagery-card"><div class="imagery-tabs"><button class="imagery-tab" aria-selected="true">雷達</button><button class="imagery-tab">閃電</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><div class="imagery-step-hint" aria-hidden="true" hidden><span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span><span class="imagery-step-hint-arrow imagery-step-hint-right">›</span></div><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"><span>時間</span><span>12:06</span></div><div class="radar-ranges"><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div><div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
-              <button class="typhoon-map-button">颱風 尤特 路徑圖</button>
+              <div class="imagery-card" data-panel="${activePanel}"><div class="imagery-tabs"><button class="imagery-tab" data-panel="radar" aria-label="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" aria-selected="${activePanel === "radar" ? "true" : "false"}">${sidePanelTabTitle("radar", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="lightning" aria-label="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" aria-selected="${activePanel === "lightning" ? "true" : "false"}">${sidePanelTabTitle("lightning", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="typhoon" aria-label="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" aria-selected="${activePanel === "typhoon" ? "true" : "false"}"${hasTropicalCyclone ? "" : " hidden"}>${sidePanelTabTitle("typhoon", language, tropicalCycloneCount)}</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"${showTropicalCyclonePanel ? " hidden" : ""}><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><div class="imagery-step-hint" aria-hidden="true" hidden><span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span><span class="imagery-step-hint-arrow imagery-step-hint-right">›</span></div><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"${showTropicalCyclonePanel ? " hidden" : ""}><span>時間</span><span>12:06</span></div><div class="radar-ranges"${showTropicalCyclonePanel ? " hidden" : ""}><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div>${tropicalCyclonePanel}<div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
             </section>
             <section class="legacy-forecast">
               <div class="legacy-forecast-list">
                 ${days.map(([date, temp]) => `<div class="legacy-forecast-day"><div class="legacy-forecast-date">${date}</div><img class="legacy-forecast-icon" src="${ICON}" alt=""><div class="legacy-forecast-temp">${temp}</div></div>`).join("")}
               </div>
             </section>
-            <div class="legacy-meta"><span class="timestamp">13:30 更新</span></div>
+            <div class="legacy-meta"><span class="legacy-meta-status"></span><span class="hong-kong-time">香港時間 18:44</span><span class="timestamp">13:30 更新</span></div>
           </section>
+          <div class="typhoon-track-map-overlay" role="dialog" aria-modal="true" aria-label="熱帶氣旋路徑圖" hidden>
+            <div class="typhoon-track-map-panel">
+              <button class="typhoon-track-map-close" type="button" aria-label="關閉路徑圖">關閉</button>
+              <img class="typhoon-track-map-image" alt="熱帶氣旋路徑圖">
+              <div class="typhoon-track-map-message" hidden>
+                <span class="typhoon-track-map-fallback">未能載入路徑圖</span>
+                <button class="typhoon-track-map-retry" type="button" hidden>重新載入</button>
+              </div>
+            </div>
+          </div>
         </main>
         <script>
           const imageryCard = document.querySelector(".imagery-card");
+          const imageryTabs = [...document.querySelectorAll(".imagery-tab")];
           const imageryPreview = document.querySelector(".imagery-preview");
+          const imageryCaption = document.querySelector(".imagery-caption");
+          const radarRanges = document.querySelector(".radar-ranges");
+          const tropicalCycloneView = document.querySelector(".tropical-cyclone-view");
           const imageryPosition = document.querySelector(".imagery-position");
           const imageryStepper = document.querySelector(".imagery-stepper");
           const imageryExpand = document.querySelector(".imagery-expand");
@@ -936,8 +1474,23 @@ async function fixtureHtml({
           const imageryStepHintLeft = document.querySelector(".imagery-step-hint-left");
           const imageryStepHintRight = document.querySelector(".imagery-step-hint-right");
           const imageryToast = document.querySelector(".imagery-toast");
+          const cycloneOptions = [...document.querySelectorAll(".tropical-cyclone-option")];
+          const cycloneMeta = document.querySelector(".tropical-cyclone-meta");
+          const cycloneDistance = document.querySelector(".tropical-cyclone-distance");
+          const cycloneWind = document.querySelector(".tropical-cyclone-wind");
+          const cycloneDescription = document.querySelector(".tropical-cyclone-description");
+          const cycloneSelect = document.querySelector(".tropical-cyclone-select");
+          const trackMapButton = document.querySelector(".tropical-cyclone-track-map");
+          const trackMapOverlay = document.querySelector(".typhoon-track-map-overlay");
+          const trackMapClose = document.querySelector(".typhoon-track-map-close");
+          const trackMapImage = document.querySelector(".typhoon-track-map-image");
+          const trackMapMessage = document.querySelector(".typhoon-track-map-message");
+          const trackMapFallback = document.querySelector(".typhoon-track-map-fallback");
+          const trackMapPanel = document.querySelector(".typhoon-track-map-panel");
+          const trackMapRetry = document.querySelector(".typhoon-track-map-retry");
           const snapshotCount = 5;
           let selectedSnapshotIndex = snapshotCount - 1;
+          let selectedCycloneIndex = 0;
           let previewClickTimer;
           let previewFeedbackTimer;
           let imageryToastTimer;
@@ -954,6 +1507,64 @@ async function fixtureHtml({
             imageryStepHint.hidden = imageryStepHintDismissed || !hasSnapshots || Boolean(controlsHidden);
             imageryStepHintLeft?.classList.toggle("is-disabled", selectedSnapshotIndex <= 0);
             imageryStepHintRight?.classList.toggle("is-disabled", selectedSnapshotIndex >= snapshotCount - 1);
+          };
+          const renderCyclone = () => {
+            const cyclone = cycloneOptions[selectedCycloneIndex];
+            if (!(cyclone instanceof HTMLElement)) return;
+            if (cycloneMeta) cycloneMeta.textContent = cyclone.dataset.meta || "";
+            if (cycloneDistance) cycloneDistance.textContent = cyclone.dataset.distance || "";
+            if (cycloneWind) cycloneWind.textContent = cyclone.dataset.wind || "";
+            if (cycloneDescription) cycloneDescription.textContent = cyclone.dataset.description || "";
+            if (cycloneSelect instanceof HTMLSelectElement) {
+              cycloneSelect.value = String(selectedCycloneIndex);
+            }
+          };
+          const selectCyclone = (value) => {
+            if (cycloneOptions.length < 2) return;
+            selectedCycloneIndex = Math.max(0, Math.min(cycloneOptions.length - 1, Number(value)));
+            renderCyclone();
+          };
+          const selectPanel = (panel) => {
+            const safePanel = panel === "typhoon" && !tropicalCycloneView ? "radar" : panel;
+            if (imageryCard instanceof HTMLElement) imageryCard.dataset.panel = safePanel;
+            imageryTabs.forEach((tab) => {
+              if (tab instanceof HTMLElement) {
+                tab.setAttribute("aria-selected", String(tab.dataset.panel === safePanel));
+              }
+            });
+            const isTyphoon = safePanel === "typhoon";
+            if (imageryPreview instanceof HTMLElement) imageryPreview.hidden = isTyphoon;
+            if (imageryCaption instanceof HTMLElement) imageryCaption.hidden = isTyphoon;
+            if (radarRanges instanceof HTMLElement) radarRanges.hidden = isTyphoon;
+            if (tropicalCycloneView instanceof HTMLElement) tropicalCycloneView.hidden = !isTyphoon;
+          };
+          const setTrackMapMessageState = (state) => {
+            const visible = state !== "hidden";
+            trackMapOverlay?.classList.toggle("has-message", visible);
+            trackMapPanel?.classList.toggle("is-message", visible);
+            if (trackMapMessage instanceof HTMLElement) trackMapMessage.hidden = !visible;
+            if (trackMapRetry instanceof HTMLElement) trackMapRetry.hidden = state !== "error";
+            if (trackMapFallback instanceof HTMLElement) {
+              trackMapFallback.textContent = state === "loading" ? "載入路徑圖中..." : "未能載入路徑圖";
+            }
+          };
+          const showTrackMap = (forceReload = false) => {
+            if (!(trackMapOverlay instanceof HTMLElement) || !(trackMapImage instanceof HTMLImageElement)) return;
+            const url = trackMapButton instanceof HTMLElement ? trackMapButton.dataset.trackMapUrl || "" : "";
+            trackMapOverlay.hidden = false;
+            setTrackMapMessageState("loading");
+            if (forceReload) trackMapImage.removeAttribute("src");
+            if (url && (forceReload || trackMapImage.src !== url)) {
+              trackMapImage.hidden = true;
+              trackMapImage.src = url;
+            }
+            if (trackMapImage.complete && trackMapImage.naturalWidth > 0) {
+              trackMapImage.hidden = false;
+              setTrackMapMessageState("hidden");
+            }
+          };
+          const hideTrackMap = () => {
+            if (trackMapOverlay instanceof HTMLElement) trackMapOverlay.hidden = true;
           };
           const dismissImageryStepHint = () => {
             if (imageryStepHintDismissed) return;
@@ -1025,6 +1636,22 @@ async function fixtureHtml({
           };
           updateStepper();
           renderImageryStepHint();
+          renderCyclone();
+          cycloneSelect?.addEventListener("change", (event) => selectCyclone(event.target?.value));
+          imageryTabs.forEach((tab) => {
+            tab.addEventListener("click", () => selectPanel(tab instanceof HTMLElement ? tab.dataset.panel || "radar" : "radar"));
+          });
+          trackMapButton?.addEventListener("click", () => showTrackMap());
+          trackMapClose?.addEventListener("click", hideTrackMap);
+          trackMapRetry?.addEventListener("click", () => showTrackMap(true));
+          trackMapImage?.addEventListener("load", () => {
+            if (trackMapImage instanceof HTMLImageElement) trackMapImage.hidden = false;
+            setTrackMapMessageState("hidden");
+          });
+          trackMapImage?.addEventListener("error", () => {
+            if (trackMapImage instanceof HTMLImageElement) trackMapImage.hidden = true;
+            setTrackMapMessageState("error");
+          });
           const title = document.querySelector(".legacy-weather-title");
           const special = document.querySelector(".special-weather-card");
           if (title instanceof HTMLElement && special instanceof HTMLElement) {
@@ -1091,4 +1718,10 @@ async function fixtureHtml({
         </script>
       </body>
     </html>`;
+}
+
+function fixtureLanguage(lang: string): "tc" | "sc" | "en" {
+  if (lang === "en") return "en";
+  if (lang === "zh-Hans" || lang === "sc") return "sc";
+  return "tc";
 }

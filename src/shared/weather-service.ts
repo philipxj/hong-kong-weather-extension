@@ -1,4 +1,5 @@
 import { browserApi } from "./browser-api";
+import { hkoPageUrl } from "./hko-links";
 import {
   hkoCurrentSchema,
   hkoForecastSchema,
@@ -17,6 +18,7 @@ import type {
   Language,
   NotificationWarningCategory,
   Settings,
+  TropicalCyclone,
   WarningInfo,
   WarningType,
   WeatherData,
@@ -100,6 +102,11 @@ export const WARNING_PRIORITY = [
 ] as const;
 
 const API_ROOT = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php";
+const HKO_ROOT = "https://www.hko.gov.hk";
+const HKO_OPEN_DATA_ROOT = "https://www.weather.gov.hk";
+const HONG_KONG_OBSERVATORY_LATITUDE = 22.302711;
+const HONG_KONG_OBSERVATORY_LONGITUDE = 114.177216;
+const TROPICAL_CYCLONE_LIST_URL = `${HKO_OPEN_DATA_ROOT}/wxinfo/currwx/tc_list.xml`;
 const LATEST_UV_URLS: Record<Language, string> = {
   en: "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex.csv",
   sc: "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex_sc.csv",
@@ -184,13 +191,16 @@ export async function refreshWeather(settings: Settings | null = null): Promise<
   const previous = await getCachedWeather();
 
   try {
-    const [current, forecast, warnsum, warningInfo, latestUv] = await Promise.all([
-      fetchHkoJson(`${API_ROOT}?dataType=rhrread&lang=${lang}`, hkoCurrentSchema),
-      fetchHkoJson(`${API_ROOT}?dataType=fnd&lang=${lang}`, hkoForecastSchema),
-      fetchHkoJson(`${API_ROOT}?dataType=warnsum&lang=${lang}`, hkoWarnsumSchema),
-      fetchHkoJson(`${API_ROOT}?dataType=warningInfo&lang=${lang}`, hkoWarningInfoSchema),
-      fetchLatestUv(activeSettings.language).catch(() => null)
-    ]);
+    const [current, forecast, warnsum, warningInfo, latestUv, tropicalCyclones] = await Promise.all(
+      [
+        fetchHkoJson(`${API_ROOT}?dataType=rhrread&lang=${lang}`, hkoCurrentSchema),
+        fetchHkoJson(`${API_ROOT}?dataType=fnd&lang=${lang}`, hkoForecastSchema),
+        fetchHkoJson(`${API_ROOT}?dataType=warnsum&lang=${lang}`, hkoWarnsumSchema),
+        fetchHkoJson(`${API_ROOT}?dataType=warningInfo&lang=${lang}`, hkoWarningInfoSchema),
+        fetchLatestUv(activeSettings.language).catch(() => null),
+        fetchTropicalCyclones(activeSettings.language).catch(() => [])
+      ]
+    );
 
     const data = normalizeWeather({
       current,
@@ -198,6 +208,7 @@ export async function refreshWeather(settings: Settings | null = null): Promise<
       warnsum,
       warningInfo,
       latestUv,
+      tropicalCyclones,
       settings: activeSettings,
       fetchedAt: new Date().toISOString(),
       stale: false,
@@ -452,6 +463,7 @@ interface NormalizeWeatherInput {
   current: HkoCurrent;
   forecast: HkoForecast;
   latestUv?: LatestUvIndex | null;
+  tropicalCyclones?: TropicalCyclone[];
   warnsum: HkoWarnsum;
   warningInfo: HkoWarningInfo;
   settings: Pick<Settings, "language">;
@@ -470,6 +482,7 @@ export function normalizeWeather({
   current,
   forecast,
   latestUv,
+  tropicalCyclones = [],
   warnsum,
   warningInfo,
   settings,
@@ -485,6 +498,7 @@ export function normalizeWeather({
     error,
     current: normalizeCurrentWeather(current, warnings, settings, latestUv),
     forecast: normalizeForecast(forecast),
+    tropicalCyclones,
     warnings,
     warningInfo: normalizeWarningInfo(warningInfo)
   };
@@ -747,6 +761,392 @@ export function parseLatestUvCsv(text: string): LatestUvIndex | null {
     updatedAt: match[1] ?? "",
     value
   };
+}
+
+interface TropicalCycloneListEntry {
+  id: string;
+  englishName: string;
+  chineseName: string;
+  trackDataUrl: string;
+}
+
+interface TropicalCyclonePositionInfo {
+  directionFromHongKong: string | null;
+  distanceKm: number | null;
+  intensityCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  maxWindKmh: number | null;
+  observedAtHkt: string | null;
+}
+
+export function parseTropicalCycloneList(script: string): TropicalCycloneListEntry[] {
+  return extractXmlBlocks(script, "TropicalCyclone")
+    .map((block) => {
+      const id = extractXmlText(block, "TropicalCycloneID");
+      const englishName = extractXmlText(block, "TropicalCycloneEnglishName");
+      const chineseName = extractXmlText(block, "TropicalCycloneChineseName");
+      const trackDataUrl = normalizeHkoOpenDataUrl(extractXmlText(block, "TropicalCycloneURL"));
+      if (!id || !englishName || !chineseName || !trackDataUrl) return null;
+      return {
+        id,
+        englishName,
+        chineseName,
+        trackDataUrl
+      };
+    })
+    .filter((entry): entry is TropicalCycloneListEntry => Boolean(entry));
+}
+
+export function parseTropicalCycloneTrack(text: string): TropicalCyclonePositionInfo | null {
+  const analysis = extractXmlBlock(text, "AnalysisInformation");
+  if (!analysis) return null;
+
+  const latitude = parseCoordinate(extractXmlText(analysis, "Latitude"), 90);
+  const longitude = parseCoordinate(extractXmlText(analysis, "Longitude"), 180);
+  const position = tropicalCyclonePositionFromHongKong(latitude, longitude);
+
+  return {
+    directionFromHongKong: position.directionFromHongKong,
+    distanceKm: position.distanceKm,
+    intensityCode: tropicalCycloneIntensityCode(extractXmlText(analysis, "Intensity")),
+    latitude,
+    longitude,
+    maxWindKmh: parseMaximumWind(extractXmlText(analysis, "MaximumWind")),
+    observedAtHkt: parseOpenDataTimeToHkt(extractXmlText(analysis, "Time"))
+  };
+}
+
+export function tropicalCycloneIntensityLabel(
+  code: string | null,
+  language: Language
+): string | null {
+  const normalized = normalizedString(code)?.toUpperCase();
+  if (!normalized) return null;
+
+  const labels: Record<string, Record<Language, string>> = {
+    LOW: {
+      en: "Low Pressure Area or Extratropical Low",
+      sc: "低压区或温带气旋",
+      tc: "低壓區或溫帶氣旋"
+    },
+    ST: { en: "Severe Typhoon", sc: "强台风", tc: "強颱風" },
+    STS: { en: "Severe Tropical Storm", sc: "强烈热带风暴", tc: "強烈熱帶風暴" },
+    SUPERT: { en: "Super Typhoon", sc: "超强台风", tc: "超強颱風" },
+    T: { en: "Typhoon", sc: "台风", tc: "颱風" },
+    TD: { en: "Tropical Depression", sc: "热带低气压", tc: "熱帶低氣壓" },
+    TL: {
+      en: "Low Pressure Area or Extratropical Low",
+      sc: "低压区或温带气旋",
+      tc: "低壓區或溫帶氣旋"
+    },
+    TS: { en: "Tropical Storm", sc: "热带风暴", tc: "熱帶風暴" }
+  };
+
+  return labels[normalized]?.[language] ?? normalized;
+}
+
+export function tropicalCycloneDirectionLabel(
+  direction: string | null,
+  language: Language
+): string | null {
+  const normalized = normalizedString(direction)?.toUpperCase();
+  if (!normalized) return null;
+
+  const labels: Record<string, Record<Language, string>> = {
+    E: { en: "east", sc: "东", tc: "東" },
+    ENE: { en: "east-northeast", sc: "东北偏东", tc: "東北偏東" },
+    ESE: { en: "east-southeast", sc: "东南偏东", tc: "東南偏東" },
+    N: { en: "north", sc: "北", tc: "北" },
+    NE: { en: "northeast", sc: "东北", tc: "東北" },
+    NNE: { en: "north-northeast", sc: "东北偏北", tc: "東北偏北" },
+    NNW: { en: "north-northwest", sc: "西北偏北", tc: "西北偏北" },
+    NW: { en: "northwest", sc: "西北", tc: "西北" },
+    S: { en: "south", sc: "南", tc: "南" },
+    SE: { en: "southeast", sc: "东南", tc: "東南" },
+    SSE: { en: "south-southeast", sc: "东南偏南", tc: "東南偏南" },
+    SSW: { en: "south-southwest", sc: "西南偏南", tc: "西南偏南" },
+    SW: { en: "southwest", sc: "西南", tc: "西南" },
+    W: { en: "west", sc: "西", tc: "西" },
+    WNW: { en: "west-northwest", sc: "西北偏西", tc: "西北偏西" },
+    WSW: { en: "west-southwest", sc: "西南偏西", tc: "西南偏西" }
+  };
+
+  return labels[normalized]?.[language] ?? normalized;
+}
+
+export function selectPrimaryTropicalCyclone(cyclones: TropicalCyclone[]): TropicalCyclone | null {
+  if (!cyclones.length) return null;
+  return sortTropicalCyclones(cyclones)[0] ?? null;
+}
+
+async function fetchTropicalCyclones(language: Language): Promise<TropicalCyclone[]> {
+  const listText = await fetchHkoText(TROPICAL_CYCLONE_LIST_URL);
+  const list = parseTropicalCycloneList(listText);
+  if (!list.length) return [];
+
+  const cyclones = await Promise.all(
+    list.map((entry) => fetchTropicalCyclone(entry, language).catch(() => null))
+  );
+
+  return sortTropicalCyclones(cyclones.filter((item): item is TropicalCyclone => Boolean(item)));
+}
+
+async function fetchTropicalCyclone(
+  entry: TropicalCycloneListEntry,
+  language: Language
+): Promise<TropicalCyclone | null> {
+  const position = parseTropicalCycloneTrack(await fetchHkoText(entry.trackDataUrl));
+  if (!position) return null;
+
+  const classification = tropicalCycloneIntensityLabel(position.intensityCode, language);
+  const name = language === "en" ? entry.englishName : entry.chineseName;
+  const description = formatOpenDataTropicalCycloneDescription({
+    distanceKm: position.distanceKm,
+    directionFromHongKong: position.directionFromHongKong,
+    language,
+    name
+  });
+
+  return {
+    chineseName: entry.chineseName,
+    classification,
+    description,
+    directionFromHongKong: position.directionFromHongKong,
+    distanceKm: position.distanceKm,
+    englishName: entry.englishName,
+    id: entry.id,
+    latitude: position.latitude,
+    longitude: position.longitude,
+    maxWindKmh: position.maxWindKmh,
+    name,
+    observedAtHkt: position.observedAtHkt,
+    trackMapUrl: `${HKO_ROOT}/wxinfo/currwx/nwp_${entry.id}.png`,
+    trackUrl: hkoPageUrl(language, `wxinfo/currwx/tc_pos.htm?tcid=${entry.id}`)
+  };
+}
+
+function formatOpenDataTropicalCycloneDescription({
+  distanceKm,
+  directionFromHongKong,
+  language,
+  name
+}: {
+  distanceKm: number | null;
+  directionFromHongKong: string | null;
+  language: Language;
+  name: string;
+}): string {
+  if (distanceKm == null) return "";
+  const direction = tropicalCycloneDirectionLabel(directionFromHongKong, language);
+  if (language === "en") {
+    return direction
+      ? `${name} was centred about ${distanceKm} km ${direction} of Hong Kong.`
+      : `${name} was centred about ${distanceKm} km from Hong Kong.`;
+  }
+  if (language === "sc") {
+    return direction
+      ? `${name}位于香港以${direction}约 ${distanceKm} 公里。`
+      : `${name}位于香港约 ${distanceKm} 公里外。`;
+  }
+  return direction
+    ? `${name}位於香港以${direction}約 ${distanceKm} 公里。`
+    : `${name}位於香港約 ${distanceKm} 公里外。`;
+}
+
+function tropicalCycloneIntensityCode(value: string): string | null {
+  const normalized = normalizedString(value)?.toUpperCase().replace(/\s+/g, " ");
+  if (!normalized) return null;
+
+  const labels: Record<string, string> = {
+    "LOW PRESSURE AREA OR EXTRATROPICAL LOW": "LOW",
+    "EXTRATROPICAL LOW": "LOW",
+    "LOW PRESSURE AREA": "LOW",
+    LOW: "LOW",
+    "SEVERE TROPICAL STORM": "STS",
+    STS: "STS",
+    "SEVERE TYPHOON": "ST",
+    ST: "ST",
+    "SUPER TYPHOON": "SUPERT",
+    SUPERT: "SUPERT",
+    "TROPICAL DEPRESSION": "TD",
+    TD: "TD",
+    "TROPICAL STORM": "TS",
+    TS: "TS",
+    TYPHOON: "T",
+    T: "T"
+  };
+
+  return labels[normalized] ?? normalized;
+}
+
+function parseMaximumWind(value: string): number | null {
+  return normalizedNumber(value.match(/-?\d+(?:\.\d+)?/)?.[0]);
+}
+
+function parseCoordinate(value: string, maxAbsValue: number): number | null {
+  const match = normalizedString(value)?.match(/^(-?\d+(?:\.\d+)?)([NSEW])?$/i);
+  if (!match) return null;
+  const number = Number(match[1]);
+  if (!Number.isFinite(number)) return null;
+  if (Math.abs(number) > maxAbsValue) return null;
+  const hemisphere = match[2]?.toUpperCase();
+  return hemisphere === "S" || hemisphere === "W" ? -number : number;
+}
+
+function parseOpenDataTimeToHkt(value: string): string | null {
+  const normalized = normalizedString(value);
+  if (!normalized) return null;
+  const timestamp = new Date(normalized).getTime();
+  if (!Number.isFinite(timestamp)) return null;
+  const hkt = new Date(timestamp + 8 * 60 * 60 * 1000);
+  const year = hkt.getUTCFullYear();
+  const month = String(hkt.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(hkt.getUTCDate()).padStart(2, "0");
+  const hour = String(hkt.getUTCHours()).padStart(2, "0");
+  return `${year}${month}${day}${hour}`;
+}
+
+function tropicalCyclonePositionFromHongKong(
+  latitude: number | null,
+  longitude: number | null
+): Pick<TropicalCyclonePositionInfo, "directionFromHongKong" | "distanceKm"> {
+  if (latitude == null || longitude == null) {
+    return { directionFromHongKong: null, distanceKm: null };
+  }
+
+  const earthRadiusKm = 6371;
+  const lat1 = degreesToRadians(HONG_KONG_OBSERVATORY_LATITUDE);
+  const lon1 = degreesToRadians(HONG_KONG_OBSERVATORY_LONGITUDE);
+  const lat2 = degreesToRadians(latitude);
+  const lon2 = degreesToRadians(longitude);
+  const deltaLat = lat2 - lat1;
+  const deltaLon = lon2 - lon1;
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+  const distance = 2 * earthRadiusKm * Math.asin(Math.sqrt(haversine));
+  const bearing =
+    (radiansToDegrees(
+      Math.atan2(
+        Math.sin(deltaLon) * Math.cos(lat2),
+        Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLon)
+      )
+    ) +
+      360) %
+    360;
+
+  return {
+    directionFromHongKong: compassDirection(bearing),
+    distanceKm: Math.round(distance / 10) * 10
+  };
+}
+
+function compassDirection(bearing: number): string {
+  const directions = [
+    "N",
+    "NNE",
+    "NE",
+    "ENE",
+    "E",
+    "ESE",
+    "SE",
+    "SSE",
+    "S",
+    "SSW",
+    "SW",
+    "WSW",
+    "W",
+    "WNW",
+    "NW",
+    "NNW"
+  ];
+  return directions[Math.round(bearing / 22.5) % directions.length] ?? "N";
+}
+
+function degreesToRadians(value: number): number {
+  return (value * Math.PI) / 180;
+}
+
+function radiansToDegrees(value: number): number {
+  return (value * 180) / Math.PI;
+}
+
+async function fetchHkoText(url: string): Promise<string> {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`HKO request failed: ${response.status}`);
+  }
+  return response.text();
+}
+
+function sortTropicalCyclones(cyclones: TropicalCyclone[]): TropicalCyclone[] {
+  return cyclones
+    .map((cyclone, index) => ({ cyclone, index }))
+    .sort((a, b) => {
+      if (a.cyclone.distanceKm != null && b.cyclone.distanceKm != null) {
+        return a.cyclone.distanceKm - b.cyclone.distanceKm;
+      }
+      if (a.cyclone.distanceKm != null) return -1;
+      if (b.cyclone.distanceKm != null) return 1;
+      return a.index - b.index;
+    })
+    .map(({ cyclone }) => cyclone);
+}
+
+function normalizedString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (isMissingHkoValue(trimmed)) return null;
+  return trimmed;
+}
+
+function normalizedNumber(value: unknown): number | null {
+  const raw = typeof value === "number" ? String(value) : typeof value === "string" ? value : null;
+  const normalized = normalizedString(raw);
+  if (!normalized) return null;
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : null;
+}
+
+function isMissingHkoValue(value: string): boolean {
+  return value === "" || value === "--" || value === "-99" || value === "-9999" || value === "999";
+}
+
+function extractXmlBlocks(xml: string, tagName: string): string[] {
+  const escaped = tagName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return [...xml.matchAll(new RegExp(`<${escaped}>[\\s\\S]*?</${escaped}>`, "gi"))].map(
+    (match) => match[0]
+  );
+}
+
+function extractXmlBlock(xml: string, tagName: string): string {
+  return extractXmlBlocks(xml, tagName)[0] ?? "";
+}
+
+function extractXmlText(xml: string, tagName: string): string {
+  const escaped = tagName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = xml.match(new RegExp(`<${escaped}>\\s*([\\s\\S]*?)\\s*</${escaped}>`, "i"));
+  return decodeXmlEntities(match?.[1] ?? "").trim();
+}
+
+function normalizeHkoOpenDataUrl(value: string): string {
+  const normalized = normalizedString(value);
+  if (!normalized) return "";
+  if (normalized.startsWith("http://www.weather.gov.hk/")) {
+    return `https://${normalized.slice("http://".length)}`;
+  }
+  if (normalized.startsWith("https://www.weather.gov.hk/")) return normalized;
+  if (normalized.startsWith("/")) return `${HKO_OPEN_DATA_ROOT}${normalized}`;
+  return normalized;
+}
+
+function decodeXmlEntities(value: string): string {
+  return value
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&amp;", "&");
 }
 
 function toHkoLang(language: Language): Language {

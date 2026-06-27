@@ -130,6 +130,7 @@ function weatherData(): WeatherData {
     forecast: [],
     language: "tc",
     stale: false,
+    tropicalCyclones: [],
     warningInfo: [],
     warnings: []
   };

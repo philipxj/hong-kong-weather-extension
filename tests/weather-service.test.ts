@@ -11,14 +11,20 @@ import {
   getActionBadgeWarnings,
   getSignalWarnings,
   normalizeWeather,
+  parseTropicalCycloneList,
+  parseTropicalCycloneTrack,
   parseLatestUvCsv,
   refreshWeather,
   sendTestNotification,
+  selectPrimaryTropicalCyclone,
+  tropicalCycloneDirectionLabel,
+  tropicalCycloneIntensityLabel,
   updateBadge
 } from "../src/shared/weather-service";
 import type {
   CurrentWeather,
   Settings,
+  TropicalCyclone,
   WeatherData,
   WeatherWarning,
   WarningType
@@ -175,6 +181,186 @@ describe("weather service normalization", () => {
     expect(parseLatestUvCsv("")).toBeNull();
     expect(parseLatestUvCsv("Date time,past 15-minute mean UV Index")).toBeNull();
     expect(parseLatestUvCsv("Date time,past 15-minute mean UV Index 202606170745,N/A")).toBeNull();
+  });
+
+  test("parses active tropical cyclone list entries", () => {
+    expect(
+      parseTropicalCycloneList(
+        `<?xml version="1.0" encoding="UTF-8"?>
+        <TropicalCycloneList>
+          <TropicalCyclone>
+            <TropicalCycloneID>2611</TropicalCycloneID>
+            <TropicalCycloneChineseName>米克拉</TropicalCycloneChineseName>
+            <TropicalCycloneEnglishName>MEKKHALA</TropicalCycloneEnglishName>
+            <TropicalCycloneURL>http://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2611.xml</TropicalCycloneURL>
+          </TropicalCyclone>
+          <TropicalCyclone>
+            <TropicalCycloneID>2612</TropicalCycloneID>
+            <TropicalCycloneChineseName>海高斯</TropicalCycloneChineseName>
+            <TropicalCycloneEnglishName>HIGOS</TropicalCycloneEnglishName>
+            <TropicalCycloneURL>https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2612.xml</TropicalCycloneURL>
+          </TropicalCyclone>
+        </TropicalCycloneList>`
+      )
+    ).toEqual([
+      {
+        chineseName: "米克拉",
+        englishName: "MEKKHALA",
+        id: "2611",
+        trackDataUrl: "https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2611.xml"
+      },
+      {
+        chineseName: "海高斯",
+        englishName: "HIGOS",
+        id: "2612",
+        trackDataUrl: "https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2612.xml"
+      }
+    ]);
+  });
+
+  test("handles no active tropical cyclone list", () => {
+    expect(parseTropicalCycloneList("<TropicalCycloneList></TropicalCycloneList>")).toEqual([]);
+    expect(parseTropicalCycloneList("")).toEqual([]);
+  });
+
+  test("parses tropical cyclone Open Data track analysis and derives Hong Kong position", () => {
+    const position = parseTropicalCycloneTrack(`<?xml version="1.0" encoding="UTF-8"?>
+      <TropicalCycloneTrack tcid="2611">
+        <BulletinHeader>
+          <BulletinTime>2026-06-27T04:00:18+08:00</BulletinTime>
+        </BulletinHeader>
+        <WeatherReport>
+          <TropicalCycloneName>MEKKHALA</TropicalCycloneName>
+          <PastInformation>
+            <Intensity>Severe Tropical Storm</Intensity>
+            <MaximumWind>105km/h</MaximumWind>
+            <Time>2026-06-25T00:00:00+00:00</Time>
+            <Latitude>23.60N</Latitude>
+            <Longitude>125.30E</Longitude>
+          </PastInformation>
+          <AnalysisInformation>
+            <Intensity>Tropical Storm</Intensity>
+            <MaximumWind>65km/h</MaximumWind>
+            <Time>2026-06-26T18:00:00+00:00</Time>
+            <Latitude>29.70N</Latitude>
+            <Longitude>130.90E</Longitude>
+          </AnalysisInformation>
+          <ForecastInformation>
+            <Index>1</Index>
+            <Latitude>29.89N</Latitude>
+            <Longitude>131.20E</Longitude>
+          </ForecastInformation>
+        </WeatherReport>
+      </TropicalCycloneTrack>`);
+
+    expect(position).toEqual({
+      directionFromHongKong: "ENE",
+      distanceKm: 1860,
+      intensityCode: "TS",
+      latitude: 29.7,
+      longitude: 130.9,
+      maxWindKmh: 65,
+      observedAtHkt: "2026062702"
+    });
+
+    expect(
+      parseTropicalCycloneTrack(
+        "<TropicalCycloneTrack><WeatherReport><AnalysisInformation><Intensity></Intensity><MaximumWind>--</MaximumWind><Time>bad</Time><Latitude>--</Latitude><Longitude>--</Longitude></AnalysisInformation></WeatherReport></TropicalCycloneTrack>"
+      )
+    ).toEqual({
+      directionFromHongKong: null,
+      distanceKm: null,
+      intensityCode: null,
+      latitude: null,
+      longitude: null,
+      maxWindKmh: null,
+      observedAtHkt: null
+    });
+  });
+
+  test("parses PDF-documented low pressure analysis values", () => {
+    const extratropicalLow = parseTropicalCycloneTrack(`<?xml version="1.0" encoding="UTF-8"?>
+      <TropicalCycloneTrack>
+        <WeatherReport>
+          <AnalysisInformation>
+            <Intensity>Extratropical Low</Intensity>
+            <MaximumWind>--</MaximumWind>
+            <Time>2026-06-26T18:00:00+00:00</Time>
+            <Latitude>16.70S</Latitude>
+            <Longitude>121.10W</Longitude>
+          </AnalysisInformation>
+        </WeatherReport>
+      </TropicalCycloneTrack>`);
+
+    expect(extratropicalLow).toMatchObject({
+      intensityCode: "LOW",
+      latitude: -16.7,
+      longitude: -121.1,
+      maxWindKmh: null,
+      observedAtHkt: "2026062702"
+    });
+
+    expect(
+      parseTropicalCycloneTrack(
+        "<TropicalCycloneTrack><WeatherReport><AnalysisInformation><Intensity>Low Pressure Area</Intensity><MaximumWind>30km/h</MaximumWind><Time>2026-06-26T18:00:00+00:00</Time><Latitude>0.00N</Latitude><Longitude>0.00E</Longitude></AnalysisInformation></WeatherReport></TropicalCycloneTrack>"
+      )?.intensityCode
+    ).toBe("LOW");
+  });
+
+  test("rejects latitude and longitude values outside the PDF documented ranges", () => {
+    expect(
+      parseTropicalCycloneTrack(
+        "<TropicalCycloneTrack><WeatherReport><AnalysisInformation><Intensity>Tropical Storm</Intensity><MaximumWind>65km/h</MaximumWind><Time>2026-06-26T18:00:00+00:00</Time><Latitude>90.10N</Latitude><Longitude>121.10E</Longitude></AnalysisInformation></WeatherReport></TropicalCycloneTrack>"
+      )
+    ).toMatchObject({
+      directionFromHongKong: null,
+      distanceKm: null,
+      latitude: null,
+      longitude: 121.1
+    });
+
+    expect(
+      parseTropicalCycloneTrack(
+        "<TropicalCycloneTrack><WeatherReport><AnalysisInformation><Intensity>Tropical Storm</Intensity><MaximumWind>65km/h</MaximumWind><Time>2026-06-26T18:00:00+00:00</Time><Latitude>16.70N</Latitude><Longitude>180.10E</Longitude></AnalysisInformation></WeatherReport></TropicalCycloneTrack>"
+      )
+    ).toMatchObject({
+      directionFromHongKong: null,
+      distanceKm: null,
+      latitude: 16.7,
+      longitude: null
+    });
+  });
+
+  test("ignores track XML without current analysis information", () => {
+    expect(
+      parseTropicalCycloneTrack(
+        "<TropicalCycloneTrack><WeatherReport><PastInformation><Intensity>Typhoon</Intensity><MaximumWind>145km/h</MaximumWind><Time>2026-06-26T18:00:00+00:00</Time><Latitude>16.70N</Latitude><Longitude>121.10E</Longitude></PastInformation></WeatherReport></TropicalCycloneTrack>"
+      )
+    ).toBeNull();
+  });
+
+  test("localizes tropical cyclone intensity and compass directions", () => {
+    expect(tropicalCycloneIntensityLabel("STS", "tc")).toBe("強烈熱帶風暴");
+    expect(tropicalCycloneIntensityLabel("STS", "sc")).toBe("强烈热带风暴");
+    expect(tropicalCycloneIntensityLabel("STS", "en")).toBe("Severe Tropical Storm");
+    expect(tropicalCycloneIntensityLabel("SUPERT", "en")).toBe("Super Typhoon");
+    expect(tropicalCycloneIntensityLabel(null, "tc")).toBeNull();
+
+    expect(tropicalCycloneDirectionLabel("ESE", "tc")).toBe("東南偏東");
+    expect(tropicalCycloneDirectionLabel("ESE", "sc")).toBe("东南偏东");
+    expect(tropicalCycloneDirectionLabel("ESE", "en")).toBe("east-southeast");
+    expect(tropicalCycloneDirectionLabel(null, "en")).toBeNull();
+  });
+
+  test("selects the nearest tropical cyclone as primary and falls back to list order", () => {
+    const mekkhala = tropicalCyclone({ id: "2611", distanceKm: 1150, name: "米克拉" });
+    const higos = tropicalCyclone({ id: "2612", distanceKm: 2460, name: "海高斯" });
+    expect(selectPrimaryTropicalCyclone([higos, mekkhala])?.id).toBe("2611");
+
+    const first = tropicalCyclone({ id: "2613", distanceKm: null, name: "無距離一" });
+    const second = tropicalCyclone({ id: "2614", distanceKm: null, name: "無距離二" });
+    expect(selectPrimaryTropicalCyclone([first, second])?.id).toBe("2613");
+    expect(selectPrimaryTropicalCyclone([])).toBeNull();
   });
 
   test("normalizes active warning badges from warnsum codes", () => {
@@ -756,7 +942,28 @@ function cachedWeatherForBadge(currentOverrides: Partial<CurrentWeather> = {}): 
     forecast: [],
     language: "tc" as const,
     stale: false,
+    tropicalCyclones: [],
     warningInfo: [],
     warnings: []
+  };
+}
+
+function tropicalCyclone(overrides: Partial<TropicalCyclone> = {}): TropicalCyclone {
+  return {
+    chineseName: "米克拉",
+    classification: "強烈熱帶風暴",
+    description: "米克拉會在今明兩日橫過琉球群島一帶。",
+    directionFromHongKong: "E",
+    distanceKm: 1150,
+    englishName: "MEKKHALA",
+    id: "2611",
+    latitude: 23.6,
+    longitude: 125.3,
+    maxWindKmh: 105,
+    name: "米克拉",
+    observedAtHkt: "2026062508",
+    trackMapUrl: "https://www.hko.gov.hk/wxinfo/currwx/nwp_2611.png",
+    trackUrl: "https://www.hko.gov.hk/tc/wxinfo/currwx/tc_pos.htm?tcid=2611",
+    ...overrides
   };
 }
