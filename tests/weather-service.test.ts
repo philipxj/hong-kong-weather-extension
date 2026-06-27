@@ -473,15 +473,20 @@ describe("weather service normalization", () => {
     expect(badgeBackgroundColor("黑")).toBe("#ffffff");
     expect(badgeBackgroundColor("紅")).toBe("#ffffff");
     expect(badgeBackgroundColor("黃")).toBe("#ffffff");
-    expect(badgeBackgroundColor("雷")).toBe("#ffffff");
     expect(badgeBackgroundColor("")).toBe("#2f5f98");
   });
 
-  test("uses warning-specific toolbar badge text colors on white backgrounds", () => {
+  test("uses yellow toolbar badge colors for thunderstorm warnings", () => {
+    expect(badgeBackgroundColor("雷")).toBe("#ffd84d");
+    expect(badgeTextColor("雷")).toBe("#111111");
+    expect(badgeBackgroundColor("TS")).toBe("#ffd84d");
+    expect(badgeTextColor("TS")).toBe("#111111");
+  });
+
+  test("uses warning-specific toolbar badge text colors", () => {
     expect(badgeTextColor("紅")).toBe("#df1d1d");
     expect(badgeTextColor("黃")).toBe("#a66300");
     expect(badgeTextColor("黑")).toBe("#111111");
-    expect(badgeTextColor("雷")).toBe("#b42318");
     expect(badgeTextColor("")).toBe("#ffffff");
   });
 
