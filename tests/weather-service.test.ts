@@ -671,7 +671,7 @@ describe("weather service normalization", () => {
 
   test("uses warning-specific toolbar badge text colors", () => {
     expect(badgeTextColor("紅")).toBe("#df1d1d");
-    expect(badgeTextColor("黃")).toBe("#a66300");
+    expect(badgeTextColor("黃")).toBe("#f2a900");
     expect(badgeTextColor("黑")).toBe("#111111");
     expect(badgeTextColor("")).toBe("#ffffff");
   });
