@@ -658,8 +658,12 @@ describe("weather service normalization", () => {
   test("uses white badge backgrounds for active weather warnings", () => {
     expect(badgeBackgroundColor("黑")).toBe("#ffffff");
     expect(badgeBackgroundColor("紅")).toBe("#ffffff");
-    expect(badgeBackgroundColor("黃")).toBe("#ffffff");
     expect(badgeBackgroundColor("")).toBe("#2f5f98");
+  });
+
+  test("uses yellow toolbar badge colors for amber rainstorm warnings", () => {
+    expect(badgeBackgroundColor("黃")).toBe("#ffd84d");
+    expect(badgeTextColor("黃")).toBe("#5c4300");
   });
 
   test("uses yellow toolbar badge colors for thunderstorm warnings", () => {
@@ -671,7 +675,6 @@ describe("weather service normalization", () => {
 
   test("uses warning-specific toolbar badge text colors", () => {
     expect(badgeTextColor("紅")).toBe("#df1d1d");
-    expect(badgeTextColor("黃")).toBe("#a66300");
     expect(badgeTextColor("黑")).toBe("#111111");
     expect(badgeTextColor("")).toBe("#ffffff");
   });

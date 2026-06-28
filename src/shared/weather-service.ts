@@ -414,6 +414,7 @@ export function formatActionBadgeText(
 }
 
 export function badgeBackgroundColor(warningBadge: string): string {
+  if (warningBadge === "黃") return "#ffd84d";
   if (isThunderstormBadge(warningBadge)) return "#ffd84d";
   if (warningBadge) return "#ffffff";
   return "#2f5f98";
@@ -422,7 +423,7 @@ export function badgeBackgroundColor(warningBadge: string): string {
 export function badgeTextColor(warningBadge: string): string {
   if (isThunderstormBadge(warningBadge)) return "#111111";
   if (warningBadge === "紅") return "#df1d1d";
-  if (warningBadge === "黃") return "#a66300";
+  if (warningBadge === "黃") return "#5c4300";
   if (warningBadge === "黑") return "#111111";
   if (warningBadge) return "#b42318";
   return "#ffffff";
