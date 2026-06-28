@@ -308,6 +308,8 @@ test.describe("popup layout", () => {
           specialContent: rect(".special-weather-content"),
           specialContentClientHeight:
             document.querySelector<HTMLElement>(".special-weather-content")!.clientHeight,
+          specialContentScrollHeight:
+            document.querySelector<HTMLElement>(".special-weather-content")!.scrollHeight,
           specialContentDisplay: getComputedStyle(
             document.querySelector(".special-weather-content")!
           ).display,
@@ -397,6 +399,9 @@ test.describe("popup layout", () => {
         expect(overlaps(layout.currentTemp, layout.special)).toBe(false);
         expect(layout.specialContent.height).toBeGreaterThanOrEqual(24);
         expect(layout.specialContentClientHeight).toBeGreaterThanOrEqual(24);
+        expect(layout.specialContentScrollHeight).toBeLessThanOrEqual(
+          layout.specialContentClientHeight + 1
+        );
       }
       if (scenario.lang === "en" && scenario.special !== null) {
         expect(layout.specialContentDisplay).not.toBe("block");
