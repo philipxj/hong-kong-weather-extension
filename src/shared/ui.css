@@ -1313,62 +1313,71 @@ html[lang="en"] .legacy-weather-title {
 
 .special-weather-card {
   position: absolute;
-  right: 16px;
-  bottom: 13px;
+  top: 268px;
+  right: 26px;
+  left: 0;
   z-index: 1;
-  display: block;
-  width: 164px;
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  width: auto;
+  height: 30px;
   padding: 0;
   overflow: hidden;
   background: var(--warning-surface);
   border: 1px solid var(--warning-border);
   text-align: left;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 10px 24px rgba(7, 18, 30, 0.16);
   backdrop-filter: blur(10px);
 }
 
 html[lang="en"] .special-weather-card {
-  width: 154px;
+  grid-template-columns: 154px minmax(0, 1fr);
 }
 
 html[lang="en"] .special-weather-title {
-  font-size: 14px;
+  font-size: 11px;
 }
 
 .special-weather-title {
-  height: 18px;
-  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0 10px;
+  overflow: hidden;
   color: #523b00;
   background: var(--warning-title);
-  border-bottom: 1px solid var(--warning-border);
-  font-size: 14px;
+  border-right: 1px solid var(--warning-border);
+  font-size: 12px;
   font-weight: 800;
-  line-height: 18px;
+  line-height: 1.1;
   text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .special-weather-content {
   display: -webkit-box;
-  height: 48px;
-  padding: 2px 8px;
+  min-width: 0;
+  height: auto;
+  min-height: 24px;
+  padding: 3px 10px;
   overflow: hidden;
   color: #2b2b25;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 2;
   background: transparent;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 11px;
+  line-height: 13px;
+  overflow-wrap: anywhere;
 }
 
 html[lang="en"] .special-weather-content {
-  display: block;
-  height: 52px;
-  padding: 2px 7px;
-  font-size: 8.2px;
-  line-height: 9.4px;
-  -webkit-line-clamp: unset;
+  font-size: 10px;
+  line-height: 12px;
 }
 
 .special-weather-card:hover {
@@ -1405,6 +1414,18 @@ html[lang="en"] .special-weather-content {
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
+}
+
+.tropical-cyclone-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tropical-cyclone-select {

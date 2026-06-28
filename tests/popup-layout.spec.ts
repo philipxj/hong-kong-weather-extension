@@ -179,6 +179,7 @@ function tropicalCycloneView(
           ${cycloneOptions.map((cyclone, index) => `<option value="${index}">${cyclone.name}</option>`).join("")}
         </select>`
       : `<select class="tropical-cyclone-select" hidden></select>`;
+  const name = cycloneOptions[0]?.name ?? "";
   const hiddenOptions = cycloneOptions
     .map(
       (cyclone) =>
@@ -188,6 +189,7 @@ function tropicalCycloneView(
   return `<div class="tropical-cyclone-view" role="tabpanel">
     <div class="tropical-cyclone-header">
       <span class="tropical-cyclone-kicker">熱帶氣旋</span>
+      <span class="tropical-cyclone-name"${count > 1 ? " hidden" : ""}>${name}</span>
       ${switcher}
     </div>
     <dl class="tropical-cyclone-facts">
@@ -304,6 +306,8 @@ test.describe("popup layout", () => {
             document.querySelector(".special-weather-title")!
           ).backgroundColor,
           specialContent: rect(".special-weather-content"),
+          specialContentClientHeight:
+            document.querySelector<HTMLElement>(".special-weather-content")!.clientHeight,
           specialContentDisplay: getComputedStyle(
             document.querySelector(".special-weather-content")!
           ).display,
@@ -338,8 +342,16 @@ test.describe("popup layout", () => {
           tropicalCycloneOptionTexts: [
             ...document.querySelectorAll<HTMLOptionElement>(".tropical-cyclone-select option")
           ].map((option) => option.textContent ?? ""),
+          tropicalCycloneName: optionalRect(".tropical-cyclone-name"),
+          tropicalCycloneNameCount: document.querySelectorAll(".tropical-cyclone-name").length,
+          tropicalCycloneNameHidden:
+            document.querySelector(".tropical-cyclone-name")?.hasAttribute("hidden") ?? true,
+          tropicalCycloneNameText:
+            document.querySelector<HTMLElement>(".tropical-cyclone-name")?.textContent?.trim() ??
+            "",
           tropicalCycloneSelect: optionalRect(".tropical-cyclone-select"),
-          tropicalCycloneTitleCount: document.querySelectorAll(".tropical-cyclone-name").length,
+          tropicalCycloneSelectHidden:
+            document.querySelector(".tropical-cyclone-select")?.hasAttribute("hidden") ?? true,
           tropicalCycloneTabVisible: tcTab ? !tcTab.hasAttribute("hidden") : false,
           tropicalCycloneTrack: optionalRect(".tropical-cyclone-track"),
           warning: rect(".warning-signal-row"),
@@ -370,16 +382,25 @@ test.describe("popup layout", () => {
       expect(layout.sceneBackground).toContain(`${scenario.scene ?? "rain"}.webp`);
       expect(layout.specialHidden).toBe(scenario.special === null);
       if (scenario.special !== null) {
-        expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
-        expect(layout.special.right).toBeLessThanOrEqual(layout.side.left - 4);
+        expect(layout.special.left).toBe(layout.forecast.left);
+        expect(layout.special.right).toBe(layout.forecast.right);
+        expect(layout.special.top).toBeGreaterThanOrEqual(
+          Math.max(layout.current.bottom, layout.side.bottom) + 4
+        );
+        expect(layout.special.bottom).toBeLessThanOrEqual(layout.forecast.top - 4);
+        expect(overlaps(layout.current, layout.special)).toBe(false);
+        expect(overlaps(layout.side, layout.special)).toBe(false);
+        expect(overlaps(layout.forecast, layout.special)).toBe(false);
+        expect(overlaps(layout.meta, layout.special)).toBe(false);
         expect(overlaps(layout.readings, layout.special)).toBe(false);
         expect(overlaps(layout.special, layout.warning)).toBe(false);
         expect(overlaps(layout.currentTemp, layout.special)).toBe(false);
-        expect(layout.specialContent.height).toBeGreaterThanOrEqual(46);
+        expect(layout.specialContent.height).toBeGreaterThanOrEqual(24);
+        expect(layout.specialContentClientHeight).toBeGreaterThanOrEqual(24);
       }
       if (scenario.lang === "en" && scenario.special !== null) {
-        expect(layout.specialContentDisplay).toBe("block");
-        expect(layout.specialContentLineClamp).not.toBe("4");
+        expect(layout.specialContentDisplay).not.toBe("block");
+        expect(layout.specialContentLineClamp).toBe("2");
         expect(layout.specialContentLineHeight).toBeGreaterThan(layout.specialContentFontSize + 1);
         expect(layout.titleTextOverflow).not.toBe("ellipsis");
       }
@@ -397,7 +418,7 @@ test.describe("popup layout", () => {
         expect(layout.tropicalCyclone.bottom).toBeLessThanOrEqual(layout.imageryCard.bottom);
         expect(layout.imageryCard.bottom).toBeLessThanOrEqual(layout.forecast.top - 8);
         expect(layout.tropicalCycloneDescriptionFits).toBe(true);
-        expect(layout.tropicalCycloneTitleCount).toBe(0);
+        expect(layout.tropicalCycloneNameCount).toBe(1);
         expect(layout.tropicalCycloneTrack).not.toBeNull();
         if (!layout.tropicalCycloneTrack) throw new Error("Missing tropical cyclone track button");
         expect(layout.tropicalCycloneTrack.right).toBeLessThanOrEqual(layout.imageryCard.right);
@@ -405,8 +426,17 @@ test.describe("popup layout", () => {
         if (scenario.tropicalCycloneCount && scenario.tropicalCycloneCount > 1) {
           expect(layout.activeImageryTabText).toContain(String(scenario.tropicalCycloneCount));
           expect(layout.tropicalCycloneSelect).not.toBeNull();
+          expect(layout.tropicalCycloneSelectHidden).toBe(false);
+          expect(layout.tropicalCycloneNameHidden).toBe(true);
           expect(layout.tropicalCycloneOptionTexts).toHaveLength(scenario.tropicalCycloneCount);
           expect(layout.tropicalCycloneOptionTexts).toContain("強烈熱帶風暴 米克拉");
+        } else {
+          expect(layout.tropicalCycloneSelectHidden).toBe(true);
+          expect(layout.tropicalCycloneNameHidden).toBe(false);
+          expect(layout.tropicalCycloneNameText).toBe("強烈熱帶風暴 米克拉");
+          expect(layout.tropicalCycloneName).not.toBeNull();
+          if (!layout.tropicalCycloneName) throw new Error("Missing tropical cyclone name");
+          expect(layout.tropicalCycloneName.right).toBeLessThanOrEqual(layout.imageryCard.right);
         }
       }
       expect(layout.meta.top).toBeGreaterThanOrEqual(layout.forecast.bottom);
@@ -1437,8 +1467,8 @@ async function fixtureHtml({
                 ${readings.map(([label, value], index) => `<div class="legacy-reading${index === 2 ? " legacy-reading-uv" : ""}"><span>${label}</span><strong>${value}</strong></div>`).join("")}
               </div>
               <div class="warning-signal-row">${warnings}</div>
-              <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             </section>
+            <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             <section class="legacy-side-panel">
               <div class="imagery-card" data-panel="${activePanel}"><div class="imagery-tabs"><button class="imagery-tab" data-panel="radar" aria-label="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" aria-selected="${activePanel === "radar" ? "true" : "false"}">${sidePanelTabTitle("radar", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="lightning" aria-label="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" aria-selected="${activePanel === "lightning" ? "true" : "false"}">${sidePanelTabTitle("lightning", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="typhoon" aria-label="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" aria-selected="${activePanel === "typhoon" ? "true" : "false"}"${hasTropicalCyclone ? "" : " hidden"}>${sidePanelTabTitle("typhoon", language, tropicalCycloneCount)}</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"${showTropicalCyclonePanel ? " hidden" : ""}><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><div class="imagery-step-hint" aria-hidden="true" hidden><span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span><span class="imagery-step-hint-arrow imagery-step-hint-right">›</span></div><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"${showTropicalCyclonePanel ? " hidden" : ""}><span>時間</span><span>12:06</span></div><div class="radar-ranges"${showTropicalCyclonePanel ? " hidden" : ""}><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div>${tropicalCyclonePanel}<div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
             </section>
@@ -1653,13 +1683,13 @@ async function fixtureHtml({
             setTrackMapMessageState("error");
           });
           const title = document.querySelector(".legacy-weather-title");
-          const special = document.querySelector(".special-weather-card");
-          if (title instanceof HTMLElement && special instanceof HTMLElement) {
+          if (title instanceof HTMLElement) {
             title.style.removeProperty("font-size");
             title.style.removeProperty("max-width");
             const titleRect = title.getBoundingClientRect();
-            const specialRect = special.getBoundingClientRect();
-            title.style.maxWidth = Math.floor(Math.max(110, specialRect.left - titleRect.left - 8)) + "px";
+            const titleParentRect = title.parentElement?.getBoundingClientRect();
+            const rightEdge = titleParentRect?.right || titleRect.right;
+            title.style.maxWidth = Math.floor(Math.max(110, rightEdge - titleRect.left - 8)) + "px";
             title.style.fontSize = "40px";
             for (let size = 40; size > 24 && title.scrollWidth > title.clientWidth; size -= 1) {
               title.style.fontSize = (size - 1) + "px";

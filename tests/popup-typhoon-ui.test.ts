@@ -11,12 +11,12 @@ describe("popup tropical cyclone UI", () => {
     expect(html).toContain('id="typhoon-track-map-overlay"');
     expect(html).toContain('id="typhoon-track-map-image"');
     expect(html).toContain('id="typhoon-map-label"');
+    expect(html).toContain('id="tropical-cyclone-name"');
     expect(html).toContain('class="external-link-icon"');
     expect(html).toContain('aria-hidden="true"');
-    expect(html).not.toContain('id="tropical-cyclone-name"');
   });
 
-  test("wires the dropdown to select an available cyclone by index", async () => {
+  test("wires the single-cyclone name and dropdown selection states", async () => {
     const source = await readFile(new URL("../src/popup/main.ts", import.meta.url), "utf8");
 
     expect(source).toContain('tropicalCycloneSelect.addEventListener("change"');
@@ -26,7 +26,9 @@ describe("popup tropical cyclone UI", () => {
     expect(source).toContain("typhoonMapLabel");
     expect(source).toContain("selectTropicalCyclone(");
     expect(source).toContain("selectedTropicalCycloneIndex");
-    expect(source).not.toContain("tropicalCycloneName");
+    expect(source).toContain("tropicalCycloneName");
+    expect(source).toContain("els.tropicalCycloneName.textContent = name");
+    expect(source).toContain("els.tropicalCycloneName.hidden = activeCyclones.length !== 1");
   });
 
   test("keeps radar as the default side panel even when tropical cyclones are active", async () => {

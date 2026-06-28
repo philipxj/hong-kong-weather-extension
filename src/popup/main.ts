@@ -347,6 +347,7 @@ const els = {
   tropicalCycloneDescription: query<HTMLElement>("#tropical-cyclone-description"),
   tropicalCycloneKicker: query<HTMLElement>("#tropical-cyclone-kicker"),
   tropicalCycloneMeta: query<HTMLElement>("#tropical-cyclone-meta"),
+  tropicalCycloneName: query<HTMLElement>("#tropical-cyclone-name"),
   tropicalCycloneSelect: query<HTMLSelectElement>("#tropical-cyclone-select"),
   tropicalCycloneTab: query<HTMLButtonElement>("#tropical-cyclone-tab"),
   tropicalCycloneTimeLabel: query<HTMLElement>("#tropical-cyclone-time-label"),
@@ -601,6 +602,13 @@ function renderSpecialWeather(tips: string[]): void {
   const text = formatSpecialWeatherTips(tips);
   els.specialWeatherOpen.hidden = !text;
   els.warningCount.textContent = text ?? "";
+  if (text) {
+    els.specialWeatherOpen.title = text;
+    els.specialWeatherOpen.setAttribute("aria-label", `${copy().specialWeather}: ${text}`);
+  } else {
+    els.specialWeatherOpen.removeAttribute("title");
+    els.specialWeatherOpen.removeAttribute("aria-label");
+  }
 }
 
 function fitWeatherTitle(): void {
@@ -608,9 +616,7 @@ function fitWeatherTitle(): void {
   els.topSummary.style.removeProperty("max-width");
 
   const titleRect = els.topSummary.getBoundingClientRect();
-  const rightEdge = els.specialWeatherOpen.hidden
-    ? (els.topSummary.parentElement?.getBoundingClientRect().right ?? titleRect.right)
-    : els.specialWeatherOpen.getBoundingClientRect().left;
+  const rightEdge = els.topSummary.parentElement?.getBoundingClientRect().right ?? titleRect.right;
   const availableWidth = Math.floor(Math.max(110, rightEdge - titleRect.left - 8));
 
   els.topSummary.style.maxWidth = `${availableWidth}px`;
@@ -644,6 +650,9 @@ function renderTropicalCyclonePanel(cyclones: TropicalCyclone[] = []): void {
     els.typhoonTrackMap.dataset.trackMapUrl = "";
     hideTropicalCycloneTrackMap();
     els.tropicalCycloneKicker.textContent = copy().tropicalCyclone;
+    els.tropicalCycloneName.textContent = "";
+    els.tropicalCycloneName.hidden = true;
+    els.tropicalCycloneName.removeAttribute("title");
     els.tropicalCycloneMeta.textContent = "";
     els.tropicalCycloneDistance.textContent = "";
     els.tropicalCycloneWind.textContent = "";
@@ -678,6 +687,13 @@ function renderTropicalCyclonePanel(cyclones: TropicalCyclone[] = []): void {
   els.typhoonMap.dataset.trackUrl = cyclone.trackUrl;
   els.typhoonTrackMap.dataset.trackMapUrl = cyclone.trackMapUrl;
   els.tropicalCycloneKicker.textContent = localized.tropicalCyclone;
+  els.tropicalCycloneName.textContent = name;
+  els.tropicalCycloneName.hidden = activeCyclones.length !== 1;
+  if (name) {
+    els.tropicalCycloneName.title = name;
+  } else {
+    els.tropicalCycloneName.removeAttribute("title");
+  }
   els.tropicalCycloneMeta.textContent = observedAt || "--";
   els.tropicalCycloneDistance.textContent = distance || "--";
   els.tropicalCycloneWind.textContent = windValue || "--";

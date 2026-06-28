@@ -71,12 +71,12 @@
             class="warning-signal-row"
             aria-label="Current warning signals"
           ></div>
-
-          <button id="special-weather-open" class="special-weather-card" type="button">
-            <div id="special-weather-title" class="special-weather-title">特別天氣提示</div>
-            <div id="warning-count" class="special-weather-content">--</div>
-          </button>
         </section>
+
+        <button id="special-weather-open" class="special-weather-card" type="button">
+          <div id="special-weather-title" class="special-weather-title">特別天氣提示</div>
+          <div id="warning-count" class="special-weather-content">--</div>
+        </button>
 
         <section class="legacy-side-panel" aria-label="Weather imagery">
           <div id="imagery-card" class="imagery-card">
@@ -139,6 +139,7 @@
             <div id="tropical-cyclone-view" class="tropical-cyclone-view" role="tabpanel" hidden>
               <div class="tropical-cyclone-header">
                 <span id="tropical-cyclone-kicker" class="tropical-cyclone-kicker">熱帶氣旋</span>
+                <span id="tropical-cyclone-name" class="tropical-cyclone-name" hidden></span>
                 <select
                   id="tropical-cyclone-select"
                   class="tropical-cyclone-select"
