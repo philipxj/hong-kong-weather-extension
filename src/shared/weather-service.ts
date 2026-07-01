@@ -107,6 +107,24 @@ const HKO_OPEN_DATA_ROOT = "https://www.weather.gov.hk";
 const HONG_KONG_OBSERVATORY_LATITUDE = 22.302711;
 const HONG_KONG_OBSERVATORY_LONGITUDE = 114.177216;
 const TROPICAL_CYCLONE_LIST_URL = `${HKO_OPEN_DATA_ROOT}/wxinfo/currwx/tc_list.xml`;
+const TROPICAL_CYCLONE_INTENSITY_LABELS: Record<string, Record<Language, string>> = {
+  LOW: {
+    en: "Low Pressure Area or Extratropical Low",
+    sc: "低压区或温带气旋",
+    tc: "低壓區或溫帶氣旋"
+  },
+  ST: { en: "Severe Typhoon", sc: "强台风", tc: "強颱風" },
+  STS: { en: "Severe Tropical Storm", sc: "强烈热带风暴", tc: "強烈熱帶風暴" },
+  SUPERT: { en: "Super Typhoon", sc: "超强台风", tc: "超強颱風" },
+  T: { en: "Typhoon", sc: "台风", tc: "颱風" },
+  TD: { en: "Tropical Depression", sc: "热带低气压", tc: "熱帶低氣壓" },
+  TL: {
+    en: "Low Pressure Area or Extratropical Low",
+    sc: "低压区或温带气旋",
+    tc: "低壓區或溫帶氣旋"
+  },
+  TS: { en: "Tropical Storm", sc: "热带风暴", tc: "熱帶風暴" }
+};
 const LATEST_UV_URLS: Record<Language, string> = {
   en: "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex.csv",
   sc: "https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_15min_uvindex_sc.csv",
@@ -824,26 +842,7 @@ export function tropicalCycloneIntensityLabel(
   const normalized = normalizedString(code)?.toUpperCase();
   if (!normalized) return null;
 
-  const labels: Record<string, Record<Language, string>> = {
-    LOW: {
-      en: "Low Pressure Area or Extratropical Low",
-      sc: "低压区或温带气旋",
-      tc: "低壓區或溫帶氣旋"
-    },
-    ST: { en: "Severe Typhoon", sc: "强台风", tc: "強颱風" },
-    STS: { en: "Severe Tropical Storm", sc: "强烈热带风暴", tc: "強烈熱帶風暴" },
-    SUPERT: { en: "Super Typhoon", sc: "超强台风", tc: "超強颱風" },
-    T: { en: "Typhoon", sc: "台风", tc: "颱風" },
-    TD: { en: "Tropical Depression", sc: "热带低气压", tc: "熱帶低氣壓" },
-    TL: {
-      en: "Low Pressure Area or Extratropical Low",
-      sc: "低压区或温带气旋",
-      tc: "低壓區或溫帶氣旋"
-    },
-    TS: { en: "Tropical Storm", sc: "热带风暴", tc: "熱帶風暴" }
-  };
-
-  return labels[normalized]?.[language] ?? normalized;
+  return TROPICAL_CYCLONE_INTENSITY_LABELS[normalized]?.[language] ?? normalized;
 }
 
 export function tropicalCycloneDirectionLabel(
@@ -900,12 +899,13 @@ async function fetchTropicalCyclone(
   if (!position) return null;
 
   const classification = tropicalCycloneIntensityLabel(position.intensityCode, language);
-  const name = language === "en" ? entry.englishName : entry.chineseName;
+  const sourceName = language === "en" ? entry.englishName : entry.chineseName;
+  const name = isGenericTropicalCycloneName(sourceName, classification) ? "" : sourceName;
   const description = formatOpenDataTropicalCycloneDescription({
     distanceKm: position.distanceKm,
     directionFromHongKong: position.directionFromHongKong,
     language,
-    name
+    name: name || classification || text("Tropical cyclone", "熱帶氣旋", language)
   });
 
   return {
@@ -952,6 +952,22 @@ function formatOpenDataTropicalCycloneDescription({
   return direction
     ? `${name}位於香港以${direction}約 ${distanceKm} 公里。`
     : `${name}位於香港約 ${distanceKm} 公里外。`;
+}
+
+function isGenericTropicalCycloneName(name: string, classification: string | null): boolean {
+  const normalizedName = normalizeTropicalCycloneNameForComparison(name);
+  if (!normalizedName) return false;
+  if (normalizedName === normalizeTropicalCycloneNameForComparison(classification)) return true;
+
+  return Object.values(TROPICAL_CYCLONE_INTENSITY_LABELS).some((labels) =>
+    Object.values(labels).some(
+      (label) => normalizedName === normalizeTropicalCycloneNameForComparison(label)
+    )
+  );
+}
+
+function normalizeTropicalCycloneNameForComparison(value: string | null): string {
+  return normalizedString(value)?.toLocaleLowerCase().replace(/\s+/g, " ") ?? "";
 }
 
 function tropicalCycloneIntensityCode(value: string): string | null {
