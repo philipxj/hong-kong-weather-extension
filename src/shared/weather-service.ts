@@ -442,12 +442,17 @@ export function badgeTextColor(warningBadge: string): string {
   if (warningBadge === "紅") return "#df1d1d";
   if (warningBadge === "黃") return "#f2a900";
   if (warningBadge === "黑") return "#111111";
+  if (isTyphoonBadge(warningBadge)) return "#111111";
   if (warningBadge) return "#b42318";
   return "#ffffff";
 }
 
 function isThunderstormBadge(warningBadge: string): boolean {
   return warningBadge === "雷" || warningBadge === "TS";
+}
+
+function isTyphoonBadge(warningBadge: string): boolean {
+  return /^T(?:\d+|X)$/i.test(warningBadge);
 }
 
 export function formatWarningBadgeForLanguage(
