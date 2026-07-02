@@ -674,7 +674,9 @@ describe("weather service normalization", () => {
     expect(badgeTextColor("黃")).toBe("#f2a900");
     expect(badgeTextColor("黑")).toBe("#111111");
     expect(badgeTextColor("T1")).toBe("#111111");
-    expect(badgeTextColor("TX")).toBe("#111111");
+    expect(badgeTextColor("T3")).toBe("#111111");
+    expect(badgeTextColor("T8")).toBe("#111111");
+    expect(badgeTextColor("T9")).toBe("#111111");
     expect(badgeTextColor("T10")).toBe("#111111");
     expect(badgeTextColor("")).toBe("#ffffff");
   });

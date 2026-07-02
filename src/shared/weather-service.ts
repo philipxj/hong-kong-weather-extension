@@ -452,7 +452,7 @@ function isThunderstormBadge(warningBadge: string): boolean {
 }
 
 function isTyphoonBadge(warningBadge: string): boolean {
-  return /^T(?:\d+|X)$/i.test(warningBadge);
+  return ["T1", "T3", "T8", "T9", "T10"].includes(warningBadge.toUpperCase());
 }
 
 export function formatWarningBadgeForLanguage(
