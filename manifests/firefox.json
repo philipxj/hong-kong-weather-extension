@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "香港天氣預報",
   "description": "快速查看香港現時天氣、天氣警告、雷達圖、閃電位置及 7 天天氣預報。",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "permissions": ["alarms", "notifications", "storage"],
   "host_permissions": [
     "https://data.weather.gov.hk/*",
