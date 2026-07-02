@@ -102,6 +102,22 @@ describe("weather refresh API usage", () => {
     });
   });
 
+  test("full refresh avoids duplicating unnamed tropical cyclone classifications", async () => {
+    vi.mocked(fetch).mockImplementation(fetchHkoWithUnnamedTropicalCycloneFixture);
+
+    const data = await refreshWeather(DEFAULT_SETTINGS);
+
+    expect(data.tropicalCyclones).toHaveLength(1);
+    expect(data.tropicalCyclones[0]).toMatchObject({
+      classification: "熱帶低氣壓",
+      chineseName: "熱帶低氣壓",
+      englishName: "Tropical Depression",
+      id: "2613",
+      name: ""
+    });
+    expect(data.tropicalCyclones[0]?.description).toMatch(/^熱帶低氣壓位於香港以/);
+  });
+
   test("full refresh keeps weather data when tropical cyclone fetch fails", async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = inputToUrl(input);
@@ -508,6 +524,44 @@ function fetchHkoWithTropicalCycloneFixture(input: string | URL | Request): Prom
       ok: true,
       text: () =>
         Promise.resolve(tropicalCycloneTrackXml("2612", "HIGOS", "Tropical Storm", 75, 17.5, 137.1))
+    } as Response);
+  }
+
+  return fetchHkoFixture(input);
+}
+
+function fetchHkoWithUnnamedTropicalCycloneFixture(input: string | URL | Request): Promise<Response> {
+  const url = inputToUrl(input);
+  if (url === "https://www.weather.gov.hk/wxinfo/currwx/tc_list.xml") {
+    return Promise.resolve({
+      ok: true,
+      text: () =>
+        Promise.resolve(`<?xml version="1.0" encoding="UTF-8"?>
+          <TropicalCycloneList>
+            <TropicalCyclone>
+              <TropicalCycloneID>2613</TropicalCycloneID>
+              <TropicalCycloneChineseName>熱帶低氣壓</TropicalCycloneChineseName>
+              <TropicalCycloneEnglishName>Tropical Depression</TropicalCycloneEnglishName>
+              <TropicalCycloneURL>http://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2613.xml</TropicalCycloneURL>
+            </TropicalCyclone>
+          </TropicalCycloneList>`)
+    } as Response);
+  }
+
+  if (url === "https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2613.xml") {
+    return Promise.resolve({
+      ok: true,
+      text: () =>
+        Promise.resolve(
+          tropicalCycloneTrackXml(
+            "2613",
+            "Tropical Depression",
+            "Tropical Depression",
+            45,
+            14.9,
+            116.9
+          )
+        )
     } as Response);
   }
 
