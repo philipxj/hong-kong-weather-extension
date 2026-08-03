@@ -1,9 +1,9 @@
 name: CI
 
+# Automatic CI temporarily disabled on 2026-08-03 to conserve GitHub Actions minutes.
+# Run manually from the Actions tab only when needed.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
