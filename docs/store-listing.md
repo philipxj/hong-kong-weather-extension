@@ -8,7 +8,7 @@ future releases can review changes in pull requests.
 ## Chrome Web Store
 
 - Store: Chrome Web Store
-- Version recorded: `0.1.9`
+- Version recorded: `0.1.10`
 - Extension ID: `chmlbbhplbepjboepkcngfnmbellhfge`
 - Listing URL:
   https://chromewebstore.google.com/detail/%E9%A6%99%E6%B8%AF%E5%A4%A9%E6%B0%A3%E8%AD%A6%E5%A0%B1/chmlbbhplbepjboepkcngfnmbellhfge
@@ -18,6 +18,11 @@ future releases can review changes in pull requests.
 快速查看香港現時天氣、天氣警告、雷達圖、閃電位置及 7 天天氣預報。
 
 ### Release Notes
+
+#### 0.1.10
+
+- Show the correct fine-weather caption for lunar-phase night icons instead of an update-status message.
+- Apply the night scene consistently to all HKO night weather icons.
 
 #### 0.1.9
 

@@ -117,7 +117,6 @@ function weatherData(): WeatherData {
       humidity: 87,
       icon: 64,
       rainfall: null,
-      summary: "",
       temperature: 28,
       tips: [],
       uvDesc: "低",

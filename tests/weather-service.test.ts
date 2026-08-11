@@ -160,6 +160,27 @@ describe("weather service normalization", () => {
     expect(weather.current.uvDesc).toBe("");
   });
 
+  test("does not expose icon update metadata as a weather summary", () => {
+    const current = hkoCurrentSchema.parse({
+      icon: [75],
+      iconUpdateTime: "2026-08-11T23:04:00+08:00",
+      temperature: { data: [{ value: 31 }] },
+      humidity: { data: [{ value: 71 }] }
+    });
+    const weather = normalizeWeather({
+      settings: { language: "tc" },
+      fetchedAt: "2026-08-11T15:04:00.000Z",
+      stale: false,
+      error: null,
+      current,
+      forecast: { weatherForecast: [] },
+      warnsum: {},
+      warningInfo: { details: [] }
+    });
+
+    expect(weather.current).not.toHaveProperty("summary");
+  });
+
   test("parses latest 15-minute UV CSV in supported languages", () => {
     expect(parseLatestUvCsv("\uFEFF日期 時間,過去十五分鐘平均紫外線指數 202606201800,0.2")).toEqual(
       {
@@ -880,7 +901,6 @@ describe("weather service normalization", () => {
                 uvDesc: "低",
                 rainfall: null,
                 icon: 64,
-                summary: "",
                 tips: [],
                 warningMessages: [],
                 forecast: "",
@@ -933,7 +953,6 @@ function cachedWeatherForBadge(currentOverrides: Partial<CurrentWeather> = {}): 
       humidity: 87,
       icon: 64,
       rainfall: null,
-      summary: "",
       temperature: 28,
       tips: [],
       uvDesc: "低",
