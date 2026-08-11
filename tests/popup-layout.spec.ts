@@ -63,6 +63,13 @@ const scenarios: Array<LayoutScenario & { name: string }> = [
     special: null
   },
   {
+    name: "fine lunar-phase night weather",
+    scene: "night",
+    title: "天色良好",
+    warnings: `<div class="warning-signal-empty">沒有警告信號</div>`,
+    special: null
+  },
+  {
     name: "long special weather tip",
     warnings: `
       <button class="warning-signal warning-signal-thunderstorm"><img class="warning-signal-icon" src="${ICON}" alt="雷暴警告"></button>

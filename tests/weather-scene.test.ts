@@ -8,6 +8,8 @@ describe("weather scene mapping", () => {
     expect(weatherScene(65)).toBe("storm");
     expect(weatherScene(60)).toBe("cloudy");
     expect(weatherScene(83)).toBe("mist");
+    expect(weatherScene(70)).toBe("night");
+    expect(weatherScene(75)).toBe("night");
     expect(weatherScene(77)).toBe("night");
     expect(weatherScene(null)).toBe("cloudy");
   });

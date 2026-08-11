@@ -43,7 +43,6 @@ export interface CurrentWeather {
   uvDesc: string;
   rainfall: number | null;
   icon: number | string | null;
-  summary: string;
   tips: string[];
   warningMessages: string[];
   forecast: string;

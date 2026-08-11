@@ -545,9 +545,6 @@ function normalizeCurrentWeather(
       : (rhrreadUv?.desc ?? ""),
     rainfall: firstNumber(current.rainfall?.data, "max"),
     icon: current.icon?.[0] ?? null,
-    summary: current.iconUpdateTime
-      ? text("Weather data updated", "天氣資料已更新", settings.language)
-      : "",
     tips: asStringArray(current.specialWxTips),
     warningMessages: asStringArray(current.warningMessage),
     forecast: current.forecastDesc || current.generalSituation || "",

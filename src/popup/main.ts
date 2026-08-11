@@ -8,6 +8,7 @@ import {
   weatherIconAssetPath
 } from "../shared/local-weather-assets";
 import { weatherScene } from "./weather-scene";
+import { weatherCaption } from "./weather-caption";
 import {
   getCachedWeather,
   getSettings,
@@ -91,84 +92,6 @@ const IMAGERY: Record<ImageryType, ImageryItem> = {
     fallbackUrl: `${HKO_ROOT}/en/wxinfo/intersat/misc_images/images/icon_radar_lightn_tc.gif`
   }
 };
-const WEATHER_CAPTIONS: Record<Language, Record<number, string>> = {
-  tc: {
-    50: "天晴",
-    51: "間有陽光",
-    52: "短暫時間有陽光",
-    53: "短暫陽光及驟雨",
-    54: "短暫陽光有驟雨",
-    60: "多雲",
-    61: "密雲",
-    62: "微雨",
-    63: "有雨",
-    64: "大雨",
-    65: "雷暴",
-    76: "晚間多雲",
-    77: "晚間大致天晴",
-    80: "有風",
-    81: "乾燥",
-    82: "潮濕",
-    83: "有霧",
-    84: "薄霧",
-    85: "煙霞",
-    90: "酷熱",
-    91: "和暖",
-    92: "清涼",
-    93: "寒冷"
-  },
-  sc: {
-    50: "天晴",
-    51: "间有阳光",
-    52: "短暂时间有阳光",
-    53: "短暂阳光及骤雨",
-    54: "短暂阳光有骤雨",
-    60: "多云",
-    61: "密云",
-    62: "微雨",
-    63: "有雨",
-    64: "大雨",
-    65: "雷暴",
-    76: "晚间多云",
-    77: "晚间大致天晴",
-    80: "有风",
-    81: "干燥",
-    82: "潮湿",
-    83: "有雾",
-    84: "薄雾",
-    85: "烟霞",
-    90: "酷热",
-    91: "和暖",
-    92: "清凉",
-    93: "寒冷"
-  },
-  en: {
-    50: "Sunny",
-    51: "Sunny Periods",
-    52: "Sunny Intervals",
-    53: "Sunny Intervals with Showers",
-    54: "Sunny Periods with Showers",
-    60: "Cloudy",
-    61: "Overcast",
-    62: "Light Rain",
-    63: "Rain",
-    64: "Heavy Rain",
-    65: "Thunderstorms",
-    76: "Cloudy Night",
-    77: "Mainly Fine Night",
-    80: "Windy",
-    81: "Dry",
-    82: "Humid",
-    83: "Fog",
-    84: "Mist",
-    85: "Haze",
-    90: "Hot",
-    91: "Warm",
-    92: "Cool",
-    93: "Cold"
-  }
-};
-
 const COPY: Record<
   Language,
   {
@@ -560,7 +483,7 @@ function render(): void {
   els.topUvValue.textContent = String(data.current.uvIndex ?? "--");
   els.topUvDesc.textContent = data.current.uvDesc ? `(${data.current.uvDesc})` : "";
   els.topSummary.textContent =
-    caption || data.current.forecast || data.current.summary || localized.fallbackWeather;
+    caption || data.current.forecast || localized.fallbackWeather;
 
   renderSpecialWeather(data.current.tips);
   fitWeatherTitle();
@@ -1525,13 +1448,6 @@ function dateLocale(language: Language): string {
   if (language === "en") return "en-HK";
   if (language === "sc") return "zh-Hans-HK";
   return "zh-Hant-HK";
-}
-
-function weatherCaption(
-  icon: number | string | null,
-  language: Language = activeLanguage()
-): string {
-  return WEATHER_CAPTIONS[language]?.[Number(icon)] || "";
 }
 
 function toImageryType(value: string | undefined): ImageryType {
