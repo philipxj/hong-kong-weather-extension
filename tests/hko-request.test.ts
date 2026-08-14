@@ -45,7 +45,7 @@ describe("HKO request policy", () => {
     const fetchImpl = vi.fn<typeof fetch>((_input, init) => {
       return new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => {
-          reject(init.signal?.reason ?? new DOMException("Aborted", "AbortError"));
+          reject(new Error("Mock fetch aborted"));
         });
       });
     });

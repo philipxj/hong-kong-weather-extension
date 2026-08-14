@@ -446,6 +446,41 @@ describe("weather refresh API usage", () => {
     });
   });
 
+  test("preserves last successful tropical cyclone data after a track parse failure", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z"),
+      tropicalCyclones: [cachedTropicalCyclone()]
+    };
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = inputToUrl(input);
+      if (url.endsWith("/wxinfo/currwx/tc_list.xml")) {
+        return Promise.resolve(
+          textResponse(`
+            <TropicalCycloneList>
+              <TropicalCyclone>
+                <TropicalCycloneID>2611</TropicalCycloneID>
+                <TropicalCycloneChineseName>米克拉</TropicalCycloneChineseName>
+                <TropicalCycloneEnglishName>MEKKHALA</TropicalCycloneEnglishName>
+                <TropicalCycloneURL>https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2611.xml</TropicalCycloneURL>
+              </TropicalCyclone>
+            </TropicalCycloneList>`)
+        );
+      }
+      if (url.endsWith("/wxinfo/currwx/hko_tctrack_2611.xml")) {
+        return Promise.resolve(textResponse("not valid track XML"));
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const data = await refreshWeather(DEFAULT_SETTINGS, { force: true });
+
+    expect(data.tropicalCyclones).toEqual([cachedTropicalCyclone()]);
+    expect(data.sliceStates?.tropicalCyclones).toMatchObject({
+      stale: true,
+      error: { message: "Invalid HKO tropical cyclone track data." }
+    });
+  });
+
   test("migrates a legacy cache to per-slice freshness metadata", async () => {
     mockState.local.weatherCache = cachedWeather();
 
@@ -810,6 +845,14 @@ function jsonResponse(payload: unknown): Response {
 
 function responseWithStatus(status: number): Response {
   return { ok: false, status } as Response;
+}
+
+function textResponse(text: string): Response {
+  return {
+    ok: true,
+    status: 200,
+    text: () => Promise.resolve(text)
+  } as Response;
 }
 
 function notificationAt(index: number): { message?: string; title?: string } {

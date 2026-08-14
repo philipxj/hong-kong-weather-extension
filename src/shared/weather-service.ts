@@ -1013,22 +1013,23 @@ export function selectPrimaryTropicalCyclone(cyclones: TropicalCyclone[]): Tropi
 
 async function fetchTropicalCyclones(language: Language): Promise<TropicalCyclone[]> {
   const listText = await fetchHkoText(TROPICAL_CYCLONE_LIST_URL);
+  if (!/<TropicalCycloneList(?:\s|>)/i.test(listText)) {
+    throw new Error("Invalid HKO tropical cyclone list data.");
+  }
   const list = parseTropicalCycloneList(listText);
   if (!list.length) return [];
 
-  const cyclones = await Promise.all(
-    list.map((entry) => fetchTropicalCyclone(entry, language).catch(() => null))
-  );
+  const cyclones = await Promise.all(list.map((entry) => fetchTropicalCyclone(entry, language)));
 
-  return sortTropicalCyclones(cyclones.filter((item): item is TropicalCyclone => Boolean(item)));
+  return sortTropicalCyclones(cyclones);
 }
 
 async function fetchTropicalCyclone(
   entry: TropicalCycloneListEntry,
   language: Language
-): Promise<TropicalCyclone | null> {
+): Promise<TropicalCyclone> {
   const position = parseTropicalCycloneTrack(await fetchHkoText(entry.trackDataUrl));
-  if (!position) return null;
+  if (!position) throw new Error("Invalid HKO tropical cyclone track data.");
 
   const classification = tropicalCycloneIntensityLabel(position.intensityCode, language);
   const sourceName = language === "en" ? entry.englishName : entry.chineseName;
