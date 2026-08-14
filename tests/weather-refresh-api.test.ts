@@ -425,6 +425,33 @@ describe("weather refresh API usage", () => {
     expect(stored.forecast[0]?.date).toBe("20260619");
   });
 
+  test("does not let an older same-slice refresh overwrite a newer result", async () => {
+    mockState.local.weatherCache = cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z");
+    const currentResolvers: Array<(response: Response) => void> = [];
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = new URL(inputToUrl(input));
+      if (url.searchParams.get("dataType") === "rhrread") {
+        return new Promise<Response>((resolve) => {
+          currentResolvers.push(resolve);
+        });
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const olderRefresh = refreshCurrentWeather(DEFAULT_SETTINGS);
+    await vi.waitFor(() => expect(currentResolvers).toHaveLength(1));
+    const newerRefresh = refreshCurrentWeather(DEFAULT_SETTINGS);
+    await vi.waitFor(() => expect(currentResolvers).toHaveLength(2));
+
+    currentResolvers[1]?.(jsonResponse(currentPayload(31)));
+    await newerRefresh;
+    currentResolvers[0]?.(jsonResponse(currentPayload(29)));
+    await olderRefresh;
+
+    const stored = mockState.local.weatherCache as WeatherData;
+    expect(stored.current.temperature).toBe(31);
+  });
+
   test("preserves last successful tropical cyclone data after a transient failure", async () => {
     mockState.local.weatherCache = {
       ...cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z"),
@@ -591,14 +618,7 @@ function inputToUrl(input: string | URL | Request): string {
 
 function hkoPayload(dataType: string | null): unknown {
   if (dataType === "rhrread") {
-    return {
-      forecastDesc: "短暫時間有陽光",
-      humidity: { data: [{ place: "香港天文台", value: 82 }] },
-      icon: [52],
-      specialWxTips: ["局部地區有大雨"],
-      temperature: { data: [{ place: "香港天文台", value: 30 }] },
-      uvindex: { data: [{ value: 4, desc: "中等" }] }
-    };
+    return currentPayload(30);
   }
 
   if (dataType === "fnd") {
@@ -643,6 +663,17 @@ function hkoPayload(dataType: string | null): unknown {
   }
 
   throw new Error(`Unexpected dataType: ${dataType}`);
+}
+
+function currentPayload(temperature: number): unknown {
+  return {
+    forecastDesc: "短暫時間有陽光",
+    humidity: { data: [{ place: "香港天文台", value: 82 }] },
+    icon: [52],
+    specialWxTips: ["局部地區有大雨"],
+    temperature: { data: [{ place: "香港天文台", value: temperature }] },
+    uvindex: { data: [{ value: 4, desc: "中等" }] }
+  };
 }
 
 function fetchHkoWithTropicalCycloneFixture(input: string | URL | Request): Promise<Response> {

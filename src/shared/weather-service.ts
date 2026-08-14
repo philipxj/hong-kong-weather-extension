@@ -36,6 +36,12 @@ import type {
 
 const FORECAST_TTL_MS = 120 * 60_000;
 const TROPICAL_CYCLONE_TTL_MS = 60 * 60_000;
+const sliceRefreshGenerations: Record<WeatherSliceName, number> = {
+  current: 0,
+  forecast: 0,
+  warnings: 0,
+  tropicalCyclones: 0
+};
 
 export const ALL_NOTIFICATION_WARNING_CATEGORIES: NotificationWarningCategory[] = [
   "rain-amber",
@@ -318,6 +324,7 @@ export async function refreshWeather(
 export async function refreshCurrentWeather(
   settings: Settings | null = null
 ): Promise<WeatherData> {
+  const generation = beginSliceRefresh("current");
   const activeSettings = settings ?? (await getSettings());
   const lang = toHkoLang(activeSettings.language);
 
@@ -328,6 +335,9 @@ export async function refreshCurrentWeather(
     ]);
     const fetchedAt = new Date().toISOString();
     const { next } = await updateWeatherCache((cached) => {
+      if (!isLatestSliceRefresh("current", generation)) {
+        return cached ?? createEmptyWeatherData(activeSettings.language);
+      }
       const base = cacheForLanguage(cached, activeSettings.language);
       return withWeatherSliceState(
         {
@@ -340,11 +350,15 @@ export async function refreshCurrentWeather(
     });
     return next;
   } catch (error) {
+    if (!isLatestSliceRefresh("current", generation)) {
+      return latestCacheOrThrow(error);
+    }
     return recordSliceError("current", error, activeSettings.language);
   }
 }
 
 export async function refreshForecast(settings: Settings | null = null): Promise<WeatherData> {
+  const generation = beginSliceRefresh("forecast");
   const activeSettings = settings ?? (await getSettings());
   const lang = toHkoLang(activeSettings.language);
 
@@ -352,6 +366,9 @@ export async function refreshForecast(settings: Settings | null = null): Promise
     const forecast = await fetchHkoJson(`${API_ROOT}?dataType=fnd&lang=${lang}`, hkoForecastSchema);
     const fetchedAt = new Date().toISOString();
     const { next } = await updateWeatherCache((cached) => {
+      if (!isLatestSliceRefresh("forecast", generation)) {
+        return cached ?? createEmptyWeatherData(activeSettings.language);
+      }
       const base = cacheForLanguage(cached, activeSettings.language);
       return withWeatherSliceState({ ...base, forecast: normalizeForecast(forecast) }, "forecast", {
         fetchedAt,
@@ -361,6 +378,9 @@ export async function refreshForecast(settings: Settings | null = null): Promise
     });
     return next;
   } catch (error) {
+    if (!isLatestSliceRefresh("forecast", generation)) {
+      return latestCacheOrThrow(error);
+    }
     return recordSliceError("forecast", error, activeSettings.language);
   }
 }
@@ -368,6 +388,7 @@ export async function refreshForecast(settings: Settings | null = null): Promise
 export async function refreshWeatherWarnings(
   settings: Settings | null = null
 ): Promise<WeatherData> {
+  const generation = beginSliceRefresh("warnings");
   const activeSettings = settings ?? (await getSettings());
   const lang = toHkoLang(activeSettings.language);
   const cachedBeforeFetch = await getCachedWeather();
@@ -387,6 +408,9 @@ export async function refreshWeatherWarnings(
     const warnings = normalizeWarnings(warnsum, warningInfo);
     const fetchedAt = new Date().toISOString();
     const { previous, next } = await updateWeatherCache((cached) => {
+      if (!isLatestSliceRefresh("warnings", generation)) {
+        return cached ?? createEmptyWeatherData(activeSettings.language);
+      }
       const base = cacheForLanguage(cached, activeSettings.language);
       return withWeatherSliceState(
         {
@@ -405,6 +429,9 @@ export async function refreshWeatherWarnings(
     await reconcileWarningNotifications(previous, next, activeSettings);
     return next;
   } catch (error) {
+    if (!isLatestSliceRefresh("warnings", generation)) {
+      return latestCacheOrThrow(error);
+    }
     return recordSliceError("warnings", error, activeSettings.language);
   }
 }
@@ -412,11 +439,15 @@ export async function refreshWeatherWarnings(
 export async function refreshTropicalCyclones(
   settings: Settings | null = null
 ): Promise<WeatherData> {
+  const generation = beginSliceRefresh("tropicalCyclones");
   const activeSettings = settings ?? (await getSettings());
   try {
     const tropicalCyclones = await fetchTropicalCyclones(activeSettings.language);
     const fetchedAt = new Date().toISOString();
     const { next } = await updateWeatherCache((cached) => {
+      if (!isLatestSliceRefresh("tropicalCyclones", generation)) {
+        return cached ?? createEmptyWeatherData(activeSettings.language);
+      }
       const base = cacheForLanguage(cached, activeSettings.language);
       return withWeatherSliceState({ ...base, tropicalCyclones }, "tropicalCyclones", {
         fetchedAt,
@@ -426,6 +457,9 @@ export async function refreshTropicalCyclones(
     });
     return next;
   } catch (error) {
+    if (!isLatestSliceRefresh("tropicalCyclones", generation)) {
+      return latestCacheOrThrow(error);
+    }
     return recordSliceError("tropicalCyclones", error, activeSettings.language);
   }
 }
@@ -785,6 +819,22 @@ async function recordSliceError(
     });
   });
   return next;
+}
+
+function beginSliceRefresh(slice: WeatherSliceName): number {
+  const generation = sliceRefreshGenerations[slice] + 1;
+  sliceRefreshGenerations[slice] = generation;
+  return generation;
+}
+
+function isLatestSliceRefresh(slice: WeatherSliceName, generation: number): boolean {
+  return sliceRefreshGenerations[slice] === generation;
+}
+
+async function latestCacheOrThrow(error: unknown): Promise<WeatherData> {
+  const cached = await getCachedWeather();
+  if (cached) return cached;
+  throw error;
 }
 
 function cacheForLanguage(cached: WeatherData | null, language: Language): WeatherData {
