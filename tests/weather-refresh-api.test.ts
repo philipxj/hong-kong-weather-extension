@@ -187,6 +187,53 @@ describe("weather refresh API usage", () => {
     expect(data.current.warningSummary).toBe("雷暴警告");
   });
 
+  test("unchanged warning summary reuses cached warning detail", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z"),
+      current: {
+        ...cachedWeather().current,
+        warningSummary: "雷暴警告"
+      },
+      warningInfo: [
+        {
+          code: "WTS",
+          contents: "已快取的雷暴詳情。",
+          expireTime: "2026-06-18T03:30:00+08:00",
+          issueTime: "2026-06-18T01:30:00+08:00",
+          name: "雷暴警告",
+          updateTime: "2026-06-18T02:00:00+08:00"
+        }
+      ],
+      warnings: [thunderstormWarning()]
+    };
+
+    const data = await refreshWeatherWarnings(DEFAULT_SETTINGS);
+
+    expect(fetchDataTypes()).toEqual(["warnsum"]);
+    expect(data.warningInfo[0]?.contents).toBe("已快取的雷暴詳情。");
+    expect(data.warnings[0]?.contents).toBe("已快取的雷暴詳情。");
+  });
+
+  test("changed warning detail failure preserves the previous warning slice", async () => {
+    mockState.local.weatherCache = cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z");
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = new URL(inputToUrl(input));
+      if (url.searchParams.get("dataType") === "warningInfo") {
+        return Promise.resolve(responseWithStatus(404));
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const data = await refreshWeatherWarnings(DEFAULT_SETTINGS);
+
+    expect(fetchDataTypes()).toEqual(["warnsum", "warningInfo"]);
+    expect(data.warnings.map((warning) => warning.code)).toEqual(["WRAINA"]);
+    expect(data.sliceStates?.warnings).toMatchObject({
+      stale: true,
+      error: { message: "HKO request failed: 404" }
+    });
+  });
+
   test("localizes issued and cancelled warning notification titles in traditional Chinese", async () => {
     mockState.local.weatherCache = cachedWeather();
 
@@ -333,6 +380,143 @@ describe("weather refresh API usage", () => {
     });
   });
 
+  test("does not request HKO data when every cached slice is fresh", async () => {
+    const now = Date.parse("2026-08-14T06:00:00.000Z");
+    mockState.local.weatherCache = cachedWeatherWithSliceStates("2026-08-14T05:59:00.000Z");
+
+    const data = await refreshWeather(DEFAULT_SETTINGS, { force: false, now });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(data.current.temperature).toBe(28);
+  });
+
+  test("merges partial refreshes that complete in reverse order", async () => {
+    mockState.local.weatherCache = cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z");
+    let resolveCurrent!: (response: Response) => void;
+    let resolveForecast!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = new URL(inputToUrl(input));
+      const dataType = url.searchParams.get("dataType");
+      if (dataType === "rhrread") {
+        return new Promise<Response>((resolve) => {
+          resolveCurrent = resolve;
+        });
+      }
+      if (dataType === "fnd") {
+        return new Promise<Response>((resolve) => {
+          resolveForecast = resolve;
+        });
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const currentRefresh = refreshCurrentWeather(DEFAULT_SETTINGS);
+    const forecastRefresh = refreshForecast(DEFAULT_SETTINGS);
+    await vi.waitFor(() => expect(resolveCurrent).toBeTypeOf("function"));
+    await vi.waitFor(() => expect(resolveForecast).toBeTypeOf("function"));
+
+    resolveForecast(jsonResponse(hkoPayload("fnd")));
+    await forecastRefresh;
+    resolveCurrent(jsonResponse(hkoPayload("rhrread")));
+    await currentRefresh;
+
+    const stored = mockState.local.weatherCache as WeatherData;
+    expect(stored.current.temperature).toBe(30);
+    expect(stored.forecast[0]?.date).toBe("20260619");
+  });
+
+  test("does not let an older same-slice refresh overwrite a newer result", async () => {
+    mockState.local.weatherCache = cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z");
+    const currentResolvers: Array<(response: Response) => void> = [];
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = new URL(inputToUrl(input));
+      if (url.searchParams.get("dataType") === "rhrread") {
+        return new Promise<Response>((resolve) => {
+          currentResolvers.push(resolve);
+        });
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const olderRefresh = refreshCurrentWeather(DEFAULT_SETTINGS);
+    await vi.waitFor(() => expect(currentResolvers).toHaveLength(1));
+    const newerRefresh = refreshCurrentWeather(DEFAULT_SETTINGS);
+    await vi.waitFor(() => expect(currentResolvers).toHaveLength(2));
+
+    currentResolvers[1]?.(jsonResponse(currentPayload(31)));
+    await newerRefresh;
+    currentResolvers[0]?.(jsonResponse(currentPayload(29)));
+    await olderRefresh;
+
+    const stored = mockState.local.weatherCache as WeatherData;
+    expect(stored.current.temperature).toBe(31);
+  });
+
+  test("preserves last successful tropical cyclone data after a transient failure", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z"),
+      tropicalCyclones: [cachedTropicalCyclone()]
+    };
+    vi.mocked(fetch).mockImplementation((input) => {
+      if (inputToUrl(input).endsWith("/wxinfo/currwx/tc_list.xml")) {
+        return Promise.resolve(responseWithStatus(503));
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const data = await refreshWeather(DEFAULT_SETTINGS, { force: true });
+
+    expect(data.tropicalCyclones).toEqual([cachedTropicalCyclone()]);
+    expect(data.sliceStates?.tropicalCyclones).toMatchObject({
+      stale: true,
+      error: { message: "HKO request failed: 503" }
+    });
+  });
+
+  test("preserves last successful tropical cyclone data after a track parse failure", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z"),
+      tropicalCyclones: [cachedTropicalCyclone()]
+    };
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = inputToUrl(input);
+      if (url.endsWith("/wxinfo/currwx/tc_list.xml")) {
+        return Promise.resolve(
+          textResponse(`
+            <TropicalCycloneList>
+              <TropicalCyclone>
+                <TropicalCycloneID>2611</TropicalCycloneID>
+                <TropicalCycloneChineseName>米克拉</TropicalCycloneChineseName>
+                <TropicalCycloneEnglishName>MEKKHALA</TropicalCycloneEnglishName>
+                <TropicalCycloneURL>https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_2611.xml</TropicalCycloneURL>
+              </TropicalCyclone>
+            </TropicalCycloneList>`)
+        );
+      }
+      if (url.endsWith("/wxinfo/currwx/hko_tctrack_2611.xml")) {
+        return Promise.resolve(textResponse("not valid track XML"));
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const data = await refreshWeather(DEFAULT_SETTINGS, { force: true });
+
+    expect(data.tropicalCyclones).toEqual([cachedTropicalCyclone()]);
+    expect(data.sliceStates?.tropicalCyclones).toMatchObject({
+      stale: true,
+      error: { message: "Invalid HKO tropical cyclone track data." }
+    });
+  });
+
+  test("migrates a legacy cache to per-slice freshness metadata", async () => {
+    mockState.local.weatherCache = cachedWeather();
+
+    const data = await refreshWeather(DEFAULT_SETTINGS, { force: false });
+
+    expect(data.sliceStates).toBeDefined();
+    expect(Object.values(data.sliceStates ?? {})).toHaveLength(4);
+  });
+
   test("filters amber red and black rainstorm warning notifications independently", async () => {
     const cases = [
       { code: "WRAINA", selected: "rain-amber", blocked: "rain-red" },
@@ -388,10 +572,13 @@ describe("weather refresh API usage", () => {
     }
   });
 
-  test("partial refresh falls back to full refresh when there is no cached weather", async () => {
-    await refreshWeatherWarnings(DEFAULT_SETTINGS);
+  test("warning refresh can seed its slice without unrelated requests", async () => {
+    const data = await refreshWeatherWarnings(DEFAULT_SETTINGS);
 
-    expect(fetchDataTypes()).toEqual(["rhrread", "fnd", "warnsum", "warningInfo"]);
+    expect(fetchDataTypes()).toEqual(["warnsum", "warningInfo"]);
+    expect(data.current.temperature).toBeNull();
+    expect(data.forecast).toEqual([]);
+    expect(data.warnings.map((warning) => warning.code)).toEqual(["WTS"]);
   });
 });
 
@@ -431,14 +618,7 @@ function inputToUrl(input: string | URL | Request): string {
 
 function hkoPayload(dataType: string | null): unknown {
   if (dataType === "rhrread") {
-    return {
-      forecastDesc: "短暫時間有陽光",
-      humidity: { data: [{ place: "香港天文台", value: 82 }] },
-      icon: [52],
-      specialWxTips: ["局部地區有大雨"],
-      temperature: { data: [{ place: "香港天文台", value: 30 }] },
-      uvindex: { data: [{ value: 4, desc: "中等" }] }
-    };
+    return currentPayload(30);
   }
 
   if (dataType === "fnd") {
@@ -483,6 +663,17 @@ function hkoPayload(dataType: string | null): unknown {
   }
 
   throw new Error(`Unexpected dataType: ${dataType}`);
+}
+
+function currentPayload(temperature: number): unknown {
+  return {
+    forecastDesc: "短暫時間有陽光",
+    humidity: { data: [{ place: "香港天文台", value: 82 }] },
+    icon: [52],
+    specialWxTips: ["局部地區有大雨"],
+    temperature: { data: [{ place: "香港天文台", value: temperature }] },
+    uvindex: { data: [{ value: 4, desc: "中等" }] }
+  };
 }
 
 function fetchHkoWithTropicalCycloneFixture(input: string | URL | Request): Promise<Response> {
@@ -530,7 +721,9 @@ function fetchHkoWithTropicalCycloneFixture(input: string | URL | Request): Prom
   return fetchHkoFixture(input);
 }
 
-function fetchHkoWithUnnamedTropicalCycloneFixture(input: string | URL | Request): Promise<Response> {
+function fetchHkoWithUnnamedTropicalCycloneFixture(
+  input: string | URL | Request
+): Promise<Response> {
   const url = inputToUrl(input);
   if (url === "https://www.weather.gov.hk/wxinfo/currwx/tc_list.xml") {
     return Promise.resolve({
@@ -640,6 +833,57 @@ function cachedWeather(): WeatherData {
       }
     ]
   };
+}
+
+function cachedWeatherWithSliceStates(fetchedAt: string): WeatherData {
+  const state = { error: null, fetchedAt, stale: false };
+  return {
+    ...cachedWeather(),
+    fetchedAt,
+    sliceStates: {
+      current: { ...state },
+      forecast: { ...state },
+      tropicalCyclones: { ...state },
+      warnings: { ...state }
+    }
+  };
+}
+
+function cachedTropicalCyclone(): WeatherData["tropicalCyclones"][number] {
+  return {
+    classification: "熱帶風暴",
+    description: "測試氣旋位於香港以東。",
+    directionFromHongKong: "E",
+    distanceKm: 900,
+    id: "2601",
+    latitude: 22,
+    longitude: 124,
+    maxWindKmh: 65,
+    name: "測試氣旋",
+    observedAtHkt: "202608141200",
+    trackMapUrl: "https://www.hko.gov.hk/wxinfo/currwx/nwp_2601.png",
+    trackUrl: "https://www.hko.gov.hk/tc/wxinfo/currwx/tc_pos.htm?tcid=2601"
+  };
+}
+
+function jsonResponse(payload: unknown): Response {
+  return {
+    json: () => Promise.resolve(payload),
+    ok: true,
+    status: 200
+  } as Response;
+}
+
+function responseWithStatus(status: number): Response {
+  return { ok: false, status } as Response;
+}
+
+function textResponse(text: string): Response {
+  return {
+    ok: true,
+    status: 200,
+    text: () => Promise.resolve(text)
+  } as Response;
 }
 
 function notificationAt(index: number): { message?: string; title?: string } {
