@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Settings, WeatherData } from "../src/shared/types";
 
-type MessageHandler = (message: { type?: string }) => unknown;
+type MessageHandler = (message: { force?: boolean; type?: string }) => unknown;
 
 const mockBrowserApi = vi.hoisted(() => ({
   messageHandler: null as MessageHandler | null
@@ -72,6 +72,25 @@ describe("background refresh coalescing", () => {
     await expect(second).resolves.toEqual({ ok: true, data });
     expect(mockWeatherService.updateBadge).toHaveBeenCalledOnce();
   });
+
+  test("distinguishes popup freshness checks from forced manual refreshes", async () => {
+    const data = weatherData();
+    mockWeatherService.refreshWeather.mockResolvedValue(data);
+
+    await import("../src/background");
+    const handler = mockBrowserApi.messageHandler;
+    if (!handler) throw new Error("Missing runtime message handler");
+
+    await handler({ force: false, type: "refreshWeather" });
+    await handler({ force: true, type: "refreshWeather" });
+
+    expect(mockWeatherService.refreshWeather).toHaveBeenNthCalledWith(1, settings(), {
+      force: false
+    });
+    expect(mockWeatherService.refreshWeather).toHaveBeenNthCalledWith(2, settings(), {
+      force: true
+    });
+  });
 });
 
 function settings(): Settings {
@@ -99,13 +118,7 @@ function settings(): Settings {
       "tsunami",
       "other"
     ],
-    badgeWarningCategories: [
-      "rain-amber",
-      "rain-red",
-      "rain-black",
-      "typhoon",
-      "thunderstorm"
-    ],
+    badgeWarningCategories: ["rain-amber", "rain-red", "rain-black", "typhoon", "thunderstorm"],
     warningCheckMinutes: 5
   };
 }
