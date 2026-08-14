@@ -187,6 +187,53 @@ describe("weather refresh API usage", () => {
     expect(data.current.warningSummary).toBe("雷暴警告");
   });
 
+  test("unchanged warning summary reuses cached warning detail", async () => {
+    mockState.local.weatherCache = {
+      ...cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z"),
+      current: {
+        ...cachedWeather().current,
+        warningSummary: "雷暴警告"
+      },
+      warningInfo: [
+        {
+          code: "WTS",
+          contents: "已快取的雷暴詳情。",
+          expireTime: "2026-06-18T03:30:00+08:00",
+          issueTime: "2026-06-18T01:30:00+08:00",
+          name: "雷暴警告",
+          updateTime: "2026-06-18T02:00:00+08:00"
+        }
+      ],
+      warnings: [thunderstormWarning()]
+    };
+
+    const data = await refreshWeatherWarnings(DEFAULT_SETTINGS);
+
+    expect(fetchDataTypes()).toEqual(["warnsum"]);
+    expect(data.warningInfo[0]?.contents).toBe("已快取的雷暴詳情。");
+    expect(data.warnings[0]?.contents).toBe("已快取的雷暴詳情。");
+  });
+
+  test("changed warning detail failure preserves the previous warning slice", async () => {
+    mockState.local.weatherCache = cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z");
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = new URL(inputToUrl(input));
+      if (url.searchParams.get("dataType") === "warningInfo") {
+        return Promise.resolve(responseWithStatus(404));
+      }
+      return fetchHkoFixture(input);
+    });
+
+    const data = await refreshWeatherWarnings(DEFAULT_SETTINGS);
+
+    expect(fetchDataTypes()).toEqual(["warnsum", "warningInfo"]);
+    expect(data.warnings.map((warning) => warning.code)).toEqual(["WRAINA"]);
+    expect(data.sliceStates?.warnings).toMatchObject({
+      stale: true,
+      error: { message: "HKO request failed: 404" }
+    });
+  });
+
   test("localizes issued and cancelled warning notification titles in traditional Chinese", async () => {
     mockState.local.weatherCache = cachedWeather();
 

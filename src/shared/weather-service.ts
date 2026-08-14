@@ -163,14 +163,54 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
 }
 
 function normalizeSettings(settings: Partial<Settings> | undefined): Settings {
-  const merged = { ...DEFAULT_SETTINGS, ...(settings ?? {}) };
   return {
-    ...merged,
+    language: isLanguage(settings?.language) ? settings.language : DEFAULT_SETTINGS.language,
+    notifyIssued: booleanSetting(settings?.notifyIssued, DEFAULT_SETTINGS.notifyIssued),
+    notifyCancelled: booleanSetting(settings?.notifyCancelled, DEFAULT_SETTINGS.notifyCancelled),
+    notifyExtended: booleanSetting(settings?.notifyExtended, DEFAULT_SETTINGS.notifyExtended),
+    notifyUpdated: booleanSetting(settings?.notifyUpdated, DEFAULT_SETTINGS.notifyUpdated),
     notifyWarningCategories: normalizeNotificationWarningCategories(
       settings?.notifyWarningCategories
     ),
-    badgeWarningCategories: normalizeBadgeWarningCategories(settings?.badgeWarningCategories)
+    badgeWarningCategories: normalizeBadgeWarningCategories(settings?.badgeWarningCategories),
+    badgeMode:
+      settings?.badgeMode === "auto" ||
+      settings?.badgeMode === "temperature" ||
+      settings?.badgeMode === "warning" ||
+      settings?.badgeMode === "off"
+        ? settings.badgeMode
+        : DEFAULT_SETTINGS.badgeMode,
+    currentRefreshMinutes: refreshInterval(
+      settings?.currentRefreshMinutes,
+      10,
+      120,
+      DEFAULT_SETTINGS.currentRefreshMinutes
+    ),
+    warningCheckMinutes: refreshInterval(
+      settings?.warningCheckMinutes,
+      5,
+      60,
+      DEFAULT_SETTINGS.warningCheckMinutes
+    )
   };
+}
+
+function isLanguage(value: unknown): value is Language {
+  return value === "tc" || value === "sc" || value === "en";
+}
+
+function booleanSetting(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function refreshInterval(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+  fallback: number
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(maximum, Math.max(minimum, value));
 }
 
 function normalizeNotificationWarningCategories(
@@ -330,12 +370,20 @@ export async function refreshWeatherWarnings(
 ): Promise<WeatherData> {
   const activeSettings = settings ?? (await getSettings());
   const lang = toHkoLang(activeSettings.language);
+  const cachedBeforeFetch = await getCachedWeather();
 
   try {
-    const [warnsum, warningInfo] = await Promise.all([
-      fetchHkoJson(`${API_ROOT}?dataType=warnsum&lang=${lang}`, hkoWarnsumSchema),
-      fetchHkoJson(`${API_ROOT}?dataType=warningInfo&lang=${lang}`, hkoWarningInfoSchema)
-    ]);
+    const warnsum = await fetchHkoJson(
+      `${API_ROOT}?dataType=warnsum&lang=${lang}`,
+      hkoWarnsumSchema
+    );
+    const canReuseWarningInfo =
+      cachedBeforeFetch?.language === activeSettings.language &&
+      warningSummaryFingerprint(warnsum) ===
+        warningFingerprintFromCachedWarnings(cachedBeforeFetch.warnings);
+    const warningInfo = canReuseWarningInfo
+      ? cachedWarningInfoAsHko(cachedBeforeFetch.warningInfo)
+      : await fetchHkoJson(`${API_ROOT}?dataType=warningInfo&lang=${lang}`, hkoWarningInfoSchema);
     const warnings = normalizeWarnings(warnsum, warningInfo);
     const fetchedAt = new Date().toISOString();
     const { previous, next } = await updateWeatherCache((cached) => {
@@ -640,6 +688,47 @@ function normalizeWarningInfo(warningInfo: HkoWarningInfo): WarningInfo[] {
     updateTime: item.updateTime || "",
     expireTime: item.expireTime || ""
   }));
+}
+
+function warningSummaryFingerprint(warnsum: HkoWarnsum): string {
+  const entries = Object.entries(warnsum)
+    .filter(([, item]) => !isCancelledWarning(item))
+    .map(([key, item]) => [
+      item.code || key,
+      item.name || "",
+      item.issueTime || "",
+      item.updateTime || "",
+      item.expireTime || ""
+    ])
+    .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return JSON.stringify(entries);
+}
+
+function warningFingerprintFromCachedWarnings(warnings: WeatherWarning[]): string {
+  return JSON.stringify(
+    warnings
+      .map((warning) => [
+        warning.code,
+        warning.name,
+        warning.issueTime,
+        warning.updateTime,
+        warning.expireTime
+      ])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+  );
+}
+
+function cachedWarningInfoAsHko(warningInfo: WarningInfo[]): HkoWarningInfo {
+  return {
+    details: warningInfo.map((info) => ({
+      contents: info.contents ? [info.contents] : [],
+      expireTime: info.expireTime,
+      issueTime: info.issueTime,
+      subtype: info.name,
+      updateTime: info.updateTime,
+      warningStatementCode: info.code
+    }))
+  };
 }
 
 function normalizeWarnings(

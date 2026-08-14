@@ -37,13 +37,7 @@ describe("weather service normalization", () => {
 
   test("shows the current toolbar badge warning categories by default", () => {
     expect(DEFAULT_SETTINGS).toMatchObject({
-      badgeWarningCategories: [
-        "rain-amber",
-        "rain-red",
-        "rain-black",
-        "typhoon",
-        "thunderstorm"
-      ]
+      badgeWarningCategories: ["rain-amber", "rain-red", "rain-black", "typhoon", "thunderstorm"]
     });
   });
 
@@ -101,13 +95,7 @@ describe("weather service normalization", () => {
 
     try {
       await expect(getSettings()).resolves.toMatchObject({
-        badgeWarningCategories: [
-          "rain-amber",
-          "rain-red",
-          "rain-black",
-          "typhoon",
-          "thunderstorm"
-        ]
+        badgeWarningCategories: ["rain-amber", "rain-red", "rain-black", "typhoon", "thunderstorm"]
       });
     } finally {
       vi.unstubAllGlobals();
@@ -132,6 +120,44 @@ describe("weather service normalization", () => {
     try {
       await expect(getSettings()).resolves.toMatchObject({
         notifyWarningCategories: ["rain-amber", "rain-red", "rain-black"]
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("validates synced setting types and clamps refresh intervals", async () => {
+    vi.stubGlobal("chrome", {
+      storage: {
+        sync: {
+          get: vi.fn().mockResolvedValue({
+            settings: {
+              badgeMode: "invalid",
+              badgeWarningCategories: ["typhoon", "invalid", 42],
+              currentRefreshMinutes: -1,
+              language: "jp",
+              notifyCancelled: "yes",
+              notifyExtended: false,
+              notifyIssued: null,
+              notifyUpdated: true,
+              notifyWarningCategories: ["thunderstorm", "invalid", 42],
+              warningCheckMinutes: 999
+            }
+          }),
+          set: vi.fn()
+        }
+      }
+    });
+
+    try {
+      await expect(getSettings()).resolves.toEqual({
+        ...DEFAULT_SETTINGS,
+        badgeWarningCategories: ["typhoon"],
+        currentRefreshMinutes: 10,
+        notifyExtended: false,
+        notifyUpdated: true,
+        notifyWarningCategories: ["thunderstorm"],
+        warningCheckMinutes: 60
       });
     } finally {
       vi.unstubAllGlobals();
