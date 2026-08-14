@@ -1336,7 +1336,10 @@ function hideImageryToast(): void {
 }
 
 function shouldIgnorePreviewAction(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest(".imagery-stepper, button"));
+  return (
+    target instanceof Element &&
+    Boolean(target.closest(".imagery-stepper, .radar-playback, button, input"))
+  );
 }
 
 function renderImageryExpandButton(language: Language = activeLanguage()): void {

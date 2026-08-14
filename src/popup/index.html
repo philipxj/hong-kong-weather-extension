@@ -117,6 +117,28 @@
                 <span id="imagery-position" class="imagery-position">-- / --</span>
               </div>
               <button id="imagery-expand" class="imagery-expand" type="button">放大</button>
+              <div id="radar-playback" class="radar-playback" hidden>
+                <button
+                  id="radar-play-toggle"
+                  class="radar-play-toggle"
+                  type="button"
+                  aria-label="暫停雷達動畫"
+                  aria-pressed="false"
+                >
+                  <span class="radar-play-icon" aria-hidden="true"></span>
+                </button>
+                <input
+                  id="radar-playback-slider"
+                  class="radar-playback-slider"
+                  type="range"
+                  min="1"
+                  max="1"
+                  step="1"
+                  value="1"
+                  aria-label="雷達動畫格數"
+                />
+                <output id="radar-playback-position" class="radar-playback-position">-- / --</output>
+              </div>
               <div id="imagery-step-hint" class="imagery-step-hint" aria-hidden="true" hidden>
                 <span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span>
                 <span class="imagery-step-hint-arrow imagery-step-hint-right">›</span>
