@@ -1,6 +1,6 @@
 # Refresh Coordination Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement GitHub issue #45 so weather slices refresh safely, use bounded HKO requests, retain useful stale data, and avoid unnecessary popup-open traffic.
 
@@ -34,7 +34,7 @@
 - Produces: `fetchHko(url, options?) => Promise<Response>` with trusted-origin validation, a 10-second timeout, and two retries for network/timeout, HTTP 429, and HTTP 5xx failures.
 - Consumes: platform `fetch`, `AbortController`, and timers; tests inject `fetchImpl`, `setTimeoutImpl`, and `clearTimeoutImpl` through options.
 
-- [ ] **Step 1: Write failing request-policy tests**
+- [x] **Step 1: Write failing request-policy tests**
 
 ```ts
 test("rejects generated URLs outside approved HKO origins", async () => {
@@ -53,13 +53,13 @@ test("retries transient responses but not ordinary 4xx responses", async () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/hko-request.test.ts`
 
 Expected: FAIL because `src/shared/hko-request.ts` does not exist.
 
-- [ ] **Step 3: Implement the minimal request helper**
+- [x] **Step 3: Implement the minimal request helper**
 
 ```ts
 const APPROVED_ORIGINS = new Set([
@@ -86,19 +86,19 @@ export async function fetchHko(url: string, options: HkoRequestOptions = {}): Pr
 }
 ```
 
-- [ ] **Step 4: Route JSON, CSV, cyclone-list, and cyclone-track fetches through `fetchHko`**
+- [x] **Step 4: Route JSON, CSV, cyclone-list, and cyclone-track fetches through `fetchHko`**
 
 Replace direct `fetch(url, { cache: "no-store" })` calls in `fetchHkoJson`,
 `fetchLatestUv`, and `fetchHkoText`. Keep schema parsing outside retry handling so
 malformed payloads are not retried.
 
-- [ ] **Step 5: Run request and weather API tests and verify GREEN**
+- [x] **Step 5: Run request and weather API tests and verify GREEN**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/hko-request.test.ts tests/weather-refresh-api.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/shared/hko-request.ts src/shared/weather-service.ts tests/hko-request.test.ts
@@ -119,7 +119,7 @@ git commit -m "feat: bound HKO requests"
 - Produces: `WeatherSliceName`, `WeatherSliceState`, `WeatherSliceStates`, `createEmptyWeatherData(language)`, `cacheSliceIsFresh(data, slice, ttlMs, now)`, and `updateWeatherCache(mutator)`.
 - `updateWeatherCache` returns `{ previous, next }` and serializes storage read-merge-write operations within the service-worker lifetime.
 
-- [ ] **Step 1: Write failing cache tests**
+- [x] **Step 1: Write failing cache tests**
 
 ```ts
 test("treats old caches without slice metadata as expired", () => {
@@ -135,13 +135,13 @@ test("serializes read-merge-write updates", async () => {
 });
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/weather-cache.test.ts`
 
 Expected: FAIL because cache helpers and slice types do not exist.
 
-- [ ] **Step 3: Add slice types and cache helpers**
+- [x] **Step 3: Add slice types and cache helpers**
 
 ```ts
 export type WeatherSliceName = "current" | "forecast" | "warnings" | "tropicalCyclones";
@@ -156,19 +156,19 @@ export type WeatherSliceStates = Record<WeatherSliceName, WeatherSliceState>;
 Build compatibility summary fields from `sliceStates`; missing or invalid state
 is stale. Reject future timestamps as fresh.
 
-- [ ] **Step 4: Add reverse-completion regression coverage to weather refresh tests**
+- [x] **Step 4: Add reverse-completion regression coverage to weather refresh tests**
 
 Control the current and forecast response promises, resolve forecast first and
 current second, then assert that final storage contains both updated slices.
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/weather-cache.test.ts tests/weather-refresh-api.test.ts`
 
 Expected: PASS after Task 3 wires partial refreshes to the helper; keep the new
 reverse-completion test RED until that wiring is complete.
 
-- [ ] **Step 6: Commit the independently passing cache helper portion**
+- [x] **Step 6: Commit the independently passing cache helper portion**
 
 ```bash
 git add src/shared/types.ts src/shared/weather-cache.ts tests/weather-cache.test.ts
@@ -190,7 +190,7 @@ git commit -m "feat: track weather cache slices"
   `refreshWeatherWarnings` retain their public names but atomically merge only
   their owned data and slice state.
 
-- [ ] **Step 1: Write failing freshness and force-refresh tests**
+- [x] **Step 1: Write failing freshness and force-refresh tests**
 
 ```ts
 test("fresh popup cache performs no HKO request", async () => {
@@ -207,21 +207,21 @@ test("manual refresh forces every slice", async () => {
 });
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/weather-refresh-api.test.ts`
 
 Expected: FAIL because `refreshWeather` ignores freshness and slice writes can
 still overwrite each other.
 
-- [ ] **Step 3: Refactor partial refreshes to fetch outside and merge inside `updateWeatherCache`**
+- [x] **Step 3: Refactor partial refreshes to fetch outside and merge inside `updateWeatherCache`**
 
 For success, update only the owned data and set that slice to
 `{ fetchedAt: nowIso, stale: false, error: null }`. For failure, preserve owned
 data and set only that slice to stale/error. Use `createEmptyWeatherData` when
 no same-language cache exists.
 
-- [ ] **Step 4: Implement orchestration and cyclone fallback**
+- [x] **Step 4: Implement orchestration and cyclone fallback**
 
 ```ts
 export async function refreshWeather(settings = null, options = {}): Promise<WeatherData> {
@@ -236,13 +236,13 @@ export async function refreshWeather(settings = null, options = {}): Promise<Wea
 An empty successful cyclone response replaces prior data. A thrown request or
 parse error preserves prior cyclone data and records the slice error.
 
-- [ ] **Step 5: Verify reverse completion, TTL, force, migration, and cyclone tests GREEN**
+- [x] **Step 5: Verify reverse completion, TTL, force, migration, and cyclone tests GREEN**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/weather-cache.test.ts tests/weather-refresh-api.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/shared/weather-service.ts tests/weather-refresh-api.test.ts
@@ -263,7 +263,7 @@ git commit -m "feat: coordinate weather slice refreshes"
 - `getSettings` and `saveSettings` return fully validated `Settings` with safe
   interval bounds.
 
-- [ ] **Step 1: Write failing warning fingerprint tests**
+- [x] **Step 1: Write failing warning fingerprint tests**
 
 ```ts
 test("unchanged warning summary reuses cached detail", async () => {
@@ -279,33 +279,33 @@ test("changed warning summary requests detail", async () => {
 });
 ```
 
-- [ ] **Step 2: Write failing malformed-settings tests**
+- [x] **Step 2: Write failing malformed-settings tests**
 
 Store invalid enum/boolean/array values plus `currentRefreshMinutes: -1` and
 `warningCheckMinutes: 999`, then expect defaults for invalid values and clamped
 intervals of 10 and 60.
 
-- [ ] **Step 3: Run focused tests and verify RED**
+- [x] **Step 3: Run focused tests and verify RED**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/weather-refresh-api.test.ts tests/weather-service.test.ts`
 
 Expected: FAIL because warning details are unconditional and scalar settings
 are not runtime validated.
 
-- [ ] **Step 4: Implement fingerprint reuse and complete settings normalization**
+- [x] **Step 4: Implement fingerprint reuse and complete settings normalization**
 
 Fingerprint only active warning identity, action-independent code, name,
 issue/update/expire timestamps in sorted key order. Validate language, badge
 mode, booleans, category arrays, and finite numeric intervals before returning
 settings.
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/weather-refresh-api.test.ts tests/weather-service.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/shared/weather-service.ts tests/weather-refresh-api.test.ts tests/weather-service.test.ts
@@ -326,13 +326,13 @@ git commit -m "feat: reduce warning refresh traffic"
 - Runtime message accepts `{ type: "refreshWeather", force?: boolean }`.
 - Popup sends `force: false` on open and `force: true` on manual refresh.
 
-- [ ] **Step 1: Write failing background tests**
+- [x] **Step 1: Write failing background tests**
 
 Capture installed/startup/alarm/message handlers. Assert popup-open messages
 call `refreshWeather(settings, { force: false })`, manual messages call force
 true, and current/forecast/warning alarms still target only their own refresh.
 
-- [ ] **Step 2: Write failing popup source regression test**
+- [x] **Step 2: Write failing popup source regression test**
 
 ```ts
 test("popup delegates every cache refresh to background", async () => {
@@ -343,26 +343,26 @@ test("popup delegates every cache refresh to background", async () => {
 });
 ```
 
-- [ ] **Step 3: Run focused tests and verify RED**
+- [x] **Step 3: Run focused tests and verify RED**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/background-refresh.test.ts tests/popup-refresh.test.ts`
 
 Expected: FAIL because the message has no force mode and popup falls back to a
 direct writer.
 
-- [ ] **Step 4: Implement background and popup message flow**
+- [x] **Step 4: Implement background and popup message flow**
 
 Pass `force` through `load`, remove popup imports of `refreshWeather` and
 `updateBadge`, and surface runtime errors while retaining matching cached data.
 Install/startup explicitly force; popup open does not.
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npx vitest run tests/background-refresh.test.ts tests/popup-refresh.test.ts tests/browser-api.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/background.ts src/popup/main.ts tests/background-refresh.test.ts tests/popup-refresh.test.ts
@@ -379,7 +379,7 @@ git commit -m "feat: make background refresh authoritative"
 
 **Interfaces:** None.
 
-- [ ] **Step 1: Update repository hygiene rules**
+- [x] **Step 1: Update repository hygiene rules**
 
 Append:
 
@@ -390,13 +390,13 @@ Append:
 !.env.example
 ```
 
-- [ ] **Step 2: Update API documentation**
+- [x] **Step 2: Update API documentation**
 
 Document per-slice TTLs and metadata, background ownership, popup fresh-cache
 behavior, forced manual refresh, conditional `warningInfo`, cyclone endpoints,
 approved origins, 10-second timeout, and two bounded transient retries.
 
-- [ ] **Step 3: Run formatting and focused static checks**
+- [x] **Step 3: Run formatting and focused static checks**
 
 Run:
 
@@ -414,20 +414,20 @@ PATH=/opt/homebrew/opt/node@22/bin:$PATH npm run lint
 
 Expected: both commands exit 0.
 
-- [ ] **Step 4: Run complete project verification**
+- [x] **Step 4: Run complete project verification**
 
 Run: `PATH=/opt/homebrew/opt/node@22/bin:$PATH npm test`
 
 Expected: typecheck, lint, all unit tests, all 27 layout tests, and Chromium
 build pass.
 
-- [ ] **Step 5: Review diff against every #45 acceptance criterion**
+- [x] **Step 5: Review diff against every #45 acceptance criterion**
 
 Run: `git diff origin/main...HEAD --check && git status --short --branch` and
 confirm no unrelated files, generated build output, environment files, or
 dependency changes are included.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add .gitignore docs/api.md docs/superpowers/plans/2026-08-14-refresh-coordination.md
