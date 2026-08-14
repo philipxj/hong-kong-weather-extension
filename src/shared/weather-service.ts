@@ -1,5 +1,6 @@
 import { browserApi } from "./browser-api";
 import { hkoPageUrl } from "./hko-links";
+import { fetchHko } from "./hko-request";
 import {
   hkoCurrentSchema,
   hkoForecastSchema,
@@ -754,16 +755,12 @@ async function createTestNotification(title: string, message: string): Promise<s
 }
 
 async function fetchHkoJson<T>(url: string, schema: { parse: (value: unknown) => T }): Promise<T> {
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`HKO request failed: ${response.status}`);
-  }
+  const response = await fetchHko(url);
   return schema.parse(await response.json());
 }
 
 async function fetchLatestUv(language: Language): Promise<LatestUvIndex | null> {
-  const response = await fetch(LATEST_UV_URLS[language], { cache: "no-store" });
-  if (!response.ok) return null;
+  const response = await fetchHko(LATEST_UV_URLS[language]);
   return parseLatestUvCsv(await response.text());
 }
 
@@ -1090,10 +1087,7 @@ function radiansToDegrees(value: number): number {
 }
 
 async function fetchHkoText(url: string): Promise<string> {
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`HKO request failed: ${response.status}`);
-  }
+  const response = await fetchHko(url);
   return response.text();
 }
 
