@@ -102,7 +102,7 @@ if (
     playbackSlider.max = String(position.count);
     playbackSlider.value = String(position.index);
     playbackSlider.setAttribute("aria-valuetext", `${position.index} / ${position.count}`);
-    playbackPosition.textContent = `${position.index} / ${position.count}`;
+    playbackPosition.textContent = `${position.index}/${position.count}`;
   };
 
   const clearSyntheticStepFeedback = (): void => {

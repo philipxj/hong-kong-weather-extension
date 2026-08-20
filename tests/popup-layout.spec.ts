@@ -974,6 +974,7 @@ test.describe("popup layout", () => {
         return {
           caption: rect(".imagery-caption"),
           playback: rect(".radar-playback"),
+          playToggle: rect(".radar-play-toggle"),
           preview: rect(".imagery-preview"),
           ranges: rect(".radar-ranges"),
           slider: rect(".radar-playback-slider")
@@ -985,18 +986,36 @@ test.describe("popup layout", () => {
     expect(compact.playback.right).toBeLessThanOrEqual(compact.preview.right);
     expect(compact.playback.top).toBeGreaterThanOrEqual(compact.preview.top);
     expect(compact.playback.bottom).toBeLessThanOrEqual(compact.preview.bottom);
-    expect(compact.slider.width).toBeGreaterThanOrEqual(120);
+    expect(Math.round(compact.playback.width)).toBe(162);
+    expect(Math.round(compact.playback.height)).toBe(20);
+    expect(Math.round(compact.playToggle.width)).toBe(18);
+    expect(Math.round(compact.playToggle.height)).toBe(18);
+    expect(compact.slider.width).toBeGreaterThanOrEqual(90);
     expect(overlaps(compact.playback, compact.caption)).toBe(false);
     expect(overlaps(compact.playback, compact.ranges)).toBe(false);
+
+    const playBackground = await page.locator(".radar-play-toggle").evaluate((node) => {
+      return getComputedStyle(node).backgroundColor;
+    });
+    await page.locator(".radar-play-toggle").hover();
+    const hoveredPlayBackground = await page.locator(".radar-play-toggle").evaluate((node) => {
+      return getComputedStyle(node).backgroundColor;
+    });
+    expect(hoveredPlayBackground).toBe(playBackground);
 
     await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
     const expanded = await measure();
     expect(expanded.playback.left).toBeGreaterThanOrEqual(expanded.preview.left);
     expect(expanded.playback.right).toBeLessThanOrEqual(expanded.preview.right);
     expect(expanded.playback.bottom).toBeLessThanOrEqual(expanded.preview.bottom);
-    expect(expanded.slider.width).toBeGreaterThan(compact.slider.width);
+    expect(Math.round(expanded.playback.width)).toBe(162);
+    expect(Math.round(expanded.playback.height)).toBe(20);
+    expect(Math.round(expanded.playToggle.width)).toBe(18);
+    expect(Math.round(expanded.playToggle.height)).toBe(18);
+    expect(Math.round(expanded.slider.width)).toBe(Math.round(compact.slider.width));
     expect(overlaps(expanded.playback, expanded.caption)).toBe(false);
     expect(overlaps(expanded.playback, expanded.ranges)).toBe(false);
+    await expect(page.locator(".radar-playback-position")).toHaveText("5/5");
 
     await page.locator('[data-panel="lightning"]').click();
     await expect(page.locator(".radar-playback")).toBeHidden();
@@ -1535,7 +1554,7 @@ async function fixtureHtml({
             </section>
             <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             <section class="legacy-side-panel">
-              <div class="imagery-card" data-panel="${activePanel}"><div class="imagery-tabs"><button class="imagery-tab" data-panel="radar" aria-label="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" aria-selected="${activePanel === "radar" ? "true" : "false"}">${sidePanelTabTitle("radar", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="lightning" aria-label="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" aria-selected="${activePanel === "lightning" ? "true" : "false"}">${sidePanelTabTitle("lightning", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="typhoon" aria-label="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" aria-selected="${activePanel === "typhoon" ? "true" : "false"}"${hasTropicalCyclone ? "" : " hidden"}>${sidePanelTabTitle("typhoon", language, tropicalCycloneCount)}</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"${showTropicalCyclonePanel ? " hidden" : ""}><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><div class="radar-playback"${activePanel === "radar" && !showTropicalCyclonePanel ? "" : " hidden"}><button class="radar-play-toggle" type="button" aria-label="暫停雷達動畫" aria-pressed="false"><span class="radar-play-icon" aria-hidden="true"></span></button><input class="radar-playback-slider" type="range" min="1" max="5" step="1" value="5" aria-label="雷達動畫格數"><output class="radar-playback-position">5 / 5</output></div><div class="imagery-step-hint" aria-hidden="true" hidden><span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span><span class="imagery-step-hint-arrow imagery-step-hint-right">›</span></div><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"${showTropicalCyclonePanel ? " hidden" : ""}><span>時間</span><span>12:06</span></div><div class="radar-ranges"${showTropicalCyclonePanel ? " hidden" : ""}><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div>${tropicalCyclonePanel}<div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
+              <div class="imagery-card" data-panel="${activePanel}"><div class="imagery-tabs"><button class="imagery-tab" data-panel="radar" aria-label="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" aria-selected="${activePanel === "radar" ? "true" : "false"}">${sidePanelTabTitle("radar", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="lightning" aria-label="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" aria-selected="${activePanel === "lightning" ? "true" : "false"}">${sidePanelTabTitle("lightning", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="typhoon" aria-label="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" aria-selected="${activePanel === "typhoon" ? "true" : "false"}"${hasTropicalCyclone ? "" : " hidden"}>${sidePanelTabTitle("typhoon", language, tropicalCycloneCount)}</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"${showTropicalCyclonePanel ? " hidden" : ""}><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><div class="radar-playback"${activePanel === "radar" && !showTropicalCyclonePanel ? "" : " hidden"}><button class="radar-play-toggle" type="button" aria-label="暫停雷達動畫" aria-pressed="false"><span class="radar-play-icon" aria-hidden="true"></span></button><input class="radar-playback-slider" type="range" min="1" max="5" step="1" value="5" aria-label="雷達動畫格數"><output class="radar-playback-position">5/5</output></div><div class="imagery-step-hint" aria-hidden="true" hidden><span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span><span class="imagery-step-hint-arrow imagery-step-hint-right">›</span></div><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"${showTropicalCyclonePanel ? " hidden" : ""}><span>時間</span><span>12:06</span></div><div class="radar-ranges"${showTropicalCyclonePanel ? " hidden" : ""}><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div>${tropicalCyclonePanel}<div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
             </section>
             <section class="legacy-forecast">
               <div class="legacy-forecast-list">
