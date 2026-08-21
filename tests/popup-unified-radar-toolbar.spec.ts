@@ -4,7 +4,6 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const UI_CSS_PATH = path.join(ROOT, "src", "shared", "ui.css");
-const TOOLBAR_CSS_PATH = path.join(ROOT, "src", "shared", "unified-radar-toolbar.css");
 const POPUP_PATH = path.join(ROOT, "src", "popup", "index.html");
 
 interface Box {
@@ -36,14 +35,11 @@ test("keeps the unified radar toolbar compact in normal and expanded previews", 
     ranges: "imagery-toolbar"
   });
 
-  const [uiCss, toolbarCss] = await Promise.all([
-    readFile(UI_CSS_PATH, "utf8"),
-    readFile(TOOLBAR_CSS_PATH, "utf8")
-  ]);
+  const uiCss = await readFile(UI_CSS_PATH, "utf8");
   await page.setContent(
     `<!doctype html>
       <html lang="zh-Hant" class="popup-page">
-        <head><meta charset="utf-8"><style>${uiCss}\n${toolbarCss}</style></head>
+        <head><meta charset="utf-8"><style>${uiCss}</style></head>
         <body class="popup-page">
           <main class="popup-shell legacy-weather">
             <section class="legacy-content">
@@ -144,6 +140,12 @@ test("keeps the unified radar toolbar compact in normal and expanded previews", 
   expect(Math.round(expanded.slider.width)).toBe(Math.round(compact.slider.width));
   expect(overlaps(expanded.playback, expanded.caption)).toBe(false);
   expect(overlaps(expanded.caption, expanded.ranges)).toBe(false);
+
+  await page.locator(".radar-playback").evaluate((node) => node.setAttribute("hidden", ""));
+  await expect(page.locator(".radar-playback")).toBeHidden();
+  await expect(page.locator(".radar-playback-divider")).toBeHidden();
+  await expect(page.locator(".imagery-caption")).toBeVisible();
+  await expect(page.locator(".radar-ranges")).toBeVisible();
 
   await page.locator(".imagery-card").evaluate((node) => {
     node.classList.remove("is-expanded");
