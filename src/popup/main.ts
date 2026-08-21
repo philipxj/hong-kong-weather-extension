@@ -362,7 +362,7 @@ els.imageryOpen.addEventListener("keydown", (event) => {
     event.preventDefault();
     clearPreviewClickTimer();
     const direction = event.key === "ArrowLeft" ? -1 : 1;
-    if (stepImagerySnapshot(direction)) {
+    if (stepImagerySnapshot(direction) && event.isTrusted) {
       dismissImageryStepHint();
       showImageryStepFeedback(direction);
     }
