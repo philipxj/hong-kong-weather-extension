@@ -123,11 +123,40 @@
               </div>
               <span id="imagery-fallback" class="imagery-fallback" hidden>Loading</span>
             </div>
-            <div class="imagery-caption">
-              <span id="imagery-title">時間</span>
-              <span id="imagery-time">--</span>
+            <div class="imagery-toolbar">
+              <div id="radar-playback" class="radar-playback" hidden>
+                <button
+                  id="radar-play-toggle"
+                  class="radar-play-toggle"
+                  type="button"
+                  aria-label="暫停雷達動畫"
+                  aria-pressed="false"
+                >
+                  <span class="radar-play-icon" aria-hidden="true"></span>
+                </button>
+                <input
+                  id="radar-playback-slider"
+                  class="radar-playback-slider"
+                  type="range"
+                  min="1"
+                  max="1"
+                  step="1"
+                  value="1"
+                  aria-label="雷達動畫格數"
+                />
+                <output id="radar-playback-position" class="radar-playback-position">-- / --</output>
+              </div>
+              <span
+                class="imagery-toolbar-divider radar-playback-divider"
+                aria-hidden="true"
+              ></span>
+              <div class="imagery-caption">
+                <span id="imagery-title">時間</span>
+                <span id="imagery-time">--</span>
+              </div>
+              <span class="imagery-toolbar-divider" aria-hidden="true"></span>
+              <div id="radar-ranges" class="radar-ranges" aria-label="Radar range"></div>
             </div>
-            <div id="radar-ranges" class="radar-ranges" aria-label="Radar range"></div>
             <div
               id="imagery-toast"
               class="imagery-toast"
@@ -232,5 +261,6 @@
       </div>
     </main>
     <script type="module" src="./main.ts"></script>
+    <script type="module" src="./radar-autoplay.ts"></script>
   </body>
 </html>
