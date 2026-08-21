@@ -932,6 +932,12 @@ test.describe("popup layout", () => {
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
     expect(layout.card.bottom).toBeLessThanOrEqual(layout.shell.bottom);
+    expect(
+      Math.abs(
+        (layout.card.left + layout.card.right) / 2 -
+          (layout.shell.left + layout.shell.right) / 2
+      )
+    ).toBeLessThanOrEqual(1);
     expect(layout.caption.width).toBeLessThanOrEqual(132);
     expect(layout.caption.left).toBeGreaterThanOrEqual(layout.preview.left);
     expect(layout.caption.right).toBeLessThanOrEqual(layout.preview.right);

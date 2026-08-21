@@ -882,12 +882,14 @@ html[lang="en"] .legacy-weather-title {
 }
 
 .imagery-card.is-expanded {
-  position: absolute;
-  top: -22px;
-  right: 26px;
+  position: fixed;
+  top: 0;
+  right: auto;
+  left: min(50vw, 395px);
   z-index: 4;
   width: 468px;
   padding: 9px;
+  transform: translateX(-50%);
   box-shadow: 0 18px 38px rgba(16, 35, 55, 0.28);
 }
 
