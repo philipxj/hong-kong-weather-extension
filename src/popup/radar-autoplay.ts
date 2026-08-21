@@ -9,7 +9,6 @@ import {
 } from "./imagery-autoplay";
 
 const RADAR_AUTOPLAY_MS = 800;
-const READY_RETRY_MS = 120;
 
 const imageryOpen = document.querySelector<HTMLElement>("#imagery-open");
 const imageryImage = document.querySelector<HTMLImageElement>("#imagery-image");
@@ -35,6 +34,7 @@ if (
   let playbackState = initialImageryPlaybackState(prefersReducedMotion.matches);
   let autoplayTimer: number | undefined;
   let manualResumeTimer: number | undefined;
+  let pendingRewind = false;
 
   const isRadarActive = (): boolean =>
     imageryOpen.dataset.imagery === "radar" && !imageryOpen.hidden;
@@ -156,7 +156,7 @@ if (
 
     const position = currentPosition();
     if (!position) {
-      scheduleAutoplay(READY_RETRY_MS);
+      syncControls();
       return;
     }
 
@@ -167,23 +167,28 @@ if (
 
   const startAutoplay = ({ rewind = false }: { rewind?: boolean } = {}): void => {
     stopAutoplay();
+    if (rewind) pendingRewind = true;
+
     if (!isRadarActive()) {
       syncControls();
       return;
     }
 
-    if (rewind && !rewindToFirstFrameAndPreload()) {
+    if (!currentPosition()) {
       syncControls();
-      if (canRunImageryPlayback(playbackState)) scheduleAutoplay(READY_RETRY_MS);
       return;
+    }
+
+    if (pendingRewind) {
+      if (!rewindToFirstFrameAndPreload()) {
+        syncControls();
+        return;
+      }
+      pendingRewind = false;
     }
 
     syncControls();
     if (!canRunImageryPlayback(playbackState)) return;
-    if (!currentPosition()) {
-      scheduleAutoplay(READY_RETRY_MS);
-      return;
-    }
     scheduleAutoplay();
   };
 
