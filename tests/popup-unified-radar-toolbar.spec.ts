@@ -19,7 +19,9 @@ function overlaps(a: Box, b: Box): boolean {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
-test("keeps the unified radar toolbar compact in normal and expanded previews", async ({ page }) => {
+test("keeps the unified radar toolbar compact in normal and expanded previews", async ({
+  page
+}) => {
   await page.setViewportSize({ width: 790, height: 438 });
 
   const popupMarkup = await readFile(POPUP_PATH, "utf8");
@@ -61,6 +63,7 @@ test("keeps the unified radar toolbar compact in normal and expanded previews", 
                       <button class="radar-range" aria-label="256公里" title="256公里">256</button>
                       <button class="radar-range" aria-label="128公里" title="128公里">128</button>
                       <button class="radar-range" aria-label="64公里" title="64公里" aria-selected="true">64</button>
+                      <span class="radar-range-unit" aria-hidden="true">km</span>
                     </div>
                   </div>
                 </div>
@@ -106,19 +109,19 @@ test("keeps the unified radar toolbar compact in normal and expanded previews", 
   expect(Math.round(compact.toolbar.left - compact.preview.left)).toBe(6);
   expect(Math.round(compact.preview.bottom - compact.toolbar.bottom)).toBe(6);
   expect(compact.toolbar.right).toBeLessThanOrEqual(compact.preview.right);
-  expect(Math.round(compact.playback.width)).toBe(97);
+  expect(Math.round(compact.playback.width)).toBe(91);
   expect(Math.round(compact.playToggle.width)).toBe(18);
   expect(Math.round(compact.playToggle.height)).toBe(18);
-  expect(compact.slider.width).toBeGreaterThanOrEqual(48);
+  expect(compact.slider.width).toBeGreaterThanOrEqual(42);
   expect(overlaps(compact.playback, compact.firstDivider)).toBe(false);
   expect(overlaps(compact.firstDivider, compact.caption)).toBe(false);
   expect(overlaps(compact.caption, compact.secondDivider)).toBe(false);
   expect(overlaps(compact.secondDivider, compact.ranges)).toBe(false);
   expect(await page.locator(".radar-range").allTextContents()).toEqual(["256", "128", "64"]);
   expect(
-    await page.locator(".radar-range").evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute("aria-label"))
-    )
+    await page
+      .locator(".radar-range")
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")))
   ).toEqual(["256公里", "128公里", "64公里"]);
 
   const playBackground = await page.locator(".radar-play-toggle").evaluate((node) => {

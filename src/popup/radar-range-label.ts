@@ -13,6 +13,6 @@ export function compactRadarRangeLabel(
   const visible = match[1] ?? label;
   return {
     accessible: `${visible}${localizedSuffix}`,
-    visible
+    visible: visible.trim()
   };
 }
