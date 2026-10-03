@@ -1031,7 +1031,7 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-stepper {
   position: absolute;
-  top: 6px;
+  top: 38px;
   right: 6px;
   z-index: 3;
   display: inline-grid;
@@ -1183,7 +1183,7 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-expand {
   position: absolute;
-  top: 38px;
+  top: 6px;
   right: 6px;
   z-index: 3;
   height: 24px;
@@ -1201,6 +1201,10 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-expand:hover {
   background: rgba(9, 23, 37, 0.72);
+}
+
+html[lang="en"] .imagery-card:not(.is-expanded) .imagery-expand {
+  padding: 0 4px;
 }
 
 .imagery-expand:focus-visible {
@@ -1249,7 +1253,7 @@ html[lang="en"] .legacy-weather-title {
 
 .imagery-card.is-expanded .imagery-stepper {
   grid-template-columns: minmax(42px, auto);
-  top: 4px;
+  top: 37px;
   right: 4px;
   height: 29px;
 }
@@ -1291,7 +1295,7 @@ html[lang="en"] .legacy-weather-title {
 }
 
 .imagery-card.is-expanded .imagery-expand {
-  top: 37px;
+  top: 4px;
   right: 4px;
   height: 27px;
   padding: 0 12px;
