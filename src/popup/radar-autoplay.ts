@@ -35,6 +35,7 @@ if (
   let autoplayTimer: number | undefined;
   let manualResumeTimer: number | undefined;
   let pendingRewind = false;
+  let sliderPointerId: number | undefined;
 
   const isRadarActive = (): boolean =>
     imageryOpen.dataset.imagery === "radar" && !imageryOpen.hidden;
@@ -146,6 +147,7 @@ if (
 
   const scheduleAutoplay = (delay = RADAR_AUTOPLAY_MS): void => {
     stopAutoplay();
+    if (sliderPointerId !== undefined) return;
     if (!canRunImageryPlayback(playbackState) || !isRadarActive()) return;
     autoplayTimer = window.setTimeout(runAutoplayStep, delay);
   };
@@ -196,6 +198,7 @@ if (
     if (!isRadarActive()) return;
     stopAutoplay();
     clearManualResume();
+    if (sliderPointerId !== undefined) return;
     if (!canRunImageryPlayback(playbackState)) return;
     manualResumeTimer = window.setTimeout(() => {
       manualResumeTimer = undefined;
@@ -229,7 +232,17 @@ if (
     pauseForManualInteraction();
   };
 
-  playbackSlider.addEventListener("pointerdown", pauseForManualInteraction);
+  playbackSlider.addEventListener("pointerdown", (event) => {
+    sliderPointerId = event.pointerId;
+    pauseForManualInteraction();
+  });
+  const finishSliderDrag = (event: PointerEvent): void => {
+    if (event.pointerId !== sliderPointerId) return;
+    sliderPointerId = undefined;
+    pauseForManualInteraction();
+  };
+  window.addEventListener("pointerup", finishSliderDrag);
+  window.addEventListener("pointercancel", finishSliderDrag);
   playbackSlider.addEventListener("input", selectSliderFrame);
   playbackSlider.addEventListener("change", pauseForManualInteraction);
 
@@ -247,12 +260,16 @@ if (
   radarRanges.addEventListener("pointerdown", (event) => {
     if (event.isTrusted) pauseForManualInteraction();
   });
-  radarRanges.addEventListener("click", () => {
-    window.setTimeout(() => {
-      clearManualResume();
-      startAutoplay({ rewind: true });
-    }, 0);
-  });
+  radarRanges.addEventListener(
+    "click",
+    () => {
+      window.setTimeout(() => {
+        clearManualResume();
+        startAutoplay({ rewind: true });
+      }, 0);
+    },
+    { capture: true }
+  );
 
   imageryTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -293,10 +310,17 @@ if (
       startAutoplay();
     }
   });
-  positionObserver.observe(imageryPosition, { childList: true, characterData: true, subtree: true });
+  positionObserver.observe(imageryPosition, {
+    childList: true,
+    characterData: true,
+    subtree: true
+  });
 
   const languageObserver = new MutationObserver(syncControls);
-  languageObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+  languageObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"]
+  });
 
   prefersReducedMotion.addEventListener("change", () => {
     playbackState = reduceImageryPlaybackState(playbackState, {
