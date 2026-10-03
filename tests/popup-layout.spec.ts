@@ -1228,66 +1228,6 @@ test.describe("popup layout", () => {
     expect(layout.rightOpacity).toBeLessThan(layout.leftOpacity);
   });
 
-  test("keeps first-use imagery step arrows until a successful step then persists dismissal", async ({
-    page
-  }) => {
-    await page.setViewportSize({ width: 790, height: 438 });
-    await page.evaluate(() => {
-      (window as unknown as { __imageryStepHintDismissed?: boolean }).__imageryStepHintDismissed =
-        false;
-    });
-    await page.setContent(
-      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
-      {
-        waitUntil: "domcontentloaded"
-      }
-    );
-
-    const preview = page.locator(".imagery-preview");
-    const previewBox = await preview.boundingBox();
-    if (!previewBox) throw new Error("Missing imagery preview bounds");
-
-    await expect(page.locator(".imagery-step-hint")).toBeVisible();
-    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
-
-    await preview.click({
-      position: {
-        x: previewBox.width * 0.75,
-        y: previewBox.height * 0.5
-      }
-    });
-    await page.waitForTimeout(260);
-    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
-    await expect(page.locator(".imagery-step-hint")).toBeVisible();
-
-    await preview.click({
-      position: {
-        x: previewBox.width * 0.25,
-        y: previewBox.height * 0.5
-      }
-    });
-    await expect(page.locator(".imagery-position")).toHaveText("4 / 5");
-    await expect(page.locator(".imagery-step-hint")).toBeHidden();
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            (window as unknown as { __imageryStepHintDismissed?: boolean })
-              .__imageryStepHintDismissed === true
-        )
-      )
-      .toBe(true);
-
-    await page.setContent(
-      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
-      {
-        waitUntil: "domcontentloaded"
-      }
-    );
-    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
-    await expect(page.locator(".imagery-step-hint")).toBeHidden();
-  });
-
   test("plays imagery step feedback as a single pulse", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
     await page.setContent(

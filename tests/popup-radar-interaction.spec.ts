@@ -130,3 +130,52 @@ test("waits until a slider drag finishes before starting the manual resume delay
   await page.clock.runFor(800);
   await expect(page.locator("#imagery-position")).toHaveText("4 / 5");
 });
+
+for (const interaction of ["pointer", "ArrowLeft"] as const) {
+  test(`dismisses both first-use arrows on the first left interaction at the first frame with ${interaction}`, async ({
+    page
+  }) => {
+    await page.goto(popupUrl);
+    await expect(page.locator("#imagery-position")).toHaveText("1 / 5");
+    await expect(page.locator("#imagery-step-hint")).toBeVisible();
+
+    if (interaction === "pointer") {
+      const arrow = await page.locator(".imagery-step-hint-left").boundingBox();
+      if (!arrow) throw new Error("Missing left imagery arrow");
+      await page.mouse.click(arrow.x + arrow.width / 2, arrow.y + arrow.height / 2);
+      await page.clock.runFor(220);
+    } else {
+      await page.locator("#imagery-open").press(interaction);
+    }
+
+    await expect(page.locator("#imagery-position")).toHaveText("1 / 5");
+    await expect(page.locator(".imagery-step-hint-left")).toBeHidden();
+    await expect(page.locator(".imagery-step-hint-right")).toBeHidden();
+  });
+}
+
+test("keeps first-use arrows through autoplay then remembers the first manual left interaction", async ({
+  page
+}) => {
+  await page.goto(popupUrl);
+  await expect(page.locator("#imagery-position")).toHaveText("1 / 5");
+  await page.clock.runFor(800);
+  await expect(page.locator("#imagery-position")).toHaveText("2 / 5");
+  await expect(page.locator("#imagery-step-hint")).toBeVisible();
+
+  const arrow = await page.locator(".imagery-step-hint-left").boundingBox();
+  if (!arrow) throw new Error("Missing left imagery arrow");
+  await page.mouse.click(arrow.x + arrow.width / 2, arrow.y + arrow.height / 2);
+  await page.clock.runFor(220);
+  await expect(page.locator("#imagery-position")).toHaveText("1 / 5");
+  await expect(page.locator("#imagery-step-hint")).toBeHidden();
+
+  await page.clock.runFor(7000);
+  await expect(page.locator("#imagery-step-hint")).toBeHidden();
+  await page.getByRole("button", { name: "128公里", exact: true }).click();
+  await page.clock.runFor(1);
+  await expect(page.locator("#imagery-step-hint")).toBeHidden();
+  await page.reload();
+  await expect(page.locator("#imagery-position")).toHaveText("1 / 5");
+  await expect(page.locator("#imagery-step-hint")).toBeHidden();
+});
