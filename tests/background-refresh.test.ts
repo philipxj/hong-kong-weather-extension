@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Settings, WeatherData } from "../src/shared/types";
 
-type MessageHandler = (message: { type?: string }) => unknown;
+type MessageHandler = (message: { force?: boolean; type?: string }) => unknown;
 
 const mockBrowserApi = vi.hoisted(() => ({
   messageHandler: null as MessageHandler | null
@@ -46,7 +46,7 @@ describe("background refresh coalescing", () => {
     mockWeatherService.refreshForecast.mockReset();
     mockWeatherService.refreshWeather.mockReset();
     mockWeatherService.refreshWeatherWarnings.mockReset();
-    mockWeatherService.updateBadge.mockResolvedValue(undefined);
+    mockWeatherService.updateBadge.mockReset().mockResolvedValue(undefined);
   });
 
   test("shares simultaneous full refresh messages", async () => {
@@ -71,6 +71,56 @@ describe("background refresh coalescing", () => {
     await expect(first).resolves.toEqual({ ok: true, data });
     await expect(second).resolves.toEqual({ ok: true, data });
     expect(mockWeatherService.updateBadge).toHaveBeenCalledOnce();
+  });
+
+  test("distinguishes popup freshness checks from forced manual refreshes", async () => {
+    const data = weatherData();
+    mockWeatherService.refreshWeather.mockResolvedValue(data);
+
+    await import("../src/background");
+    const handler = mockBrowserApi.messageHandler;
+    if (!handler) throw new Error("Missing runtime message handler");
+
+    await handler({ force: false, type: "refreshWeather" });
+    await handler({ force: true, type: "refreshWeather" });
+
+    expect(mockWeatherService.refreshWeather).toHaveBeenNthCalledWith(1, settings(), {
+      force: false
+    });
+    expect(mockWeatherService.refreshWeather).toHaveBeenNthCalledWith(2, settings(), {
+      force: true
+    });
+  });
+
+  test("does not share an in-flight forced refresh after changing the language", async () => {
+    let finishFirst!: (data: WeatherData) => void;
+    const firstRefresh = new Promise<WeatherData>((resolve) => {
+      finishFirst = resolve;
+    });
+    const englishData = { ...weatherData(), language: "en" as const };
+    mockWeatherService.refreshWeather.mockImplementation((activeSettings: Settings) =>
+      activeSettings.language === "tc" ? firstRefresh : Promise.resolve(englishData)
+    );
+    await import("../src/background");
+    const handler = mockBrowserApi.messageHandler;
+    if (!handler) throw new Error("Missing runtime message handler");
+    const first = Promise.resolve(handler({ force: true, type: "refreshWeather" }));
+    await vi.waitFor(() => expect(mockWeatherService.refreshWeather).toHaveBeenCalledOnce());
+    mockWeatherService.getSettings.mockResolvedValue({ ...settings(), language: "en" });
+    const second = Promise.resolve(handler({ force: true, type: "refreshWeather" }));
+    try {
+      await vi.waitFor(() => expect(mockWeatherService.refreshWeather).toHaveBeenCalledTimes(2));
+      await expect(second).resolves.toEqual({ ok: true, data: englishData });
+    } finally {
+      finishFirst(weatherData());
+      await first;
+      await second;
+    }
+    expect(mockWeatherService.updateBadge).toHaveBeenCalledOnce();
+    expect(mockWeatherService.updateBadge).toHaveBeenLastCalledWith(englishData, {
+      ...settings(),
+      language: "en"
+    });
   });
 });
 
@@ -99,13 +149,7 @@ function settings(): Settings {
       "tsunami",
       "other"
     ],
-    badgeWarningCategories: [
-      "rain-amber",
-      "rain-red",
-      "rain-black",
-      "typhoon",
-      "thunderstorm"
-    ],
+    badgeWarningCategories: ["rain-amber", "rain-red", "rain-black", "typhoon", "thunderstorm"],
     warningCheckMinutes: 5
   };
 }

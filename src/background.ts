@@ -17,12 +17,12 @@ const runRefreshTask = createInFlightTaskRunner<WeatherData>();
 
 browserApi.runtime.onInstalled(async () => {
   await scheduleRefreshes();
-  await refreshAndBadge();
+  await refreshAndBadge(true);
 });
 
 browserApi.runtime.onStartup(async () => {
   await scheduleRefreshes();
-  await refreshAndBadge();
+  await refreshAndBadge(true);
 });
 
 browserApi.storage.onChanged(async (changes, areaName) => {
@@ -43,6 +43,7 @@ browserApi.alarms.onAlarm(async (alarm) => {
 });
 
 interface RefreshWeatherMessage {
+  force?: boolean;
   language?: Language;
   type?: string;
 }
@@ -56,7 +57,7 @@ type RuntimeMessageResponse =
 browserApi.runtime.onMessage<RefreshWeatherMessage, RuntimeMessageResponse>(async (message) => {
   if (message?.type === "refreshWeather") {
     try {
-      return { ok: true, data: await refreshAndBadge() };
+      return { ok: true, data: await refreshAndBadge(message.force === true) };
     } catch (error) {
       return {
         ok: false,
@@ -97,11 +98,13 @@ async function scheduleRefreshes(): Promise<void> {
   });
 }
 
-async function refreshAndBadge(): Promise<WeatherData> {
-  return runRefreshTask("full", async () => {
-    const settings = await getSettings();
-    const data = await refreshWeather(settings);
-    await updateBadge(data, settings);
+async function refreshAndBadge(force: boolean): Promise<WeatherData> {
+  const settings = await getSettings();
+  const key = `${force ? "full-force" : "full-freshness"}:${settings.language}`;
+  return runRefreshTask(key, async () => {
+    const data = await refreshWeather(settings, { force });
+    const latestSettings = await getSettings();
+    if (data.language === latestSettings.language) await updateBadge(data, latestSettings);
     return data;
   });
 }

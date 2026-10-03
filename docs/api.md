@@ -74,16 +74,48 @@ https://data.gov.hk/tc-data/dataset/hk-hko-rss-latest-fifteen-minute-mean-uv-ind
 
 Refresh paths:
 
-| Trigger                                                           | API datasets called                                       | Count |
-| ----------------------------------------------------------------- | --------------------------------------------------------- | ----- |
-| Popup/manual refresh, install, startup, or missing cache fallback | `rhrread`, latest UV CSV, `fnd`, `warnsum`, `warningInfo` | 5     |
-| Current weather alarm, default every 15 minutes                   | `rhrread`, latest UV CSV                                  | 2     |
-| Forecast alarm, fixed every 120 minutes                           | `fnd`                                                     | 1     |
-| Warning check alarm                                               | `warnsum`, `warningInfo`                                  | 2     |
+| Trigger                                            | Data requested                                                                                               |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Popup open                                         | Only expired slices; zero HKO requests when every cached slice is fresh                                      |
+| Manual refresh, install, or startup                | Current readings/UV, forecast, warning summary, conditional warning detail, and tropical-cyclone list/tracks |
+| Current weather alarm, default every 15 minutes    | `rhrread` and latest UV CSV                                                                                  |
+| Forecast alarm, fixed every 120 minutes            | `fnd`                                                                                                        |
+| Warning check alarm, default every 5 minutes       | `warnsum`; `warningInfo` only when the active summary identity or timestamps changed                         |
+| Tropical-cyclone freshness check, fixed at 60 mins | Active-cyclone list and one track XML document per active cyclone                                            |
+
+The background service worker is the authoritative weather-cache writer. The
+popup and options page request refreshes through runtime messaging. A popup
+open performs a freshness-aware request, while the refresh button and a
+language change explicitly force every slice. The popup may render a matching
+cache immediately while that background check runs.
+
+The single `weatherCache` document tracks independent `fetchedAt`, `stale`, and
+`error` state for current weather, forecast, warnings, and tropical cyclones.
+Their TTLs are:
+
+| Slice             | TTL                                                 |
+| ----------------- | --------------------------------------------------- |
+| Current weather   | User setting, clamped to 10-120 minutes; default 15 |
+| Forecast          | 120 minutes                                         |
+| Warnings          | User setting, clamped to 5-60 minutes; default 5    |
+| Tropical cyclones | 60 minutes                                          |
+
+Legacy caches without slice metadata remain displayable but every slice is
+treated as expired once. Slice commits re-read the latest cache and merge only
+the data they own, so overlapping alarm and manual refreshes cannot restore an
+older value from another slice. A failed slice keeps its last successful data;
+in particular, transient cyclone failures do not replace a valid cyclone list
+with an empty result.
 
 Implementation notes:
 
 - Fetching is centralized in `src/shared/weather-service.ts`.
+- HKO requests pass through `src/shared/hko-request.ts`. It accepts only HTTPS
+  URLs on `data.weather.gov.hk`, `www.weather.gov.hk`, and `www.hko.gov.hk`.
+- Each request attempt times out after 10 seconds. Network errors, timeouts,
+  HTTP 429, and HTTP 5xx responses retry at most twice with bounded 250 ms and
+  750 ms delays. Schema/parse failures and other HTTP 4xx responses do not
+  retry.
 - Response validation is kept in `src/shared/hko-schemas.ts`.
 - Normalized extension-facing types are kept in `src/shared/types.ts`.
 - HKO may omit fields when values are null or unavailable, so schemas should remain tolerant of missing optional fields.
@@ -103,6 +135,8 @@ imagery are core extension features and remain covered by the current
 | Lightning image root   | `https://www.hko.gov.hk/wxinfo/llis/llisradar/images`            | Builds the latest lightning image URL.          |
 | Lightning page         | `https://www.hko.gov.hk/tc/wxinfo/llis/llisradar.shtml`          | Opens the official lightning page.              |
 | Typhoon track page     | `https://www.hko.gov.hk/tc/wxinfo/currwx/tc_pos.htm`             | Opens the official tropical cyclone track page. |
+| Active cyclone list    | `https://www.weather.gov.hk/wxinfo/currwx/tc_list.xml`           | Finds active cyclone IDs and track XML URLs.    |
+| Cyclone track XML      | `https://www.weather.gov.hk/wxinfo/currwx/hko_tctrack_{id}.xml`  | Loads the latest analyzed cyclone position.     |
 
 ## Bundled HKO Icon Materials
 
