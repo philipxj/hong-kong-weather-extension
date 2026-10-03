@@ -19,18 +19,19 @@
     "test": "npm run typecheck && npm run lint && npm run test:unit && npm run test:layout && npm run build",
     "test:unit": "vitest run",
     "test:layout": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "node node_modules/@typescript/native/bin/tsc --noEmit"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.61.1",
-    "@types/chrome": "^0.2.2",
-    "@types/node": "^26.1.1",
-    "eslint": "^10.7.0",
-    "prettier": "^3.9.5",
-    "typescript": "^7.0.2",
-    "typescript-eslint": "^8.63.0",
-    "vite": "^8.1.4",
+    "@playwright/test": "^1.62.1",
+    "@types/chrome": "^0.2.5",
+    "@types/node": "^26.2.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "eslint": "^10.8.1",
+    "prettier": "^3.9.6",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.66.0",
+    "vite": "^8.2.1",
     "vitest": "^4.1.10"
   }
 }
