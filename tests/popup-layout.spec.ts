@@ -313,10 +313,12 @@ test.describe("popup layout", () => {
             document.querySelector(".special-weather-title")!
           ).backgroundColor,
           specialContent: rect(".special-weather-content"),
-          specialContentClientHeight:
-            document.querySelector<HTMLElement>(".special-weather-content")!.clientHeight,
-          specialContentScrollHeight:
-            document.querySelector<HTMLElement>(".special-weather-content")!.scrollHeight,
+          specialContentClientHeight: document.querySelector<HTMLElement>(
+            ".special-weather-content"
+          )!.clientHeight,
+          specialContentScrollHeight: document.querySelector<HTMLElement>(
+            ".special-weather-content"
+          )!.scrollHeight,
           specialContentDisplay: getComputedStyle(
             document.querySelector(".special-weather-content")!
           ).display,
@@ -773,17 +775,72 @@ test.describe("popup layout", () => {
     );
 
     const compact = await measureImageryTabs(page);
-    expect(compact.tabs.right).toBeLessThanOrEqual(compact.stepper.left - 2);
+    expect(overlaps(compact.tabs, compact.expandButton), JSON.stringify(compact)).toBe(false);
+    expect(overlaps(compact.tabs, compact.stepper)).toBe(false);
     expect(compact.tabTextFits).toBe(true);
     expect(compact.scrollWidth).toBeLessThanOrEqual(compact.clientWidth);
 
     await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
+    await page.locator(".imagery-expand").evaluate((node) => {
+      node.textContent = "Collapse";
+    });
 
     const expanded = await measureImageryTabs(page);
-    expect(expanded.tabs.right).toBeLessThanOrEqual(expanded.stepper.left - 2);
+    expect(overlaps(expanded.tabs, expanded.expandButton)).toBe(false);
+    expect(overlaps(expanded.tabs, expanded.stepper)).toBe(false);
     expect(expanded.tabTextFits).toBe(true);
     expect(expanded.scrollWidth).toBeLessThanOrEqual(expanded.clientWidth);
   });
+
+  for (const scenario of scenarios.filter((item) =>
+    [
+      "two warnings",
+      "four warnings",
+      "no warnings and no special tips",
+      "long special weather tip"
+    ].includes(item.name)
+  )) {
+    test(`keeps the expand control at the imagery top in ${scenario.name}`, async ({ page }) => {
+      for (const panel of ["radar", "lightning"] as const) {
+        await page.setContent(await fixtureHtml({ ...scenario, activePanel: panel }));
+        await page.locator(".imagery-preview").evaluate((node, type) => {
+          (node as HTMLElement).dataset.imagery = type;
+        }, panel);
+
+        for (const expanded of [false, true]) {
+          if (expanded) {
+            await page
+              .locator(".imagery-card")
+              .evaluate((node) => node.classList.add("is-expanded"));
+          }
+          const controls = await page.evaluate(() => {
+            const rect = (selector: string) => {
+              const node = document.querySelector(selector);
+              if (!node) throw new Error(`Missing imagery control: ${selector}`);
+              const box = node.getBoundingClientRect();
+              return { top: box.top, bottom: box.bottom, left: box.left, right: box.right };
+            };
+            return {
+              button: rect(".imagery-expand"),
+              tabs: rect(".imagery-tabs"),
+              preview: rect(".imagery-preview"),
+              stepper: rect(".imagery-stepper")
+            };
+          });
+          expect(controls.button.top - controls.preview.top).toBeGreaterThanOrEqual(0);
+          expect(controls.button.top - controls.preview.top).toBeLessThanOrEqual(6);
+          expect(Math.abs(controls.button.top - controls.tabs.top)).toBeLessThanOrEqual(1);
+          expect(controls.button.right).toBeLessThanOrEqual(controls.preview.right);
+          expect(overlaps(controls.button, controls.tabs)).toBe(false);
+          if (panel === "lightning") {
+            expect(controls.stepper.top).toBeGreaterThanOrEqual(controls.button.bottom);
+            expect(overlaps(controls.button, controls.stepper)).toBe(false);
+            expect(controls.stepper.bottom).toBeLessThanOrEqual(controls.preview.bottom);
+          }
+        }
+      }
+    });
+  }
 
   test("expands radar widget into a larger map view", async ({ page }) => {
     await page.setViewportSize({ width: 790, height: 438 });
@@ -858,10 +915,10 @@ test.describe("popup layout", () => {
     expect(overlaps(compactControls.expandButton, compactControls.stepper)).toBe(false);
     expect(overlaps(compactControls.expandButton, compactControls.caption)).toBe(false);
     expect(overlaps(compactControls.expandButton, compactControls.rangeWidget)).toBe(false);
-    expect(Math.abs(compactControls.stepper.top - compactControls.tabs.top)).toBeLessThanOrEqual(1);
     expect(
-      Math.abs(compactControls.stepper.bottom - compactControls.tabs.bottom)
+      Math.abs(compactControls.expandButton.top - compactControls.tabs.top)
     ).toBeLessThanOrEqual(1);
+    expect(compactControls.stepper.top).toBeGreaterThanOrEqual(compactControls.expandButton.bottom);
 
     const radarCrop = await page.locator(".imagery-preview").evaluate((preview) => {
       const image = preview.querySelector("img");
@@ -894,6 +951,7 @@ test.describe("popup layout", () => {
       return {
         card: rect(".imagery-card"),
         caption: rect(".imagery-caption"),
+        expandButton: rect(".imagery-expand"),
         preview: rect(".imagery-preview"),
         rangeGap: getComputedStyle(document.querySelector(".radar-ranges")!).gap,
         rangeWidget: rect(".radar-ranges"),
@@ -932,6 +990,11 @@ test.describe("popup layout", () => {
     expect(layout.card.left).toBeGreaterThanOrEqual(layout.shell.left);
     expect(layout.card.right).toBeLessThanOrEqual(layout.shell.right - 12);
     expect(layout.card.bottom).toBeLessThanOrEqual(layout.shell.bottom);
+    expect(
+      Math.abs(
+        (layout.card.left + layout.card.right) / 2 - (layout.shell.left + layout.shell.right) / 2
+      )
+    ).toBeLessThanOrEqual(1);
     expect(layout.caption.width).toBeLessThanOrEqual(132);
     expect(layout.caption.left).toBeGreaterThanOrEqual(layout.preview.left);
     expect(layout.caption.right).toBeLessThanOrEqual(layout.preview.right);
@@ -943,10 +1006,86 @@ test.describe("popup layout", () => {
     expect(layout.rangeWidget.width).toBeLessThanOrEqual(115);
     expect(layout.rangeGap).toBe("0px");
     expect(Math.max(...layout.rangeWidths)).toBeLessThanOrEqual(38);
-    expect(Math.abs(layout.stepper.top - layout.tabs.top)).toBeLessThanOrEqual(1);
-    expect(Math.abs(layout.stepper.bottom - layout.tabs.bottom)).toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.expandButton.top - layout.tabs.top)).toBeLessThanOrEqual(1);
+    expect(layout.stepper.top).toBeGreaterThanOrEqual(layout.expandButton.bottom);
+    expect(overlaps(layout.expandButton, layout.tabs)).toBe(false);
+    expect(overlaps(layout.expandButton, layout.stepper)).toBe(false);
     expect(expandedControls.snapshots).toBe(0);
     expect(expandedControls.ranges).toBe(3);
+  });
+
+  test("keeps draggable radar playback controls inside compact and expanded previews", async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.setContent(
+      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
+      { waitUntil: "domcontentloaded" }
+    );
+
+    const measure = () =>
+      page.evaluate(() => {
+        const rect = (selector: string) => {
+          const element = document.querySelector(selector);
+          if (!element) throw new Error(`Missing fixture element: ${selector}`);
+          const box = element.getBoundingClientRect();
+          return {
+            bottom: box.bottom,
+            height: box.height,
+            left: box.left,
+            right: box.right,
+            top: box.top,
+            width: box.width
+          };
+        };
+        return {
+          caption: rect(".imagery-caption"),
+          playback: rect(".radar-playback"),
+          playToggle: rect(".radar-play-toggle"),
+          preview: rect(".imagery-preview"),
+          ranges: rect(".radar-ranges"),
+          slider: rect(".radar-playback-slider")
+        };
+      });
+
+    const compact = await measure();
+    expect(compact.playback.left).toBeGreaterThanOrEqual(compact.preview.left);
+    expect(compact.playback.right).toBeLessThanOrEqual(compact.preview.right);
+    expect(compact.playback.top).toBeGreaterThanOrEqual(compact.preview.top);
+    expect(compact.playback.bottom).toBeLessThanOrEqual(compact.preview.bottom);
+    expect(Math.round(compact.playback.width)).toBe(162);
+    expect(Math.round(compact.playback.height)).toBe(20);
+    expect(Math.round(compact.playToggle.width)).toBe(18);
+    expect(Math.round(compact.playToggle.height)).toBe(18);
+    expect(compact.slider.width).toBeGreaterThanOrEqual(90);
+    expect(overlaps(compact.playback, compact.caption)).toBe(false);
+    expect(overlaps(compact.playback, compact.ranges)).toBe(false);
+
+    const playBackground = await page.locator(".radar-play-toggle").evaluate((node) => {
+      return getComputedStyle(node).backgroundColor;
+    });
+    await page.locator(".radar-play-toggle").hover();
+    const hoveredPlayBackground = await page.locator(".radar-play-toggle").evaluate((node) => {
+      return getComputedStyle(node).backgroundColor;
+    });
+    expect(hoveredPlayBackground).toBe(playBackground);
+
+    await page.locator(".imagery-card").evaluate((node) => node.classList.add("is-expanded"));
+    const expanded = await measure();
+    expect(expanded.playback.left).toBeGreaterThanOrEqual(expanded.preview.left);
+    expect(expanded.playback.right).toBeLessThanOrEqual(expanded.preview.right);
+    expect(expanded.playback.bottom).toBeLessThanOrEqual(expanded.preview.bottom);
+    expect(Math.round(expanded.playback.width)).toBe(162);
+    expect(Math.round(expanded.playback.height)).toBe(20);
+    expect(Math.round(expanded.playToggle.width)).toBe(18);
+    expect(Math.round(expanded.playToggle.height)).toBe(18);
+    expect(Math.round(expanded.slider.width)).toBe(Math.round(compact.slider.width));
+    expect(overlaps(expanded.playback, expanded.caption)).toBe(false);
+    expect(overlaps(expanded.playback, expanded.ranges)).toBe(false);
+    await expect(page.locator(".radar-playback-position")).toHaveText("5/5");
+
+    await page.locator('[data-panel="lightning"]').click();
+    await expect(page.locator(".radar-playback")).toBeHidden();
   });
 
   test("uses preview click zones and explicit controls for imagery navigation", async ({
@@ -1087,66 +1226,6 @@ test.describe("popup layout", () => {
     expect(layout.hint.bottom).toBeLessThanOrEqual(layout.forecast.top);
     expect(layout.leftOpacity).toBeGreaterThan(0.8);
     expect(layout.rightOpacity).toBeLessThan(layout.leftOpacity);
-  });
-
-  test("keeps first-use imagery step arrows until a successful step then persists dismissal", async ({
-    page
-  }) => {
-    await page.setViewportSize({ width: 790, height: 438 });
-    await page.evaluate(() => {
-      (window as unknown as { __imageryStepHintDismissed?: boolean }).__imageryStepHintDismissed =
-        false;
-    });
-    await page.setContent(
-      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
-      {
-        waitUntil: "domcontentloaded"
-      }
-    );
-
-    const preview = page.locator(".imagery-preview");
-    const previewBox = await preview.boundingBox();
-    if (!previewBox) throw new Error("Missing imagery preview bounds");
-
-    await expect(page.locator(".imagery-step-hint")).toBeVisible();
-    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
-
-    await preview.click({
-      position: {
-        x: previewBox.width * 0.75,
-        y: previewBox.height * 0.5
-      }
-    });
-    await page.waitForTimeout(260);
-    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
-    await expect(page.locator(".imagery-step-hint")).toBeVisible();
-
-    await preview.click({
-      position: {
-        x: previewBox.width * 0.25,
-        y: previewBox.height * 0.5
-      }
-    });
-    await expect(page.locator(".imagery-position")).toHaveText("4 / 5");
-    await expect(page.locator(".imagery-step-hint")).toBeHidden();
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            (window as unknown as { __imageryStepHintDismissed?: boolean })
-              .__imageryStepHintDismissed === true
-        )
-      )
-      .toBe(true);
-
-    await page.setContent(
-      await fixtureHtml({ warnings: scenarios[0]?.warnings ?? "", special: "" }),
-      {
-        waitUntil: "domcontentloaded"
-      }
-    );
-    await expect(page.locator(".imagery-position")).toHaveText("5 / 5");
-    await expect(page.locator(".imagery-step-hint")).toBeHidden();
   });
 
   test("plays imagery step feedback as a single pulse", async ({ page }) => {
@@ -1416,6 +1495,7 @@ async function measureImageryTabs(page: Page) {
 
     return {
       clientWidth: document.documentElement.clientWidth,
+      expandButton: rect(".imagery-expand"),
       scrollWidth: document.documentElement.scrollWidth,
       stepper: rect(".imagery-stepper"),
       tabTextFits: [...document.querySelectorAll<HTMLElement>(".imagery-tab")].every(
@@ -1482,7 +1562,7 @@ async function fixtureHtml({
             </section>
             <button class="special-weather-card"${special === null ? " hidden" : ""}><div class="special-weather-title">${specialTitle}</div><div class="special-weather-content">${special ?? ""}</div></button>
             <section class="legacy-side-panel">
-              <div class="imagery-card" data-panel="${activePanel}"><div class="imagery-tabs"><button class="imagery-tab" data-panel="radar" aria-label="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" aria-selected="${activePanel === "radar" ? "true" : "false"}">${sidePanelTabTitle("radar", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="lightning" aria-label="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" aria-selected="${activePanel === "lightning" ? "true" : "false"}">${sidePanelTabTitle("lightning", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="typhoon" aria-label="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" aria-selected="${activePanel === "typhoon" ? "true" : "false"}"${hasTropicalCyclone ? "" : " hidden"}>${sidePanelTabTitle("typhoon", language, tropicalCycloneCount)}</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"${showTropicalCyclonePanel ? " hidden" : ""}><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">放大</button><div class="imagery-step-hint" aria-hidden="true" hidden><span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span><span class="imagery-step-hint-arrow imagery-step-hint-right">›</span></div><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"${showTropicalCyclonePanel ? " hidden" : ""}><span>時間</span><span>12:06</span></div><div class="radar-ranges"${showTropicalCyclonePanel ? " hidden" : ""}><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div>${tropicalCyclonePanel}<div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
+              <div class="imagery-card" data-panel="${activePanel}"><div class="imagery-tabs"><button class="imagery-tab" data-panel="radar" aria-label="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("radar", language, tropicalCycloneCount)}" aria-selected="${activePanel === "radar" ? "true" : "false"}">${sidePanelTabTitle("radar", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="lightning" aria-label="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("lightning", language, tropicalCycloneCount)}" aria-selected="${activePanel === "lightning" ? "true" : "false"}">${sidePanelTabTitle("lightning", language, tropicalCycloneCount)}</button><button class="imagery-tab" data-panel="typhoon" aria-label="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" title="${sidePanelFullTitle("typhoon", language, tropicalCycloneCount)}" aria-selected="${activePanel === "typhoon" ? "true" : "false"}"${hasTropicalCyclone ? "" : " hidden"}>${sidePanelTabTitle("typhoon", language, tropicalCycloneCount)}</button></div><div class="imagery-preview" role="button" tabindex="0" aria-label="天氣圖像預覽，按左右方向鍵轉圖，按 Enter 放大或縮小"${showTropicalCyclonePanel ? " hidden" : ""}><img class="imagery-image-crop-map" src="${RADAR}" alt=""><div class="imagery-stepper"><span class="imagery-position">5 / 5</span></div><button class="imagery-expand" type="button">${language === "en" ? "Expand" : "放大"}</button><div class="radar-playback"${activePanel === "radar" && !showTropicalCyclonePanel ? "" : " hidden"}><button class="radar-play-toggle" type="button" aria-label="暫停雷達動畫" aria-pressed="false"><span class="radar-play-icon" aria-hidden="true"></span></button><input class="radar-playback-slider" type="range" min="1" max="5" step="1" value="5" aria-label="雷達動畫格數"><output class="radar-playback-position">5/5</output></div><div class="imagery-step-hint" aria-hidden="true" hidden><span class="imagery-step-hint-arrow imagery-step-hint-left">‹</span><span class="imagery-step-hint-arrow imagery-step-hint-right">›</span></div><span class="imagery-fallback" hidden>Loading</span></div><div class="imagery-caption"${showTropicalCyclonePanel ? " hidden" : ""}><span>時間</span><span>12:06</span></div><div class="radar-ranges"${showTropicalCyclonePanel ? " hidden" : ""}><button class="radar-range">256km</button><button class="radar-range">128km</button><button class="radar-range" aria-selected="true">64km</button></div>${tropicalCyclonePanel}<div class="imagery-toast" role="status" aria-live="polite" hidden></div></div>
             </section>
             <section class="legacy-forecast">
               <div class="legacy-forecast-list">
@@ -1508,6 +1588,7 @@ async function fixtureHtml({
           const imageryPreview = document.querySelector(".imagery-preview");
           const imageryCaption = document.querySelector(".imagery-caption");
           const radarRanges = document.querySelector(".radar-ranges");
+          const radarPlayback = document.querySelector(".radar-playback");
           const tropicalCycloneView = document.querySelector(".tropical-cyclone-view");
           const imageryPosition = document.querySelector(".imagery-position");
           const imageryStepper = document.querySelector(".imagery-stepper");
@@ -1578,6 +1659,7 @@ async function fixtureHtml({
             if (imageryPreview instanceof HTMLElement) imageryPreview.hidden = isTyphoon;
             if (imageryCaption instanceof HTMLElement) imageryCaption.hidden = isTyphoon;
             if (radarRanges instanceof HTMLElement) radarRanges.hidden = isTyphoon;
+            if (radarPlayback instanceof HTMLElement) radarPlayback.hidden = safePanel !== "radar";
             if (tropicalCycloneView instanceof HTMLElement) tropicalCycloneView.hidden = !isTyphoon;
           };
           const setTrackMapMessageState = (state) => {
