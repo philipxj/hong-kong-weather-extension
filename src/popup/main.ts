@@ -13,10 +13,8 @@ import {
   getCachedWeather,
   getSettings,
   getSignalWarnings,
-  refreshWeather,
   selectPrimaryTropicalCyclone,
-  tropicalCycloneDirectionLabel,
-  updateBadge
+  tropicalCycloneDirectionLabel
 } from "../shared/weather-service";
 import type {
   ForecastDay,
@@ -32,6 +30,7 @@ import { formatHongKongTime, millisecondsUntilNextMinute } from "./hong-kong-tim
 import { loadImageryProgressively } from "./imagery-loader";
 import { selectImagerySnapshots } from "./imagery-snapshots";
 import { sidePanelFullTitle, sidePanelTabTitle } from "./imagery-tabs";
+import { compactRadarRangeLabel } from "./radar-range-label";
 
 type WarningSignalClass = WeatherWarning["type"];
 type SidePanelType = ImageryType | "typhoon";
@@ -342,8 +341,8 @@ els.imageryOpen.addEventListener("click", (event) => {
   clearPreviewClickTimer();
   previewClickTimer = window.setTimeout(() => {
     previewClickTimer = undefined;
+    if (event.isTrusted) dismissImageryStepHint();
     if (stepImagerySnapshot(direction)) {
-      dismissImageryStepHint();
       showImageryStepFeedback(direction);
     }
   }, 220);
@@ -361,8 +360,8 @@ els.imageryOpen.addEventListener("keydown", (event) => {
     event.preventDefault();
     clearPreviewClickTimer();
     const direction = event.key === "ArrowLeft" ? -1 : 1;
-    if (stepImagerySnapshot(direction)) {
-      dismissImageryStepHint();
+    if (event.isTrusted) dismissImageryStepHint();
+    if (stepImagerySnapshot(direction) && event.isTrusted) {
       showImageryStepFeedback(direction);
     }
     return;
@@ -420,7 +419,7 @@ async function load({ force = false }: { force?: boolean } = {}): Promise<void> 
       render();
     }
 
-    state.data = await refreshThroughBackground();
+    state.data = await refreshThroughBackground(force);
     render();
   } catch (error) {
     const cached = await getCachedWeather();
@@ -445,18 +444,13 @@ function cachedMatchesSettings(data: WeatherData): boolean {
   return data.language === activeLanguage();
 }
 
-async function refreshThroughBackground(): Promise<WeatherData> {
-  try {
-    const response = await browserApi.runtime.sendMessage<RefreshWeatherResponse>({
-      type: "refreshWeather"
-    });
-    if (response?.ok) return response.data;
-    throw new Error(response?.error || "Refresh failed");
-  } catch {
-    const data = await refreshWeather(state.settings);
-    await updateBadge(data, state.settings);
-    return data;
-  }
+async function refreshThroughBackground(force: boolean): Promise<WeatherData> {
+  const response = await browserApi.runtime.sendMessage<RefreshWeatherResponse>({
+    type: "refreshWeather",
+    force
+  });
+  if (response?.ok) return response.data;
+  throw new Error(response?.error || "Refresh failed");
 }
 
 function render(): void {
@@ -482,8 +476,7 @@ function render(): void {
   els.topHumidity.textContent = formatUnit(data.current.humidity, "%");
   els.topUvValue.textContent = String(data.current.uvIndex ?? "--");
   els.topUvDesc.textContent = data.current.uvDesc ? `(${data.current.uvDesc})` : "";
-  els.topSummary.textContent =
-    caption || data.current.forecast || localized.fallbackWeather;
+  els.topSummary.textContent = caption || data.current.forecast || localized.fallbackWeather;
 
   renderSpecialWeather(data.current.tips);
   fitWeatherTitle();
@@ -917,8 +910,10 @@ function renderRadarRanges(type: ImageryType): void {
     const button = document.createElement("button");
     button.className = "radar-range";
     button.type = "button";
-    button.textContent = range.label;
-    button.title = range.label.replace("km", copy().radarRangeSuffix);
+    const labels = compactRadarRangeLabel(range.label, copy().radarRangeSuffix);
+    button.textContent = labels.visible;
+    button.title = labels.accessible;
+    button.setAttribute("aria-label", labels.accessible);
     const isSelected = range.id === IMAGERY[type].selectedRangeId;
     button.setAttribute("aria-selected", String(isSelected));
     button.setAttribute("aria-pressed", String(isSelected));
@@ -1336,7 +1331,10 @@ function hideImageryToast(): void {
 }
 
 function shouldIgnorePreviewAction(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest(".imagery-stepper, button"));
+  return (
+    target instanceof Element &&
+    Boolean(target.closest(".imagery-stepper, .radar-playback, button, input"))
+  );
 }
 
 function renderImageryExpandButton(language: Language = activeLanguage()): void {
