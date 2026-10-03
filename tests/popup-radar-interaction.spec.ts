@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { createServer, type ViteDevServer } from "vite";
+import type { WeatherData } from "../src/shared/types";
 
 let server: ViteDevServer;
 let popupUrl: string;
@@ -16,6 +17,49 @@ test.afterAll(async () => {
   await server?.close();
 });
 
+for (const scenario of ["none", "two", "four", "long"] as const) {
+  test(`fits km range labels in compact and expanded views with ${scenario} warnings`, async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.goto(`${popupUrl}?warnings=${scenario}`);
+    await expect(page.locator("#warning-signal-row button")).toHaveCount(
+      scenario === "none" ? 0 : scenario === "four" ? 4 : 2
+    );
+    await expect(page.locator("#radar-ranges .radar-range")).toHaveText([
+      "256 km",
+      "128 km",
+      "64 km"
+    ]);
+    for (const expanded of [false, true]) {
+      if (expanded) await page.locator("#imagery-expand").click();
+      const bounds = await page.locator(".imagery-toolbar").evaluate((toolbar) => {
+        const parent = toolbar.getBoundingClientRect();
+        return [...toolbar.querySelectorAll(".radar-range")].map((button) => {
+          const box = button.getBoundingClientRect();
+          const range = document.createRange();
+          range.selectNodeContents(button);
+          const text = range.getBoundingClientRect();
+          return {
+            left: box.left,
+            right: box.right,
+            textLeft: text.left,
+            textRight: text.right,
+            parentLeft: parent.left,
+            parentRight: parent.right
+          };
+        });
+      });
+      for (const box of bounds) {
+        expect(box.left).toBeGreaterThanOrEqual(box.parentLeft);
+        expect(box.right).toBeLessThanOrEqual(box.parentRight);
+        expect(box.textLeft).toBeGreaterThanOrEqual(box.left);
+        expect(box.textRight).toBeLessThanOrEqual(box.right);
+      }
+    }
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   const time = new Date("2026-10-03T01:00:00Z");
   await page.clock.install({ time });
@@ -27,7 +71,7 @@ test.beforeEach(async ({ page }) => {
     })
   );
   await page.addInitScript(() => {
-    const weather = {
+    const weather: WeatherData = {
       language: "tc",
       fetchedAt: new Date().toISOString(),
       stale: false,
@@ -49,6 +93,21 @@ test.beforeEach(async ({ page }) => {
       warnings: [],
       warningInfo: []
     };
+    const scenario = new URL(location.href).searchParams.get("warnings") ?? "none";
+    const count = scenario === "none" ? 0 : scenario === "four" ? 4 : 2;
+    weather.warnings = (["thunderstorm", "rain-amber", "heat", "cold"] as const)
+      .slice(0, count)
+      .map((type, index) => ({
+        code: ["WTS", "WRAIN", "WHOT", "WCOLD"][index] ?? type,
+        type,
+        name: scenario === "long" ? "雷暴警告及持續大雨，市民應留意最新天氣消息" : type,
+        badge: type === "rain-amber" ? "黃雨" : "",
+        priority: 1,
+        issueTime: "",
+        updateTime: "",
+        expireTime: "",
+        contents: ""
+      }));
     const urls = ["range0", "range1", "range2"].flatMap((range) =>
       Array.from({ length: 5 }, (_, frame) => `${range}|test-${range}-${frame}.png`)
     );
