@@ -45,6 +45,11 @@ for (const scenario of ["none", "two", "four", "long"] as const) {
             right: box.right,
             textLeft: text.left,
             textRight: text.right,
+            top: box.top,
+            bottom: box.bottom,
+            textTop: text.top,
+            textBottom: text.bottom,
+            textLines: range.getClientRects().length,
             parentLeft: parent.left,
             parentRight: parent.right
           };
@@ -55,6 +60,9 @@ for (const scenario of ["none", "two", "four", "long"] as const) {
         expect(box.right).toBeLessThanOrEqual(box.parentRight);
         expect(box.textLeft).toBeGreaterThanOrEqual(box.left);
         expect(box.textRight).toBeLessThanOrEqual(box.right);
+        expect(box.textLines).toBe(1);
+        expect(box.textTop).toBeGreaterThanOrEqual(box.top);
+        expect(box.textBottom).toBeLessThanOrEqual(box.bottom);
       }
     }
   });

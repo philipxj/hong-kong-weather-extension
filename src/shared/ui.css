@@ -2055,7 +2055,7 @@ html[lang="en"] .legacy-forecast-temp {
   display: grid;
   grid-template-columns: 18px minmax(42px, 1fr) 24px;
   gap: 3px;
-  width: 97px;
+  width: 91px;
   height: 21px;
   align-items: center;
   padding: 0;
@@ -2115,7 +2115,7 @@ html[lang="en"] .legacy-forecast-temp {
   left: auto;
   z-index: auto;
   display: grid;
-  grid-template-columns: repeat(var(--range-count, 3), 30px);
+  grid-template-columns: repeat(var(--range-count, 3), 32px);
   gap: 0;
   width: max-content;
   height: 21px;
@@ -2130,7 +2130,7 @@ html[lang="en"] .legacy-forecast-temp {
 .imagery-card .imagery-toolbar .radar-range,
 .imagery-card:not(.is-expanded) .imagery-toolbar .radar-range,
 .imagery-card.is-expanded .imagery-toolbar .radar-range {
-  width: 30px;
+  width: 32px;
   min-width: 0;
   height: 21px;
   padding: 0;
@@ -2139,6 +2139,7 @@ html[lang="en"] .legacy-forecast-temp {
   border: 0;
   border-left: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 0;
+  white-space: nowrap;
   font-size: 9px;
   font-weight: 800;
   line-height: 21px;

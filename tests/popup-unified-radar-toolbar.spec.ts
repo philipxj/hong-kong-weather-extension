@@ -108,10 +108,10 @@ test("keeps the unified radar toolbar compact in normal and expanded previews", 
   expect(Math.round(compact.toolbar.left - compact.preview.left)).toBe(6);
   expect(Math.round(compact.preview.bottom - compact.toolbar.bottom)).toBe(6);
   expect(compact.toolbar.right).toBeLessThanOrEqual(compact.preview.right);
-  expect(Math.round(compact.playback.width)).toBe(97);
+  expect(Math.round(compact.playback.width)).toBe(91);
   expect(Math.round(compact.playToggle.width)).toBe(18);
   expect(Math.round(compact.playToggle.height)).toBe(18);
-  expect(compact.slider.width).toBeGreaterThanOrEqual(48);
+  expect(compact.slider.width).toBeGreaterThanOrEqual(42);
   expect(overlaps(compact.playback, compact.firstDivider)).toBe(false);
   expect(overlaps(compact.firstDivider, compact.caption)).toBe(false);
   expect(overlaps(compact.caption, compact.secondDivider)).toBe(false);
