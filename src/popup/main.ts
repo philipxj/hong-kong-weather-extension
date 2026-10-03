@@ -343,8 +343,8 @@ els.imageryOpen.addEventListener("click", (event) => {
   clearPreviewClickTimer();
   previewClickTimer = window.setTimeout(() => {
     previewClickTimer = undefined;
+    if (event.isTrusted) dismissImageryStepHint();
     if (stepImagerySnapshot(direction)) {
-      dismissImageryStepHint();
       showImageryStepFeedback(direction);
     }
   }, 220);
@@ -362,8 +362,8 @@ els.imageryOpen.addEventListener("keydown", (event) => {
     event.preventDefault();
     clearPreviewClickTimer();
     const direction = event.key === "ArrowLeft" ? -1 : 1;
+    if (event.isTrusted) dismissImageryStepHint();
     if (stepImagerySnapshot(direction) && event.isTrusted) {
-      dismissImageryStepHint();
       showImageryStepFeedback(direction);
     }
     return;
