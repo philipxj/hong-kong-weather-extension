@@ -4,7 +4,6 @@ import {
   ALL_NOTIFICATION_WARNING_CATEGORIES,
   getCachedWeather,
   getSettings,
-  refreshWeather,
   saveSettings,
   updateBadge
 } from "../shared/weather-service";
@@ -35,6 +34,8 @@ type TestNotificationResponse =
       notification: { id: string; permission: string; visibleInChrome: boolean };
     }
   | { ok: false; error: string };
+
+type RefreshWeatherResponse = { ok: true } | { ok: false; error: string };
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -86,13 +87,13 @@ function readForm(): Settings {
     currentRefreshMinutes: clampNumber(
       query<HTMLInputElement>("#currentRefreshMinutes", form).value,
       10,
-      180,
+      120,
       15
     ),
     warningCheckMinutes: clampNumber(
       query<HTMLInputElement>("#warningCheckMinutes", form).value,
       5,
-      180,
+      60,
       5
     )
   };
@@ -122,8 +123,11 @@ async function save(): Promise<void> {
   await saveSettings(next);
 
   if (action === "refresh-weather") {
-    const weather = await refreshWeather(next);
-    await updateBadge(weather, next);
+    const response = await browserApi.runtime.sendMessage<RefreshWeatherResponse>({
+      type: "refreshWeather",
+      force: true
+    });
+    if (!response?.ok) throw new Error(response?.error ?? "Refresh failed");
   } else if (action === "update-badge") {
     await updateBadge(await getCachedWeather(), next);
   }

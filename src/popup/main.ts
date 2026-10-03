@@ -13,10 +13,8 @@ import {
   getCachedWeather,
   getSettings,
   getSignalWarnings,
-  refreshWeather,
   selectPrimaryTropicalCyclone,
-  tropicalCycloneDirectionLabel,
-  updateBadge
+  tropicalCycloneDirectionLabel
 } from "../shared/weather-service";
 import type {
   ForecastDay,
@@ -421,7 +419,7 @@ async function load({ force = false }: { force?: boolean } = {}): Promise<void> 
       render();
     }
 
-    state.data = await refreshThroughBackground();
+    state.data = await refreshThroughBackground(force);
     render();
   } catch (error) {
     const cached = await getCachedWeather();
@@ -446,18 +444,13 @@ function cachedMatchesSettings(data: WeatherData): boolean {
   return data.language === activeLanguage();
 }
 
-async function refreshThroughBackground(): Promise<WeatherData> {
-  try {
-    const response = await browserApi.runtime.sendMessage<RefreshWeatherResponse>({
-      type: "refreshWeather"
-    });
-    if (response?.ok) return response.data;
-    throw new Error(response?.error || "Refresh failed");
-  } catch {
-    const data = await refreshWeather(state.settings);
-    await updateBadge(data, state.settings);
-    return data;
-  }
+async function refreshThroughBackground(force: boolean): Promise<WeatherData> {
+  const response = await browserApi.runtime.sendMessage<RefreshWeatherResponse>({
+    type: "refreshWeather",
+    force
+  });
+  if (response?.ok) return response.data;
+  throw new Error(response?.error || "Refresh failed");
 }
 
 function render(): void {
@@ -483,8 +476,7 @@ function render(): void {
   els.topHumidity.textContent = formatUnit(data.current.humidity, "%");
   els.topUvValue.textContent = String(data.current.uvIndex ?? "--");
   els.topUvDesc.textContent = data.current.uvDesc ? `(${data.current.uvDesc})` : "";
-  els.topSummary.textContent =
-    caption || data.current.forecast || localized.fallbackWeather;
+  els.topSummary.textContent = caption || data.current.forecast || localized.fallbackWeather;
 
   renderSpecialWeather(data.current.tips);
   fitWeatherTitle();

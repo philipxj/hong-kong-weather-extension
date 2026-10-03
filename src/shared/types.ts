@@ -36,6 +36,16 @@ export interface WeatherError {
   at?: string;
 }
 
+export type WeatherSliceName = "current" | "forecast" | "warnings" | "tropicalCyclones";
+
+export interface WeatherSliceState {
+  fetchedAt: string | null;
+  stale: boolean;
+  error: WeatherError | null;
+}
+
+export type WeatherSliceStates = Record<WeatherSliceName, WeatherSliceState>;
+
 export interface CurrentWeather {
   temperature: number | null;
   humidity: number | null;
@@ -125,6 +135,7 @@ export interface WeatherData {
   tropicalCyclones: TropicalCyclone[];
   warnings: WeatherWarning[];
   warningInfo: WarningInfo[];
+  sliceStates?: WeatherSliceStates;
 }
 
 export type ImageryType = "radar" | "lightning";
