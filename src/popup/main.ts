@@ -30,6 +30,7 @@ import { formatHongKongTime, millisecondsUntilNextMinute } from "./hong-kong-tim
 import { loadImageryProgressively } from "./imagery-loader";
 import { selectImagerySnapshots } from "./imagery-snapshots";
 import { sidePanelFullTitle, sidePanelTabTitle } from "./imagery-tabs";
+import { compactRadarRangeLabel } from "./radar-range-label";
 
 type WarningSignalClass = WeatherWarning["type"];
 type SidePanelType = ImageryType | "typhoon";
@@ -340,8 +341,8 @@ els.imageryOpen.addEventListener("click", (event) => {
   clearPreviewClickTimer();
   previewClickTimer = window.setTimeout(() => {
     previewClickTimer = undefined;
+    if (event.isTrusted) dismissImageryStepHint();
     if (stepImagerySnapshot(direction)) {
-      dismissImageryStepHint();
       showImageryStepFeedback(direction);
     }
   }, 220);
@@ -359,8 +360,8 @@ els.imageryOpen.addEventListener("keydown", (event) => {
     event.preventDefault();
     clearPreviewClickTimer();
     const direction = event.key === "ArrowLeft" ? -1 : 1;
-    if (stepImagerySnapshot(direction)) {
-      dismissImageryStepHint();
+    if (event.isTrusted) dismissImageryStepHint();
+    if (stepImagerySnapshot(direction) && event.isTrusted) {
       showImageryStepFeedback(direction);
     }
     return;
@@ -909,8 +910,10 @@ function renderRadarRanges(type: ImageryType): void {
     const button = document.createElement("button");
     button.className = "radar-range";
     button.type = "button";
-    button.textContent = range.label;
-    button.title = range.label.replace("km", copy().radarRangeSuffix);
+    const labels = compactRadarRangeLabel(range.label, copy().radarRangeSuffix);
+    button.textContent = labels.visible;
+    button.title = labels.accessible;
+    button.setAttribute("aria-label", labels.accessible);
     const isSelected = range.id === IMAGERY[type].selectedRangeId;
     button.setAttribute("aria-selected", String(isSelected));
     button.setAttribute("aria-pressed", String(isSelected));
@@ -1328,7 +1331,10 @@ function hideImageryToast(): void {
 }
 
 function shouldIgnorePreviewAction(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest(".imagery-stepper, button"));
+  return (
+    target instanceof Element &&
+    Boolean(target.closest(".imagery-stepper, .radar-playback, button, input"))
+  );
 }
 
 function renderImageryExpandButton(language: Language = activeLanguage()): void {
