@@ -2171,3 +2171,13 @@ html[lang="en"] .legacy-forecast-temp {
   line-height: 21px;
   white-space: nowrap;
 }
+
+.imagery-card[data-panel="lightning"] .imagery-toolbar {
+  right: 13px;
+  left: auto;
+  width: max-content;
+}
+
+.imagery-card.is-expanded[data-panel="lightning"] .imagery-toolbar {
+  right: 15px;
+}

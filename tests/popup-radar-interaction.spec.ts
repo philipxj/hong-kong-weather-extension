@@ -72,6 +72,48 @@ for (const scenario of ["none", "two", "four", "long"] as const) {
   });
 }
 
+for (const scenario of ["none", "two", "four", "long"] as const) {
+  test(`keeps lightning controls compact and right aligned with ${scenario} warnings`, async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 790, height: 438 });
+    await page.goto(`${popupUrl}?warnings=${scenario}`);
+    await page.getByRole("tab", { name: "閃電位置", exact: true }).click();
+    await expect(page.locator("#radar-playback")).toBeHidden();
+    await expect(page.locator("#radar-ranges .radar-range")).toHaveText(["256", "64"]);
+    await expect(page.locator("#radar-ranges .radar-range-unit")).toHaveText("km");
+    for (const expanded of [false, true]) {
+      if (expanded) await page.locator("#imagery-expand").click();
+      const bounds = await page.locator(".imagery-card").evaluate((card) => {
+        const rect = (selector: string) => {
+          const node = card.querySelector(selector);
+          if (!node) throw new Error(`Missing ${selector}`);
+          const box = node.getBoundingClientRect();
+          return { width: box.width, left: box.left, right: box.right, bottom: box.bottom };
+        };
+        return {
+          toolbar: rect(".imagery-toolbar"),
+          preview: rect(".imagery-preview"),
+          caption: rect(".imagery-caption"),
+          ranges: rect(".radar-ranges")
+        };
+      });
+      expect(bounds.toolbar.width).toBeLessThan(140);
+      expect(bounds.preview.right - bounds.toolbar.right).toBeCloseTo(6, 0);
+      expect(bounds.caption.left - bounds.toolbar.left).toBeLessThanOrEqual(6);
+      expect(bounds.ranges.right).toBeLessThanOrEqual(bounds.toolbar.right);
+      expect(bounds.caption.right).toBeLessThan(bounds.ranges.left);
+      expect(bounds.toolbar.bottom).toBeLessThanOrEqual(bounds.preview.bottom);
+    }
+    await page.locator("#imagery-expand").click();
+    await page.getByRole("tab", { name: "等雨量線圖", exact: true }).click();
+    await expect(page.locator("#radar-playback")).toBeVisible();
+    expect(
+      await page.locator(".imagery-toolbar").evaluate((node) => node.getBoundingClientRect().width)
+    ).toBe(242);
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   const time = new Date("2026-10-03T01:00:00Z");
   await page.clock.install({ time });
@@ -127,7 +169,11 @@ test.beforeEach(async ({ page }) => {
       weatherCache: weather,
       imageryUrlCache: {
         radar: { fetchedAt: Date.now(), url: urls.at(-1), urls },
-        lightning: { fetchedAt: Date.now(), url: urls.at(-1), urls }
+        lightning: {
+          fetchedAt: Date.now(),
+          url: urls.at(-1),
+          urls: urls.filter((url) => !url.startsWith("range1|"))
+        }
       }
     })) {
       localStorage.setItem(`hk-weather-alerts:local:${key}`, JSON.stringify(value));
