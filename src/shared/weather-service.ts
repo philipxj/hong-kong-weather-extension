@@ -274,41 +274,48 @@ export async function refreshWeather(
   const matchingCache = cached?.language === activeSettings.language ? cached : null;
   const force = options.force ?? true;
   const now = options.now ?? Date.now();
-  const tasks: Array<{ slice: WeatherSliceName; promise: Promise<WeatherData> }> = [];
+  const tasks: Array<{
+    slice: WeatherSliceName;
+    generation: number;
+    promise: Promise<WeatherData>;
+  }> = [];
+  const addTask = (slice: WeatherSliceName, promise: Promise<WeatherData>): void => {
+    tasks.push({ slice, promise, generation: sliceRefreshGenerations[slice] });
+  };
 
   if (
     force ||
     !cacheSliceIsFresh(matchingCache, "current", activeSettings.currentRefreshMinutes * 60_000, now)
   ) {
-    tasks.push({ slice: "current", promise: refreshCurrentWeather(activeSettings) });
+    addTask("current", refreshCurrentWeather(activeSettings));
   }
   if (force || !cacheSliceIsFresh(matchingCache, "forecast", FORECAST_TTL_MS, now)) {
-    tasks.push({ slice: "forecast", promise: refreshForecast(activeSettings) });
+    addTask("forecast", refreshForecast(activeSettings));
   }
   if (
     force ||
     !cacheSliceIsFresh(matchingCache, "warnings", activeSettings.warningCheckMinutes * 60_000, now)
   ) {
-    tasks.push({ slice: "warnings", promise: refreshWeatherWarnings(activeSettings) });
+    addTask("warnings", refreshWeatherWarnings(activeSettings));
   }
   if (
     force ||
     !cacheSliceIsFresh(matchingCache, "tropicalCyclones", TROPICAL_CYCLONE_TTL_MS, now)
   ) {
-    tasks.push({
-      slice: "tropicalCyclones",
-      promise: refreshTropicalCyclones(activeSettings)
-    });
+    addTask("tropicalCyclones", refreshTropicalCyclones(activeSettings));
   }
 
   const results = await Promise.allSettled(tasks.map((task) => task.promise));
   let refreshed = await getCachedWeather();
   for (const [index, result] of results.entries()) {
+    const task = tasks[index];
+    if (!task || !isLatestSliceRefresh(task.slice, task.generation)) continue;
     if (result.status !== "rejected" || refreshed?.language !== activeSettings.language) continue;
     refreshed = await recordSliceError(
-      tasks[index]?.slice ?? "current",
+      task.slice,
       result.reason,
-      activeSettings.language
+      activeSettings.language,
+      task.generation
     );
   }
 
@@ -353,7 +360,7 @@ export async function refreshCurrentWeather(
     if (!isLatestSliceRefresh("current", generation)) {
       return latestCacheOrThrow(error);
     }
-    return recordSliceError("current", error, activeSettings.language);
+    return recordSliceError("current", error, activeSettings.language, generation);
   }
 }
 
@@ -381,7 +388,7 @@ export async function refreshForecast(settings: Settings | null = null): Promise
     if (!isLatestSliceRefresh("forecast", generation)) {
       return latestCacheOrThrow(error);
     }
-    return recordSliceError("forecast", error, activeSettings.language);
+    return recordSliceError("forecast", error, activeSettings.language, generation);
   }
 }
 
@@ -432,7 +439,7 @@ export async function refreshWeatherWarnings(
     if (!isLatestSliceRefresh("warnings", generation)) {
       return latestCacheOrThrow(error);
     }
-    return recordSliceError("warnings", error, activeSettings.language);
+    return recordSliceError("warnings", error, activeSettings.language, generation);
   }
 }
 
@@ -460,7 +467,7 @@ export async function refreshTropicalCyclones(
     if (!isLatestSliceRefresh("tropicalCyclones", generation)) {
       return latestCacheOrThrow(error);
     }
-    return recordSliceError("tropicalCyclones", error, activeSettings.language);
+    return recordSliceError("tropicalCyclones", error, activeSettings.language, generation);
   }
 }
 
@@ -802,10 +809,14 @@ function isCancelledWarning(item: HkoWarnsum[keyof HkoWarnsum]): boolean {
 async function recordSliceError(
   slice: WeatherSliceName,
   error: unknown,
-  language: Language
+  language: Language,
+  generation: number
 ): Promise<WeatherData> {
   const failedAt = new Date().toISOString();
   const { next } = await updateWeatherCache((cached) => {
+    if (!isLatestSliceRefresh(slice, generation)) {
+      return cached ?? createEmptyWeatherData(language);
+    }
     if (!cached || cached.language !== language) throw error;
     const base = cacheForLanguage(cached, language);
     const previousState = base.sliceStates?.[slice];
@@ -938,13 +949,11 @@ async function createTestNotification(title: string, message: string): Promise<s
 }
 
 async function fetchHkoJson<T>(url: string, schema: { parse: (value: unknown) => T }): Promise<T> {
-  const response = await fetchHko(url);
-  return schema.parse(await response.json());
+  return fetchHko(url, { readResponse: async (response) => schema.parse(await response.json()) });
 }
 
 async function fetchLatestUv(language: Language): Promise<LatestUvIndex | null> {
-  const response = await fetchHko(LATEST_UV_URLS[language]);
-  return parseLatestUvCsv(await response.text());
+  return parseLatestUvCsv(await fetchHkoText(LATEST_UV_URLS[language]));
 }
 
 export function parseLatestUvCsv(text: string): LatestUvIndex | null {
@@ -1063,10 +1072,19 @@ export function selectPrimaryTropicalCyclone(cyclones: TropicalCyclone[]): Tropi
 
 async function fetchTropicalCyclones(language: Language): Promise<TropicalCyclone[]> {
   const listText = await fetchHkoText(TROPICAL_CYCLONE_LIST_URL);
-  if (!/<TropicalCycloneList(?:\s|>)/i.test(listText)) {
+  const xml = listText.trim().replace(/^<\?xml[\s\S]*?\?>\s*/i, "");
+  if (/^<TropicalCycloneList\s*\/>$/i.test(xml)) return [];
+  const root = xml.match(/^<TropicalCycloneList(?:\s[^>]*)?>([\s\S]*)<\/TropicalCycloneList>$/i);
+  if (!root) {
     throw new Error("Invalid HKO tropical cyclone list data.");
   }
-  const list = parseTropicalCycloneList(listText);
+  const contents = (root[1] ?? "").replace(/<!--[\s\S]*?-->/g, "");
+  const blocks = extractXmlBlocks(contents, "TropicalCyclone");
+  const list = parseTropicalCycloneList(contents);
+  const remainder = contents.replace(/<TropicalCyclone>[\s\S]*?<\/TropicalCyclone>/gi, "").trim();
+  if (remainder || blocks.length !== list.length) {
+    throw new Error("Invalid HKO tropical cyclone list data.");
+  }
   if (!list.length) return [];
 
   const cyclones = await Promise.all(list.map((entry) => fetchTropicalCyclone(entry, language)));
@@ -1271,8 +1289,7 @@ function radiansToDegrees(value: number): number {
 }
 
 async function fetchHkoText(url: string): Promise<string> {
-  const response = await fetchHko(url);
-  return response.text();
+  return fetchHko(url, { readResponse: (response) => response.text() });
 }
 
 function sortTropicalCyclones(cyclones: TropicalCyclone[]): TropicalCyclone[] {

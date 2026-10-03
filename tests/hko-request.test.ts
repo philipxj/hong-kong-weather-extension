@@ -55,6 +55,43 @@ describe("HKO request policy", () => {
     );
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
+
+  test("keeps the timeout active while reading the response body", async () => {
+    const fetchImpl = vi.fn<typeof fetch>((_input, init) => {
+      const stream = new ReadableStream({
+        start(controller) {
+          init?.signal?.addEventListener("abort", () => controller.error(init.signal?.reason));
+        }
+      });
+      return Promise.resolve(new Response(stream));
+    });
+    await expect(
+      fetchHko(HKO_URL, {
+        fetchImpl,
+        retryDelaysMs: [],
+        timeoutMs: 5,
+        readResponse: (response) => response.text()
+      })
+    ).rejects.toThrow("timed out");
+  });
+
+  test("retries a transient failure while reading the response body", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.reject(new TypeError("Body disconnected"))
+      } as Response)
+      .mockResolvedValueOnce(new Response("complete"));
+    await expect(
+      fetchHko(HKO_URL, {
+        fetchImpl,
+        retryDelaysMs: [0],
+        readResponse: (response) => response.text()
+      })
+    ).resolves.toBe("complete");
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
 });
 
 function response(status: number): Response {

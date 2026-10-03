@@ -46,7 +46,7 @@ describe("background refresh coalescing", () => {
     mockWeatherService.refreshForecast.mockReset();
     mockWeatherService.refreshWeather.mockReset();
     mockWeatherService.refreshWeatherWarnings.mockReset();
-    mockWeatherService.updateBadge.mockResolvedValue(undefined);
+    mockWeatherService.updateBadge.mockReset().mockResolvedValue(undefined);
   });
 
   test("shares simultaneous full refresh messages", async () => {
@@ -89,6 +89,37 @@ describe("background refresh coalescing", () => {
     });
     expect(mockWeatherService.refreshWeather).toHaveBeenNthCalledWith(2, settings(), {
       force: true
+    });
+  });
+
+  test("does not share an in-flight forced refresh after changing the language", async () => {
+    let finishFirst!: (data: WeatherData) => void;
+    const firstRefresh = new Promise<WeatherData>((resolve) => {
+      finishFirst = resolve;
+    });
+    const englishData = { ...weatherData(), language: "en" as const };
+    mockWeatherService.refreshWeather.mockImplementation((activeSettings: Settings) =>
+      activeSettings.language === "tc" ? firstRefresh : Promise.resolve(englishData)
+    );
+    await import("../src/background");
+    const handler = mockBrowserApi.messageHandler;
+    if (!handler) throw new Error("Missing runtime message handler");
+    const first = Promise.resolve(handler({ force: true, type: "refreshWeather" }));
+    await vi.waitFor(() => expect(mockWeatherService.refreshWeather).toHaveBeenCalledOnce());
+    mockWeatherService.getSettings.mockResolvedValue({ ...settings(), language: "en" });
+    const second = Promise.resolve(handler({ force: true, type: "refreshWeather" }));
+    try {
+      await vi.waitFor(() => expect(mockWeatherService.refreshWeather).toHaveBeenCalledTimes(2));
+      await expect(second).resolves.toEqual({ ok: true, data: englishData });
+    } finally {
+      finishFirst(weatherData());
+      await first;
+      await second;
+    }
+    expect(mockWeatherService.updateBadge).toHaveBeenCalledOnce();
+    expect(mockWeatherService.updateBadge).toHaveBeenLastCalledWith(englishData, {
+      ...settings(),
+      language: "en"
     });
   });
 });

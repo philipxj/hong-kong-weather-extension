@@ -99,10 +99,12 @@ async function scheduleRefreshes(): Promise<void> {
 }
 
 async function refreshAndBadge(force: boolean): Promise<WeatherData> {
-  return runRefreshTask(force ? "full-force" : "full-freshness", async () => {
-    const settings = await getSettings();
+  const settings = await getSettings();
+  const key = `${force ? "full-force" : "full-freshness"}:${settings.language}`;
+  return runRefreshTask(key, async () => {
     const data = await refreshWeather(settings, { force });
-    await updateBadge(data, settings);
+    const latestSettings = await getSettings();
+    if (data.language === latestSettings.language) await updateBadge(data, latestSettings);
     return data;
   });
 }

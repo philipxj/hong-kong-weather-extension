@@ -22,15 +22,22 @@ class HkoHttpError extends Error {
   }
 }
 
-export async function fetchHko(url: string, options: HkoRequestOptions = {}): Promise<Response> {
+type HkoResponseOptions = HkoRequestOptions & {
+  readResponse?: (response: Response) => Promise<unknown>;
+};
+
+export function fetchHko<T>(
+  url: string,
+  options: HkoRequestOptions & { readResponse: (response: Response) => Promise<T> }
+): Promise<T>;
+export function fetchHko(url: string, options?: HkoRequestOptions): Promise<Response>;
+export async function fetchHko(url: string, options: HkoResponseOptions = {}): Promise<unknown> {
   validateHkoUrl(url);
 
   const retryDelaysMs = options.retryDelaysMs ?? DEFAULT_RETRY_DELAYS_MS;
   for (let attempt = 0; ; attempt += 1) {
     try {
-      const response = await fetchHkoAttempt(url, options);
-      if (response.ok) return response;
-      throw new HkoHttpError(response.status);
+      return await fetchHkoAttempt(url, options);
     } catch (error) {
       if (!isRetryable(error) || attempt >= retryDelaysMs.length) throw error;
       await wait(retryDelaysMs[attempt] ?? 0, options.setTimeoutImpl ?? setTimeout);
@@ -52,7 +59,7 @@ export function validateHkoUrl(url: string): URL {
   return parsed;
 }
 
-async function fetchHkoAttempt(url: string, options: HkoRequestOptions): Promise<Response> {
+async function fetchHkoAttempt(url: string, options: HkoResponseOptions): Promise<unknown> {
   const controller = new AbortController();
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const setTimer = options.setTimeoutImpl ?? setTimeout;
@@ -62,10 +69,12 @@ async function fetchHkoAttempt(url: string, options: HkoRequestOptions): Promise
   }, timeoutMs);
 
   try {
-    return await (options.fetchImpl ?? fetch)(url, {
+    const response = await (options.fetchImpl ?? fetch)(url, {
       cache: "no-store",
       signal: controller.signal
     });
+    if (!response.ok) throw new HkoHttpError(response.status);
+    return options.readResponse ? await options.readResponse(response) : response;
   } catch (error) {
     if (controller.signal.aborted) {
       throw controller.signal.reason instanceof Error

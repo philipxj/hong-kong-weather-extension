@@ -517,6 +517,84 @@ describe("weather refresh API usage", () => {
     expect(Object.values(data.sliceStates ?? {})).toHaveLength(4);
   });
 
+  test.each([
+    "<TropicalCycloneList>",
+    "<TropicalCycloneList><TropicalCyclone><TropicalCycloneID>2611</TropicalCycloneID></TropicalCyclone></TropicalCycloneList>",
+    "<TropicalCycloneList><TropicalCyclone></TropicalCycloneList>"
+  ])("preserves successful cyclone data after malformed list XML: %s", async (xml) => {
+    mockState.local.weatherCache = {
+      ...cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z"),
+      tropicalCyclones: [cachedTropicalCyclone()]
+    };
+    vi.mocked(fetch).mockImplementation((input) =>
+      inputToUrl(input).endsWith("/wxinfo/currwx/tc_list.xml")
+        ? Promise.resolve(textResponse(xml))
+        : fetchHkoFixture(input)
+    );
+    const data = await refreshWeather(DEFAULT_SETTINGS);
+    expect(data.tropicalCyclones).toEqual([cachedTropicalCyclone()]);
+    expect(data.sliceStates?.tropicalCyclones).toMatchObject({
+      stale: true,
+      error: {
+        message: "Invalid HKO tropical cyclone list data."
+      }
+    });
+  });
+
+  test.each(["<TropicalCycloneList></TropicalCycloneList>", "<TropicalCycloneList/>"])(
+    "accepts a valid empty cyclone list: %s",
+    async (xml) => {
+      mockState.local.weatherCache = {
+        ...cachedWeatherWithSliceStates("2026-08-14T05:00:00.000Z"),
+        tropicalCyclones: [cachedTropicalCyclone()]
+      };
+      vi.mocked(fetch).mockImplementation((input) =>
+        inputToUrl(input).endsWith("/wxinfo/currwx/tc_list.xml")
+          ? Promise.resolve(textResponse(xml))
+          : fetchHkoFixture(input)
+      );
+      const data = await refreshWeather(DEFAULT_SETTINGS);
+      expect(data.tropicalCyclones).toEqual([]);
+      expect(data.sliceStates?.tropicalCyclones).toMatchObject({ stale: false, error: null });
+    }
+  );
+
+  test("does not apply an old full-refresh error to a newer successful current slice", async () => {
+    let currentRequests = 0;
+    const pending: Array<() => void> = [];
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = new URL(inputToUrl(input));
+      const dataType = url.searchParams.get("dataType");
+      if (dataType === "rhrread") {
+        currentRequests += 1;
+        return Promise.resolve(
+          currentRequests === 1 ? responseWithStatus(404) : jsonResponse(currentPayload(31))
+        );
+      }
+      if (dataType === "fnd" || dataType === "warnsum" || url.pathname.endsWith("tc_list.xml")) {
+        return new Promise<Response>((resolve) =>
+          pending.push(() =>
+            resolve(
+              url.pathname.endsWith("tc_list.xml")
+                ? textResponse("<TropicalCycloneList></TropicalCycloneList>")
+                : jsonResponse(hkoPayload(dataType))
+            )
+          )
+        );
+      }
+      return fetchHkoFixture(input);
+    });
+    const older = refreshWeather(DEFAULT_SETTINGS);
+    await vi.waitFor(() => expect(pending).toHaveLength(3));
+    expect(mockState.local.weatherCache).toBeUndefined();
+    await refreshCurrentWeather(DEFAULT_SETTINGS);
+    pending.forEach((finish) => finish());
+    await older;
+    const stored = mockState.local.weatherCache as WeatherData;
+    expect(stored.current.temperature).toBe(31);
+    expect(stored.sliceStates?.current).toMatchObject({ stale: false, error: null });
+  });
+
   test("filters amber red and black rainstorm warning notifications independently", async () => {
     const cases = [
       { code: "WRAINA", selected: "rain-amber", blocked: "rain-red" },
