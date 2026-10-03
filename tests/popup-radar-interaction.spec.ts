@@ -18,7 +18,7 @@ test.afterAll(async () => {
 });
 
 for (const scenario of ["none", "two", "four", "long"] as const) {
-  test(`fits km range labels in compact and expanded views with ${scenario} warnings`, async ({
+  test(`fits shared km range labels in compact and expanded views with ${scenario} warnings`, async ({
     page
   }) => {
     await page.setViewportSize({ width: 790, height: 438 });
@@ -26,16 +26,14 @@ for (const scenario of ["none", "two", "four", "long"] as const) {
     await expect(page.locator("#warning-signal-row button")).toHaveCount(
       scenario === "none" ? 0 : scenario === "four" ? 4 : 2
     );
-    await expect(page.locator("#radar-ranges .radar-range")).toHaveText([
-      "256 km",
-      "128 km",
-      "64 km"
-    ]);
+    await expect(page.locator("#radar-ranges .radar-range")).toHaveText(["256", "128", "64"]);
+    await expect(page.locator("#radar-ranges .radar-range-unit")).toHaveText("km");
+    await expect(page.locator("#radar-ranges .radar-range-unit")).toHaveCount(1);
     for (const expanded of [false, true]) {
       if (expanded) await page.locator("#imagery-expand").click();
       const bounds = await page.locator(".imagery-toolbar").evaluate((toolbar) => {
         const parent = toolbar.getBoundingClientRect();
-        return [...toolbar.querySelectorAll(".radar-range")].map((button) => {
+        return [...toolbar.querySelectorAll(".radar-range, .radar-range-unit")].map((button) => {
           const box = button.getBoundingClientRect();
           const range = document.createRange();
           range.selectNodeContents(button);
@@ -64,6 +62,12 @@ for (const scenario of ["none", "two", "four", "long"] as const) {
         expect(box.textTop).toBeGreaterThanOrEqual(box.top);
         expect(box.textBottom).toBeLessThanOrEqual(box.bottom);
       }
+      await page.getByRole("button", { name: "128公里", exact: true }).click();
+      await expect(page.getByRole("button", { name: "128公里", exact: true })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      );
+      await expect(page.locator("#radar-ranges .radar-range-unit")).toHaveCount(1);
     }
   });
 }

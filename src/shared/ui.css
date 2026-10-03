@@ -2115,7 +2115,7 @@ html[lang="en"] .legacy-forecast-temp {
   left: auto;
   z-index: auto;
   display: grid;
-  grid-template-columns: repeat(var(--range-count, 3), 32px);
+  grid-template-columns: repeat(var(--range-count, 3), 26px) 18px;
   gap: 0;
   width: max-content;
   height: 21px;
@@ -2130,7 +2130,7 @@ html[lang="en"] .legacy-forecast-temp {
 .imagery-card .imagery-toolbar .radar-range,
 .imagery-card:not(.is-expanded) .imagery-toolbar .radar-range,
 .imagery-card.is-expanded .imagery-toolbar .radar-range {
-  width: 32px;
+  width: 26px;
   min-width: 0;
   height: 21px;
   padding: 0;
@@ -2158,4 +2158,16 @@ html[lang="en"] .legacy-forecast-temp {
 .imagery-card.is-expanded .imagery-toolbar .radar-range[aria-selected="true"] {
   color: var(--accent-contrast);
   background: var(--accent);
+}
+
+.imagery-toolbar .radar-range-unit {
+  display: flex;
+  width: 18px;
+  height: 21px;
+  align-items: center;
+  justify-content: center;
+  color: rgba(232, 242, 252, 0.75);
+  font-size: 9px;
+  line-height: 21px;
+  white-space: nowrap;
 }

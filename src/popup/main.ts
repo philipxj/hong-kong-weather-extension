@@ -923,6 +923,13 @@ function renderRadarRanges(type: ImageryType): void {
     });
     els.radarRanges.append(button);
   }
+  if (ranges.length) {
+    const unit = document.createElement("span");
+    unit.className = "radar-range-unit";
+    unit.textContent = "km";
+    unit.setAttribute("aria-hidden", "true");
+    els.radarRanges.append(unit);
+  }
 }
 
 function selectImageryRange(type: ImageryType, id: RadarRangeId): void {
