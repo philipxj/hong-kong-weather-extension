@@ -26,11 +26,15 @@ export async function checkEdgeApi({ env, operationId, fetchImpl }) {
     throw new Error("Edge API check request failed; verify connectivity and retry");
   }
   if (response.status !== 200) {
+    // Only emit fixed classifications; never log server text or credential values.
+    const diagnosis = /client\s*id.*invalid/i.test(response.statusText)
+      ? "; Microsoft rejected the Client ID"
+      : "";
     const hint =
       response.status === 401 || response.status === 403
         ? "; verify Client ID and renew EDGE_API_KEY in Partner Center"
         : "; verify the historical operation ID and API availability";
-    throw new Error(`Edge API check failed (${response.status})${hint}`);
+    throw new Error(`Edge API check failed (${response.status})${diagnosis}${hint}`);
   }
   /** @type {unknown} */
   let payload;

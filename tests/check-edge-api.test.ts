@@ -16,6 +16,14 @@ const env = {
 const operationId = "5c63e606-5844-48af-a145-3b81b195ca9a";
 
 describe("read-only Edge API credential check", () => {
+  test("classifies an invalid Client ID without exposing the server response", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(env.EDGE_API_KEY, {
+      status: 403, statusText: "Client ID is Invalid"
+    }));
+    await expect(helper.checkEdgeApi({ env, operationId, fetchImpl })).rejects.toThrow(
+      "Microsoft rejected the Client ID"
+    );
+  });
   test("checks one existing operation with GET and does not submit", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(Response.json({ status: "Succeeded" }));
     await expect(helper.checkEdgeApi({ env, operationId, fetchImpl })).resolves.toEqual({
