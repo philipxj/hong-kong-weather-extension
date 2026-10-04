@@ -147,6 +147,30 @@ For store upload runs:
 
 ## Store Behavior
 
+### Checking Edge credentials without uploading
+
+Edge API keys expire after 72 days. Renew the key in Partner Center's Publish API
+page and have the user update the repository secret `EDGE_API_KEY`; browser login
+does not refresh that secret. Keep `EDGE_CLIENT_ID` consistent with Partner Center.
+
+Use a known **publish** operation ID from a previous successful release log:
+
+```bash
+gh workflow run edge-api-check.yml --repo philipxj/hong-kong-weather-extension \
+  --ref main -f operation_id=YOUR_EXISTING_PUBLISH_OPERATION_ID
+```
+
+This manually triggered workflow makes one authenticated GET, with no package
+upload or submission. HTTP 200 with a recognized operation state proves access
+to that historical operation; it does not establish the current store review
+status. A 401/403 requires checking the Client ID/key pair and key expiry. A 404
+is not considered success; use an operation ID still available through the API.
+Secret values and full response bodies are never printed by the checker.
+
+Reference: [Microsoft Publish API key lifecycle](https://blogs.windows.com/msedgedev/2025/01/08/enhanced-security-for-extensions-with-publish-api-next-steps/).
+
+### Upload and submission behavior
+
 - Chrome uses the Chrome Web Store API upload endpoint for an existing item.
   When `submit_chrome` is enabled, it also calls the publish endpoint, which
   submits the item for review.

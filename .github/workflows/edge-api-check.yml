@@ -1,0 +1,29 @@
+name: Edge API Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation_id:
+        description: Existing Edge publish operation ID to read; no upload or submission.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Check Edge API credentials with GET
+        env:
+          EDGE_PRODUCT_ID: ${{ vars.EDGE_PRODUCT_ID }}
+          EDGE_CLIENT_ID: ${{ vars.EDGE_CLIENT_ID }}
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+          EDGE_OPERATION_ID: ${{ inputs.operation_id }}
+        run: node scripts/check-edge-api.mjs "$EDGE_OPERATION_ID"
