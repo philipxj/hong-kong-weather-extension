@@ -168,7 +168,11 @@ test.beforeEach(async ({ page }) => {
     for (const [key, value] of Object.entries({
       weatherCache: weather,
       imageryUrlCache: {
-        radar: { fetchedAt: Date.now(), url: urls.at(-1), urls },
+        radar: {
+          fetchedAt: Date.now() - (new URL(location.href).searchParams.has("staleRadar") ? 20 * 60 * 1000 : 0),
+          url: urls.at(-1),
+          urls
+        },
         lightning: {
           fetchedAt: Date.now(),
           url: urls.at(-1),
@@ -188,6 +192,50 @@ test.beforeEach(async ({ page }) => {
       }
     });
   });
+});
+
+test("loads the first radar image on a slow cold start without changing km", async ({ page }) => {
+  await page.addInitScript(() => {
+    document.addEventListener("load", (event) => {
+      const image = event.target;
+      if (image instanceof HTMLImageElement && image.id === "imagery-image" &&
+          image.src.includes("new-") && image.naturalWidth > 0) {
+        document.documentElement.dataset.radarLoaded = image.src;
+      }
+    }, true);
+  });
+  await page.route("https://www.hko.gov.hk/**", async (route) => {
+    if (route.request().url().includes("nradar_img.json")) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const radar = Object.fromEntries(
+        ["range0", "range1", "range2"].map((range) => [
+          range,
+          {
+            image: Array.from(
+              { length: 5 },
+              (_, frame) => `picture[0][${frame}]="new-${range}-${frame}.jpg";`
+            )
+          }
+        ])
+      );
+      await route.fulfill({ json: { radar } });
+      return;
+    }
+    if (route.request().url().includes("new-")) {
+      await new Promise((resolve) => setTimeout(resolve, 1400));
+    }
+    await route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="577" height="400"><rect width="577" height="400" fill="skyblue"/></svg>'
+    });
+  });
+  await page.clock.resume();
+  await page.goto(`${popupUrl}?warnings=none&staleRadar=1`);
+  await expect(page.locator("#radar-playback")).toBeVisible();
+  await expect(page.locator("#imagery-image")).toHaveAttribute("src", /new-/);
+  await expect(page.locator("html")).toHaveAttribute("data-radar-loaded", /new-/);
+  const loadedPosition = await page.locator("#radar-playback-position").textContent();
+  await expect(page.locator("#radar-playback-position")).not.toHaveText(loadedPosition ?? "");
 });
 
 for (const interaction of ["pointer", "Enter", "Space"] as const) {

@@ -156,6 +156,12 @@ if (
     autoplayTimer = undefined;
     if (!canRunImageryPlayback(playbackState) || !isRadarActive()) return;
 
+    // Switching src while a cold image is loading aborts its download.
+    if (!imageryImage.complete) {
+      scheduleAutoplay();
+      return;
+    }
+
     const position = currentPosition();
     if (!position) {
       syncControls();
