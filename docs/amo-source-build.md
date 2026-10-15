@@ -5,7 +5,7 @@ These instructions are for Mozilla Add-ons reviewers to reproduce the submitted 
 ## Build Environment
 
 - Operating system used for the submitted package: macOS 15
-- Node.js required by the project: 20.19.0 or newer
+- Node.js required by the project: 24.x (24.0.0 or newer), or 26 or newer
 - Node.js version used for the submitted package: 24.10.0
 - npm version used for the submitted package: 11.6.1
 
