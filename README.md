@@ -55,7 +55,7 @@ Do not bundle the Hong Kong Observatory logo, government logos, DATA.GOV.HK mark
 
 ## Development
 
-Use Node.js 20.19.0 or newer. The current Vite and Vitest toolchain requires Node 20+.
+Use Node.js 24 LTS (24.0.0 or newer within the 24.x line), or Node.js 26 or newer. Node.js 20, 22, and 25 are not supported by this project. Run `nvm use` to select the version pinned in `.nvmrc`.
 
 Install dependencies:
 
