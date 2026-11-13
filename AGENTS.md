@@ -2,7 +2,7 @@
 
 ## Project
 
-This is a browser extension for Hong Kong weather alerts. It currently runs as a Chromium MV3 extension and should remain easy to port to other browsers, especially Edge and Firefox.
+This is a browser extension for Hong Kong weather alerts. It is an MV3 extension for Chromium and Edge, with a Firefox build (`npm run build:firefox`).
 
 The popup UI intentionally follows a compact Hong Kong Observatory-style layout.
 
@@ -13,6 +13,7 @@ Primary files:
 - `src/shared/weather-service.ts`: HKO API fetching, normalization, badge/warning logic
 - `src/shared/browser-api.ts`: small compatibility wrapper around extension APIs
 - `manifests/chromium.json`: Chromium/Edge MV3 manifest source
+- `manifests/firefox.json`: Firefox manifest source
 - `tests/`: unit and browser layout tests
 
 ## Browser Compatibility
@@ -22,7 +23,7 @@ Primary files:
 - Use `chrome.*` only where the existing MV3 extension needs it.
 - If adding browser APIs, keep them isolated behind small helper functions when compatibility may differ.
 - Do not introduce Chrome-only behavior unless there is a clear reason.
-- Treat Edge support as near-term and Firefox support as future work.
+- Keep the Chromium, Edge and Firefox builds working.
 - Safari support is not required unless explicitly requested.
 
 ## Engineering Rules
@@ -75,11 +76,11 @@ npm test
 
 For data/logic changes:
 
-- Add or update `tests/*.test.mjs`.
+- Add or update `tests/*.test.ts`.
 
 For popup UI/layout changes:
 
-- Add or update `tests/*.spec.mjs`.
+- Add or update `tests/*.spec.ts`.
 - Use browser-level bounding-box assertions for overlap-sensitive UI.
 - Cover at least:
   - no active warnings
